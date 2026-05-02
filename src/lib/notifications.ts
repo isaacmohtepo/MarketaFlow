@@ -1,0 +1,159 @@
+import { prisma } from "./db";
+import { sendEmail, appUrl } from "./email";
+import {
+  tplPostInReview,
+  tplPostApproved,
+  tplChangesRequested,
+  tplPostPublished,
+} from "./email-templates";
+
+type NotifType =
+  | "post_in_review"
+  | "post_approved"
+  | "post_changes_requested"
+  | "post_published"
+  | "post_publish_failed";
+
+async function buildEmail(opts: {
+  type: string;
+  brandId: string;
+  postId: string;
+  actorName: string;
+  body: string;
+}): Promise<{ subject: string; html: string } | null> {
+  const brand = await prisma.brand.findUnique({
+    where: { id: opts.brandId },
+    include: { agency: true },
+  });
+  if (!brand) return null;
+  const post = await prisma.post.findUnique({ where: { id: opts.postId } });
+  const postUrl = appUrl(`/brands/${opts.brandId}/posts/${opts.postId}`);
+
+  switch (opts.type as NotifType) {
+    case "post_in_review":
+      return {
+        subject: `${brand.name}: post para tu revisión`,
+        html: tplPostInReview({
+          brandName: brand.name,
+          agencyName: brand.agency.name,
+          actorName: opts.actorName,
+          postUrl,
+          caption: post?.caption,
+        }),
+      };
+    case "post_approved":
+      return {
+        subject: `${brand.name}: post aprobado por ${opts.actorName}`,
+        html: tplPostApproved({
+          brandName: brand.name,
+          clientName: opts.actorName,
+          postUrl,
+        }),
+      };
+    case "post_changes_requested": {
+      // body trae la nota: 'El cliente solicitó cambios: "..."'
+      const noteMatch = opts.body.match(/"([^"]+)"/);
+      return {
+        subject: `${brand.name}: ${opts.actorName} pidió cambios`,
+        html: tplChangesRequested({
+          brandName: brand.name,
+          clientName: opts.actorName,
+          note: noteMatch?.[1] ?? null,
+          postUrl,
+        }),
+      };
+    }
+    case "post_published":
+      return {
+        subject: `${brand.name}: post publicado`,
+        html: tplPostPublished({
+          brandName: brand.name,
+          postUrl,
+          publishedUrl: post?.publishedUrl ?? null,
+        }),
+      };
+    default:
+      return null;
+  }
+}
+
+async function dispatchEmails(
+  userIds: string[],
+  opts: { type: string; brandId: string; postId: string; actorName: string; body: string },
+) {
+  if (userIds.length === 0) return;
+  const recipients = await prisma.user.findMany({
+    where: { id: { in: userIds }, emailNotifications: true },
+    select: { email: true },
+  });
+  if (recipients.length === 0) return;
+  const built = await buildEmail(opts);
+  if (!built) return;
+  await Promise.all(
+    recipients.map((r) =>
+      sendEmail({ to: r.email, subject: built.subject, html: built.html }),
+    ),
+  );
+}
+
+export async function notifyBrandClients(opts: {
+  brandId: string;
+  postId: string;
+  type: string;
+  body: string;
+  actorName: string;
+}) {
+  const clients = await prisma.membership.findMany({
+    where: { brandId: opts.brandId, role: "client" },
+    select: { userId: true },
+  });
+  if (clients.length === 0) return;
+  const userIds = clients.map((c) => c.userId);
+  await prisma.notification.createMany({
+    data: userIds.map((userId) => ({
+      userId,
+      type: opts.type,
+      body: opts.body,
+      brandId: opts.brandId,
+      postId: opts.postId,
+      actorName: opts.actorName,
+    })),
+  });
+  // Email fire-and-forget
+  dispatchEmails(userIds, opts).catch((err) => console.error("dispatchEmails", err));
+}
+
+export async function notifyBrandAgency(opts: {
+  brandId: string;
+  postId: string;
+  type: string;
+  body: string;
+  actorName: string;
+  excludeUserId?: string;
+}) {
+  const brand = await prisma.brand.findUnique({ where: { id: opts.brandId } });
+  if (!brand) return;
+  const agencyMembers = await prisma.membership.findMany({
+    where: {
+      agencyId: brand.agencyId,
+      role: { in: ["owner", "editor"] },
+      brandId: null,
+    },
+    select: { userId: true },
+  });
+  const targets = agencyMembers
+    .map((m) => m.userId)
+    .filter((id) => id !== opts.excludeUserId);
+  if (targets.length === 0) return;
+  await prisma.notification.createMany({
+    data: targets.map((userId) => ({
+      userId,
+      type: opts.type,
+      body: opts.body,
+      brandId: opts.brandId,
+      postId: opts.postId,
+      actorName: opts.actorName,
+    })),
+  });
+  dispatchEmails(targets, opts).catch((err) => console.error("dispatchEmails", err));
+}

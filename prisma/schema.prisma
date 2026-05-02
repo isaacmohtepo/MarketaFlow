@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  email              String         @unique
+  name               String?
+  passwordHash       String
+  role               String         @default("agency")
+  emailNotifications Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  memberships   Membership[]
+  comments      Comment[]
+  approvals     Approval[]
+  sessions      Session[]
+  notifications Notification[]
+  activities    Activity[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  body      String
+  brandId   String?
+  postId    String?
+  actorName String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Agency {
+  id          String            @id @default(cuid())
+  name        String
+  createdAt   DateTime          @default(now())
+  brands      Brand[]
+  members     Membership[]
+  invitations TeamInvitation[]
+}
+
+model TeamInvitation {
+  id        String    @id @default(cuid())
+  agencyId  String
+  email     String
+  role      String    @default("editor")
+  token     String    @unique @default(cuid())
+  expiresAt DateTime
+  acceptedAt DateTime?
+  createdAt DateTime  @default(now())
+  agency    Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId])
+}
+
+model Membership {
+  id       String  @id @default(cuid())
+  userId   String
+  agencyId String
+  brandId  String?
+  role     String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agency   Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  brand    Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, agencyId, brandId])
+}
+
+model Brand {
+  id          String       @id @default(cuid())
+  agencyId    String
+  name        String
+  handle      String?
+  inviteCode  String       @unique @default(cuid())
+  publicToken String?      @unique
+  logoUrl     String?
+  color       String?
+  bio         String?
+  createdAt   DateTime     @default(now())
+  agency      Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  posts       Post[]
+  memberships Membership[]
+  hashtagSets HashtagSet[]
+}
+
+model HashtagSet {
+  id        String   @id @default(cuid())
+  brandId   String
+  name      String
+  tags      String   @default("") // hashtags separados por espacio
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  brandId     String
+  authorId    String
+  title       String?
+  caption     String     @default("")
+  imageUrl    String?
+  platform    String     @default("instagram")
+  postType    String     @default("feed")
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  publishedUrl String?
+  publishError String?
+  deletedAt   DateTime?
+  position    Int        @default(0)
+  status      String     @default("draft")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  brand       Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  approvals   Approval[]
+  images      PostImage[]
+  versions    PostVersion[]
+  activities  Activity[]
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String?
+  type      String
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+}
+
+model PostVersion {
+  id          String   @id @default(cuid())
+  postId      String
+  version     Int
+  caption     String   @default("")
+  imagesJson  String   @default("[]") // JSON array of urls (snapshot)
+  note        String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, version])
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  postId    String
+  url       String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  userId    String
+  body      String
+  x         Float?
+  y         Float?
+  parentId  String?
+  resolved  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+}
+
+model Approval {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  decision  String
+  note      String?
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

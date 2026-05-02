@@ -1,26 +1,252 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Split theme: cuerpo claro + sidebar oscuro */
+  --bg-deep: #050507;       /* solo landing pública */
+  --bg-app: #f5f5f7;        /* cuerpo de la app (claro) */
+  --bg-elev: #ffffff;       /* cards (claro) */
+  --bg-elev-2: #fafafa;     /* hover (claro) */
+  --bg-sidebar: #0e0e12;    /* sidebar oscuro */
+  --bg-sidebar-elev: #16161c;
+  --foreground: #1d1d1f;
+  --muted: #6e6e73;
+  --muted-2: #a1a1a6;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.14);
+  --line-dark: rgba(255, 255, 255, 0.07);
+
+  /* Brand */
+  --brand-from: #3b5fff;
+  --brand-via1: #8a2be2;
+  --brand-via2: #ff4d8f;
+  --brand-to: #ff2d55;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: var(--bg-app);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html, body { min-height: 100%; }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  background: #000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
+}
+
+h1, h2, h3, h4 { letter-spacing: -0.022em; }
+
+::selection { background: rgba(255, 77, 143, 0.35); }
+
+/* === Brand === */
+.brand-gradient {
+  background: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via1) 35%, var(--brand-via2) 70%, var(--brand-to) 100%);
+}
+.brand-gradient-text {
+  background: linear-gradient(135deg, var(--brand-from) 0%, var(--brand-via1) 35%, var(--brand-via2) 70%, var(--brand-to) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* === Buttons === */
+.btn-gradient {
+  background: linear-gradient(135deg, #4f72ff 0%, #a14dff 35%, #ff5e9c 70%, #ff3b67 100%);
+  background-size: 220% 220%;
+  transition: background-position 0.4s ease, transform 0.12s ease, box-shadow 0.2s ease;
+  color: white;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 10px 32px -8px rgba(255, 77, 143, 0.65),
+    0 4px 16px -4px rgba(138, 43, 226, 0.55);
+}
+.btn-gradient:hover {
+  background-position: 100% 0%;
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.10),
+    0 14px 38px -8px rgba(255, 77, 143, 0.75),
+    0 6px 22px -4px rgba(138, 43, 226, 0.65);
+}
+.btn-gradient:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: #ffffff;
+  color: var(--foreground);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  border: 1px solid var(--line);
+}
+.btn-secondary:hover { background: #f4f4f6; border-color: var(--line-strong); }
+
+/* === Inputs === */
+.input-soft {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--foreground);
+  transition: background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease;
+}
+.input-soft::placeholder { color: rgba(60, 60, 67, 0.45); }
+.input-soft:focus {
+  outline: none;
+  border-color: rgba(138, 43, 226, 0.55);
+  box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.10);
+}
+
+/* === Surfaces === */
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.card-flat {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.glass {
+  background: rgba(14, 14, 18, 0.62);
+  backdrop-filter: saturate(160%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.glass-tint {
+  background: var(--bg-sidebar);
+  backdrop-filter: saturate(160%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+}
+.divider { border-color: var(--line); }
+.divider-strong { border-color: var(--line-strong); }
+.hairline { border-top: 1px solid var(--line); }
+
+/* === Animaciones === */
+@keyframes blob-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(60px, -40px) scale(1.15); }
+  66%      { transform: translate(-40px, 30px) scale(0.95); }
+}
+@keyframes blob-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-50px, 50px) scale(1.1); }
+  66%      { transform: translate(40px, -30px) scale(0.9); }
+}
+@keyframes blob-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(40px, 40px) scale(1.2); }
+}
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(110px);
+  opacity: 0.45;
+  pointer-events: none;
+  will-change: transform;
+}
+.blob-a { animation: blob-drift-a 14s ease-in-out infinite; }
+.blob-b { animation: blob-drift-b 18s ease-in-out infinite; }
+.blob-c { animation: blob-drift-c 22s ease-in-out infinite; }
+
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+.brand-gradient-text-animated {
+  background: linear-gradient(
+    100deg,
+    #4f72ff 0%, #a14dff 25%, #ff5e9c 50%, #ff3b67 70%, #a14dff 90%, #4f72ff 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 8s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0%   { transform: translateX(-150%) skewX(-20deg); }
+  60%  { transform: translateX(250%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+.shine-overlay { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.shine-overlay::after {
+  content: ""; position: absolute; top: 0; left: 0;
+  width: 40%; height: 100%;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+  animation: shine 5s ease-in-out infinite;
+}
+
+/* Partículas flotantes para la landing */
+@keyframes particle-rise {
+  0%   { transform: translateY(20px); opacity: 0; }
+  20%  { opacity: 0.85; }
+  100% { transform: translateY(-100vh); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: particle-rise linear infinite;
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.6; }
+}
+.star {
+  position: absolute;
+  border-radius: 9999px;
+  background: white;
+  pointer-events: none;
+  animation: star-twinkle 4s ease-in-out infinite;
+}
+
+/* Cursor smoke trail */
+@keyframes smoke-fade {
+  0%   { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  15%  { opacity: 0.9; }
+  60%  { opacity: 0.55; transform: scale(1.2) rotate(calc(var(--smoke-rot, 30deg) * 0.6)) translate(calc(var(--smoke-dx, 0px) * 0.5), calc(var(--smoke-dy, -20px) * 0.5)); }
+  100% { opacity: 0; transform: scale(2) rotate(var(--smoke-rot, 30deg)) translate(var(--smoke-dx, 0px), var(--smoke-dy, -50px)); }
+}
+
+/* Scrollbar global (light theme del cuerpo de la app) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(60, 60, 67, 0.25); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(60, 60, 67, 0.45); }
+
+/* Scrollbar siempre visible para listas largas */
+.scroll-visible {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(60, 60, 67, 0.35) rgba(60, 60, 67, 0.06);
+  scrollbar-width: thin;
+}
+.scroll-visible::-webkit-scrollbar { width: 8px; }
+.scroll-visible::-webkit-scrollbar-track {
+  background: rgba(60, 60, 67, 0.05);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+.scroll-visible::-webkit-scrollbar-thumb {
+  background: rgba(60, 60, 67, 0.30);
+  border-radius: 999px;
+}
+.scroll-visible::-webkit-scrollbar-thumb:hover {
+  background: rgba(60, 60, 67, 0.50);
+}
+
+/* Scrollbar oscura para superficies dark (sidebar) */
+.scroll-dark::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+}
+.scroll-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.20);
 }
