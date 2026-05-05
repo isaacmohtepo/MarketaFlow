@@ -1,5 +1,5 @@
 import { Clock, TrendingUp } from "lucide-react";
-import Sparkline from "@/app/dashboard/Sparkline";
+import Sparkline from "@/app/(app)/dashboard/Sparkline";
 import { approvalRateTone, formatHours, type BrandKpis } from "@/lib/kpis-utils";
 
 const TONE_BG: Record<"good" | "warn" | "bad" | "neutral", string> = {
