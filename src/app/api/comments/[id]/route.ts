@@ -3,10 +3,20 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
+import { notifyMentionedUsers } from "@/lib/notifications";
 
 const editSchema = z.object({
   body: z.string().min(1).optional(),
   resolved: z.boolean().optional(),
+  internal: z.boolean().optional(),
+  assignedToId: z.string().nullable().optional(),
+  // Reanclaje del pin (drag): selector + offset relativo al elemento + viewport context
+  selector: z.string().max(500).optional(),
+  x: z.number().min(0).max(1).optional(),
+  y: z.number().min(0).max(1).optional(),
+  scrollY: z.number().int().nonnegative().optional(),
+  viewportW: z.number().int().positive().optional(),
+  viewportH: z.number().int().positive().optional(),
 });
 
 async function loadCommentWithAccess(userId: string, commentId: string) {
@@ -42,24 +52,98 @@ export async function PATCH(
   if (body.body !== undefined && ctx.comment.userId !== user.id) {
     return NextResponse.json({ error: "Solo el autor puede editar" }, { status: 403 });
   }
+  // Reanclaje (drag): autor o agencia
+  const isReanchor =
+    body.selector !== undefined ||
+    body.x !== undefined ||
+    body.y !== undefined;
+  if (isReanchor && ctx.comment.userId !== user.id && !ctx.access.canEdit) {
+    return NextResponse.json(
+      { error: "Solo el autor o la agencia puede reubicar este pin" },
+      { status: 403 },
+    );
+  }
+  // Asignar: solo agencia (canEdit)
+  const isAssign = body.assignedToId !== undefined;
+  if (isAssign && !ctx.access.canEdit) {
+    return NextResponse.json(
+      { error: "Solo la agencia puede asignar comentarios" },
+      { status: 403 },
+    );
+  }
+  // Toggle internal: solo agencia
+  const isToggleInternal = body.internal !== undefined;
+  if (isToggleInternal && !ctx.access.canEdit) {
+    return NextResponse.json(
+      { error: "Solo la agencia puede cambiar la visibilidad" },
+      { status: 403 },
+    );
+  }
+  // Si se está asignando, validar que el destinatario tenga acceso a la marca
+  if (isAssign && body.assignedToId) {
+    const target = await prisma.membership.findFirst({
+      where: {
+        userId: body.assignedToId,
+        OR: [
+          { brandId: ctx.comment.post.brandId },
+          { agency: { brands: { some: { id: ctx.comment.post.brandId } } } },
+        ],
+      },
+    });
+    if (!target) {
+      return NextResponse.json(
+        { error: "El usuario asignado no tiene acceso a esta marca" },
+        { status: 400 },
+      );
+    }
+  }
   // Resolver: cualquiera con acceso a la marca
   const updated = await prisma.comment.update({
     where: { id },
     data: {
       body: body.body,
       resolved: body.resolved,
+      ...(isAssign && { assignedToId: body.assignedToId }),
+      ...(isToggleInternal && { internal: body.internal }),
+      ...(body.selector !== undefined && { selector: body.selector }),
+      ...(body.x !== undefined && { x: body.x }),
+      ...(body.y !== undefined && { y: body.y }),
+      ...(body.scrollY !== undefined && { scrollY: body.scrollY }),
+      ...(body.viewportW !== undefined && { viewportW: body.viewportW }),
+      ...(body.viewportH !== undefined && { viewportH: body.viewportH }),
     },
-    include: { user: true },
+    include: {
+      user: true,
+      assignedTo: { select: { id: true, name: true, email: true } },
+    },
   });
+
+  // Notif al asignado (si se cambió y tiene asignación)
+  if (isAssign && body.assignedToId && body.assignedToId !== user.id) {
+    notifyMentionedUsers({
+      userIds: [body.assignedToId],
+      brandId: ctx.comment.post.brandId,
+      postId: ctx.comment.postId,
+      body: `Te asignaron este comentario: "${updated.body.slice(0, 120)}"`,
+      actorName: user.name ?? user.email,
+    }).catch((err) => console.error("notify assign failed", err));
+  }
 
   return NextResponse.json({
     comment: {
       id: updated.id,
       body: updated.body,
+      internal: updated.internal,
       x: updated.x,
       y: updated.y,
       parentId: updated.parentId,
       resolved: updated.resolved,
+      assignedToId: updated.assignedToId,
+      assignedToName: updated.assignedTo?.name ?? updated.assignedTo?.email ?? null,
+      selector: updated.selector,
+      scrollY: updated.scrollY,
+      viewportW: updated.viewportW,
+      viewportH: updated.viewportH,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
       userName: updated.user.name ?? updated.user.email,

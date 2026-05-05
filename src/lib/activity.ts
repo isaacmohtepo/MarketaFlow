@@ -42,8 +42,13 @@ export type TimelineEvent = {
  * - Activity (created, status_changed, published, version, deleted/restored)
  * - Approval (approved/changes_requested)
  * - Comment (con o sin pin)
+ *
+ * `excludeInternal` filtra los comentarios internos del equipo (cliente no debe verlos).
  */
-export async function getPostTimeline(postId: string): Promise<TimelineEvent[]> {
+export async function getPostTimeline(
+  postId: string,
+  opts?: { excludeInternal?: boolean },
+): Promise<TimelineEvent[]> {
   const [activities, approvals, comments] = await Promise.all([
     prisma.activity.findMany({
       where: { postId },
@@ -54,7 +59,11 @@ export async function getPostTimeline(postId: string): Promise<TimelineEvent[]> 
       include: { user: true },
     }),
     prisma.comment.findMany({
-      where: { postId, parentId: null },
+      where: {
+        postId,
+        parentId: null,
+        ...(opts?.excludeInternal ? { internal: false } : {}),
+      },
       include: { user: true },
     }),
   ]);

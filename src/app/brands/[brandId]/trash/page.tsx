@@ -72,7 +72,7 @@ export default async function TrashPage({
             </p>
           </div>
         ) : (
-          <ul className="card mt-6 divide-y divider overflow-hidden">
+          <ul className="card mt-6 divide-y divide-zinc-100/80 overflow-hidden">
             {posts.map((p) => (
               <TrashRow
                 key={p.id}

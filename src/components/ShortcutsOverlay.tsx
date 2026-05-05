@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Keyboard, X } from "lucide-react";
 import { useShortcut } from "@/lib/shortcut";
+import { useModKey } from "@/lib/platform";
 
 type Group = {
   title: string;
@@ -10,9 +11,11 @@ type Group = {
 };
 
 const GROUPS: Group[] = [
+  // El primer key del primer grupo se reemplaza dinámicamente con la tecla mod del SO.
   {
     title: "En cualquier parte",
     items: [
+      { keys: ["__MOD__", "K"], label: "Buscar / navegar (paleta)" },
       { keys: ["?"], label: "Abrir esta ayuda" },
       { keys: ["Esc"], label: "Cerrar modal / volver" },
     ],
@@ -34,9 +37,11 @@ const GROUPS: Group[] = [
   {
     title: "En el detalle de un post",
     items: [
-      { keys: ["A"], label: "Aprobar", context: "(cliente)" },
-      { keys: ["R"], label: "Solicitar cambios", context: "(cliente)" },
+      { keys: ["A"], label: "Aprobar (con confirmación)", context: "(cliente)" },
       { keys: ["C"], label: "Comentar (focus al input)" },
+      { keys: ["R"], label: "Comentar (alias)", context: "(cliente)" },
+      { keys: ["U"], label: "Subir nueva versión", context: "(agencia)" },
+      { keys: ["V"], label: "Comparar con versión anterior" },
       { keys: ["←"], label: "Post anterior" },
       { keys: ["→"], label: "Post siguiente" },
     ],
@@ -45,6 +50,7 @@ const GROUPS: Group[] = [
 
 export default function ShortcutsOverlay() {
   const [open, setOpen] = useState(false);
+  const mod = useModKey();
 
   useShortcut("?", () => setOpen(true));
   useShortcut("Escape", () => setOpen(false), { enabled: open });
@@ -92,7 +98,7 @@ export default function ShortcutsOverlay() {
                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                     {g.title}
                   </h3>
-                  <ul className="mt-2 divide-y divider rounded-lg border divider bg-white">
+                  <ul className="mt-2 divide-y divide-zinc-100/80 rounded-lg border divider bg-white">
                     {g.items.map((it, i) => (
                       <li
                         key={i}
@@ -107,14 +113,17 @@ export default function ShortcutsOverlay() {
                           )}
                         </span>
                         <span className="flex items-center gap-1">
-                          {it.keys.map((k) => (
-                            <kbd
-                              key={k}
-                              className="rounded-md border divider bg-zinc-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-800 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
-                            >
-                              {k}
-                            </kbd>
-                          ))}
+                          {it.keys.map((k) => {
+                            const display = k === "__MOD__" ? mod : k;
+                            return (
+                              <kbd
+                                key={k}
+                                className="rounded-md border divider bg-zinc-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-800 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                              >
+                                {display}
+                              </kbd>
+                            );
+                          })}
                         </span>
                       </li>
                     ))}

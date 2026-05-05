@@ -3,9 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useShortcut } from "@/lib/shortcut";
-import { Check, MoreHorizontal, Pencil, Trash2, CornerDownRight, GitCompare, UploadCloud, RotateCcw, AlertTriangle } from "lucide-react";
+import { Check, MoreHorizontal, Pencil, Trash2, CornerDownRight, GitCompare, UploadCloud, RotateCcw, AlertTriangle, X, MessageSquare, ShieldCheck, Paperclip, FileIcon, ImageIcon, Loader2, Globe, Monitor } from "lucide-react";
 import NewVersionModal from "./NewVersionModal";
 import BeforeAfterSlider from "./BeforeAfterSlider";
+import MentionInput from "@/components/MentionInput";
+import MentionText from "@/components/MentionText";
+import { useMentionedRoles } from "@/lib/useMentionedRoles";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { toast } from "sonner";
+import CommentAttachment from "@/components/CommentAttachment";
 
 export type PostVersionLite = {
   id: string;
@@ -27,6 +33,15 @@ type Comment = {
   y: number | null;
   parentId: string | null;
   resolved: boolean;
+  internal?: boolean;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentMime?: string | null;
+  pageUrl?: string | null;
+  selector?: string | null;
+  viewportW?: number | null;
+  viewportH?: number | null;
+  scrollY?: number | null;
 };
 
 export default function PostBoard({
@@ -44,6 +59,7 @@ export default function PostBoard({
   nextId,
   initialComments,
   versions,
+  isAgency,
 }: {
   postId: string;
   imageUrl: string | null;
@@ -59,6 +75,7 @@ export default function PostBoard({
   nextId: string | null;
   initialComments: Comment[];
   versions: PostVersionLite[];
+  isAgency: boolean;
 }) {
   const router = useRouter();
   const params = useParams<{ brandId: string }>();
@@ -81,17 +98,92 @@ export default function PostBoard({
   const [showResolved, setShowResolved] = useState(false);
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [compareWith, setCompareWith] = useState<string | null>(null);
+  const [confirmingApprove, setConfirmingApprove] = useState(false);
+  const [attachment, setAttachment] = useState<
+    | { url: string; name: string; mime: string }
+    | null
+  >(null);
+  const [attaching, setAttaching] = useState(false);
+  const attachInputRef = useRef<HTMLInputElement>(null);
+  const [liveStatus, setLiveStatus] = useState<string>(currentStatus);
+  // Visibilidad automática: si el post está en draft = modo equipo (todos los comments
+  // nuevos son internos). En revisión o más = modo cliente (públicos).
+  const isInternalMode = isAgency && liveStatus === "draft";
+  const { confirm: confirmDialog } = useConfirm();
+  // Detecta si el body actual menciona a un cliente — en ese caso, el comment NO puede ser interno
+  const { hasClientMention: bodyHasClientMention } = useMentionedRoles(
+    brandIdFromUrl ?? "",
+    body,
+  );
+  const { hasClientMention: pinHasClientMention } = useMentionedRoles(
+    brandIdFromUrl ?? "",
+    draftBody,
+  );
+
+  // Marca el post como visto (clear "Nuevo" badge en el feed)
+  useEffect(() => {
+    if (!postId) return;
+    fetch(`/api/posts/${postId}/view`, { method: "POST" }).catch(() => {});
+  }, [postId]);
+
+  // SSE: stream de comentarios + status en tiempo real
+  useEffect(() => {
+    if (!postId) return;
+    const es = new EventSource(`/api/posts/${postId}/events`);
+
+    es.addEventListener("comment", (ev) => {
+      const c = JSON.parse((ev as MessageEvent).data);
+      setComments((cur) => {
+        if (cur.some((x) => x.id === c.id)) return cur;
+        return [...cur, c];
+      });
+    });
+
+    es.addEventListener("comment_update", (ev) => {
+      const u = JSON.parse((ev as MessageEvent).data) as {
+        id: string;
+        body: string;
+        resolved: boolean;
+        updatedAt: string;
+      };
+      setComments((cur) =>
+        cur.map((c) =>
+          c.id === u.id ? { ...c, body: u.body, resolved: u.resolved, updatedAt: u.updatedAt } : c,
+        ),
+      );
+    });
+
+    es.addEventListener("status", (ev) => {
+      const { status } = JSON.parse((ev as MessageEvent).data);
+      setLiveStatus(status);
+      // Refresca para que la página entera (badge de status, último approval, etc.) se actualice
+      router.refresh();
+    });
+
+    es.onerror = () => {
+      // EventSource auto-reconecta; no spammeamos consola
+    };
+
+    return () => {
+      es.close();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  useEffect(() => {
+    setLiveStatus(currentStatus);
+  }, [currentStatus]);
 
   // ========== Keyboard shortcuts ==========
   const canUseApprove =
     canApprove &&
     !isDeleted &&
-    (currentStatus === "in_review" || currentStatus === "changes_requested");
+    (liveStatus === "in_review" || liveStatus === "changes_requested");
 
   useShortcut(
     "a",
     () => {
-      if (canUseApprove) decide("approved");
+      if (canUseApprove) setConfirmingApprove(true);
     },
     { enabled: canUseApprove },
   );
@@ -99,7 +191,9 @@ export default function PostBoard({
   useShortcut(
     "r",
     () => {
-      if (canUseApprove) decide("changes_requested");
+      // R deja de ser atajo de "pedir cambios" — ahora basta con comentar.
+      // Lo redirigimos al input de comentarios.
+      commentInputRef.current?.focus();
     },
     { enabled: canUseApprove },
   );
@@ -107,6 +201,27 @@ export default function PostBoard({
   useShortcut("c", () => {
     commentInputRef.current?.focus();
   });
+
+  // U — subir nueva versión (solo si puede editar)
+  useShortcut(
+    "u",
+    () => {
+      if (!isDeleted) setVersionModalOpen(true);
+    },
+    { enabled: canEdit && !isDeleted },
+  );
+
+  // V — comparar con la versión anterior más reciente
+  useShortcut(
+    "v",
+    () => {
+      const previous = versions.find((vv) => (vv.images?.[0] ?? null) !== null);
+      if (previous && previous.images[0]) {
+        setCompareWith(previous.images[0]);
+      }
+    },
+    { enabled: versions.length > 0 && (imageUrl !== null || images.length > 0) },
+  );
 
   useShortcut("ArrowLeft", () => {
     if (prevId && brandIdFromUrl) {
@@ -176,13 +291,18 @@ export default function PostBoard({
     setDraftBody("");
   }
 
-  async function savePin() {
+  async function savePin(overrideInternal?: boolean) {
     if (!pinDraft || !draftBody.trim()) return;
     setBusy(true);
     const res = await fetch(`/api/posts/${postId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: draftBody, x: pinDraft.x, y: pinDraft.y }),
+      body: JSON.stringify({
+        body: draftBody,
+        x: pinDraft.x,
+        y: pinDraft.y,
+        internal: overrideInternal ?? isInternalMode,
+      }),
     });
     setBusy(false);
     if (res.ok) {
@@ -190,23 +310,56 @@ export default function PostBoard({
       setComments((c) => [...c, j.comment]);
       setPinDraft(null);
       setDraftBody("");
+      if (j.autoStatusChange) router.refresh();
     }
   }
 
-  async function addComment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!body.trim()) return;
+  async function addComment(
+    e: React.FormEvent | null,
+    override?: { internal?: boolean },
+  ) {
+    e?.preventDefault();
+    if (!body.trim() && !attachment) return;
     setBusy(true);
     const res = await fetch(`/api/posts/${postId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({
+        body: body.trim() || (attachment ? attachment.name : ""),
+        attachmentUrl: attachment?.url ?? null,
+        attachmentName: attachment?.name ?? null,
+        attachmentMime: attachment?.mime ?? null,
+        internal: override?.internal ?? isInternalMode,
+      }),
     });
     setBusy(false);
     if (res.ok) {
       const j = await res.json();
       setComments((c) => [...c, j.comment]);
       setBody("");
+      setAttachment(null);
+      if (j.autoStatusChange) router.refresh();
+    }
+  }
+
+  async function uploadAttachment(file: File) {
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("El archivo no puede pesar más de 25MB");
+      return;
+    }
+    setAttaching(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!r.ok) {
+        toast.error("No se pudo subir el adjunto");
+        return;
+      }
+      const j = await r.json();
+      setAttachment({ url: j.url, name: file.name, mime: file.type || "application/octet-stream" });
+    } finally {
+      setAttaching(false);
     }
   }
 
@@ -224,6 +377,20 @@ export default function PostBoard({
       setComments((c) => [...c, j.comment]);
       setReplyBody("");
       setReplyTo(null);
+    }
+  }
+
+  async function toggleInternalComment(c: Comment) {
+    setBusy(true);
+    const res = await fetch(`/api/comments/${c.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ internal: !c.internal }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      const j = await res.json();
+      setComments((arr) => arr.map((x) => (x.id === c.id ? { ...x, ...j.comment } : x)));
     }
   }
 
@@ -259,7 +426,14 @@ export default function PostBoard({
   }
 
   async function deleteComment(id: string) {
-    if (!confirm("¿Borrar este comentario?")) return;
+    const ok = await confirmDialog({
+      title: "Borrar comentario",
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Borrar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
     setBusy(false);
@@ -283,18 +457,60 @@ export default function PostBoard({
   }
 
   async function changeStatus(status: string) {
+    if (liveStatus === "draft" && status !== "draft") {
+      const pendingInternal = comments.filter(
+        (c) => !c.parentId && c.internal && !c.resolved,
+      ).length;
+      if (pendingInternal > 0) {
+        const ok = await confirmDialog({
+          title: `${pendingInternal} ${
+            pendingInternal === 1 ? "nota interna sin resolver" : "notas internas sin resolver"
+          }`,
+          description:
+            "El cliente no las verá, pero quizás conviene atenderlas antes de pasar a revisión.",
+          confirmLabel: "Cambiar igual",
+          cancelLabel: "Volver",
+          variant: "warning",
+        });
+        if (!ok) return;
+      }
+    }
+    const prev = liveStatus;
+    setLiveStatus(status); // optimistic
     setBusy(true);
-    await fetch(`/api/posts/${postId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setBusy(false);
-    router.refresh();
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        setLiveStatus(prev);
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo cambiar el estado", {
+          description: j.error ?? res.statusText,
+        });
+        return;
+      }
+      toast.success("Estado actualizado");
+      router.refresh();
+    } catch (err) {
+      setLiveStatus(prev);
+      console.error("changeStatus failed", err);
+      toast.error("Error de red al cambiar el estado");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function moveToTrash() {
-    if (!confirm("¿Mover este post a la papelera? Podrás restaurarlo después.")) return;
+    const ok = await confirmDialog({
+      title: "¿Mover a la papelera?",
+      description: "Podrás restaurarlo después.",
+      confirmLabel: "Mover a papelera",
+      variant: "warning",
+    });
+    if (!ok) return;
     setBusy(true);
     const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
     setBusy(false);
@@ -315,8 +531,37 @@ export default function PostBoard({
     if (res.ok) router.refresh();
   }
 
+  async function restoreVersion(versionId: string, versionNumber: number) {
+    const ok = await confirmDialog({
+      title: `Restaurar versión ${versionNumber}`,
+      description:
+        "Se guardará un snapshot del estado actual antes de sobrescribir, así podés volver atrás.",
+      confirmLabel: "Restaurar",
+      variant: "warning",
+    });
+    if (!ok) return;
+    setBusy(true);
+    const res = await fetch(`/api/posts/${postId}/versions/${versionId}/restore`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      toast.error(j.error ?? "No se pudo restaurar");
+      return;
+    }
+    setCompareWith(null);
+    router.refresh();
+  }
+
   async function purgeForever() {
-    if (!confirm("¿Eliminar este post DEFINITIVAMENTE? Esta acción no se puede deshacer.")) return;
+    const ok = await confirmDialog({
+      title: "Eliminar definitivamente",
+      description: "Esta acción NO se puede deshacer. El post se borrará para siempre.",
+      confirmLabel: "Borrar para siempre",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     const res = await fetch(`/api/posts/${postId}/purge`, { method: "DELETE" });
     setBusy(false);
@@ -509,12 +754,14 @@ export default function PostBoard({
                     className="absolute rounded-xl border divider bg-white p-3 shadow-lg"
                     style={{ width: POP_W, ...horiz, ...vert }}
                   >
-                    <textarea
-                      autoFocus
+                    <MentionInput
                       value={draftBody}
-                      onChange={(e) => setDraftBody(e.target.value)}
+                      onChange={setDraftBody}
+                      brandId={brandIdFromUrl ?? ""}
+                      multiline
                       rows={2}
-                      placeholder="Comenta sobre este punto..."
+                      autoFocus
+                      placeholder="Comenta sobre este punto… usá @ para mencionar"
                       className="w-full rounded-md input-soft px-2 py-1.5 text-[13px]"
                     />
                     <div className="mt-2 flex justify-end gap-2">
@@ -524,8 +771,22 @@ export default function PostBoard({
                       >
                         Cancelar
                       </button>
+                      {isAgency && !isInternalMode && (
+                        <button
+                          onClick={() => savePin(true)}
+                          disabled={busy || !draftBody.trim() || pinHasClientMention}
+                          className="rounded-md border border-violet-200 bg-violet-50 px-3 py-1 text-[12px] font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-60"
+                          title={
+                            pinHasClientMention
+                              ? "Mencionaste a un cliente — no se puede marcar como interno"
+                              : "Solo el equipo lo verá"
+                          }
+                        >
+                          🔒 Interna
+                        </button>
+                      )}
                       <button
-                        onClick={savePin}
+                        onClick={() => savePin()}
                         disabled={busy || !draftBody.trim()}
                         className="btn-gradient rounded-md px-3 py-1 text-[12px] font-semibold disabled:opacity-60"
                       >
@@ -564,41 +825,56 @@ export default function PostBoard({
                 const active = compareWith === cover;
                 return (
                   <li key={v.id}>
-                    <button
-                      onClick={() => setCompareWith(active ? null : cover ?? null)}
-                      disabled={!cover}
-                      className={`flex w-full items-center gap-2 rounded-md p-1.5 text-left transition ${
-                        active
-                          ? "bg-fuchsia-50 ring-1 ring-fuchsia-300"
-                          : "hover:bg-zinc-50"
-                      } disabled:opacity-50`}
+                    <div
+                      className={`group flex items-center gap-2 rounded-md p-1.5 transition ${
+                        active ? "bg-fuchsia-50 ring-1 ring-fuchsia-300" : "hover:bg-zinc-50"
+                      }`}
                     >
-                      {cover ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={cover}
-                          alt=""
-                          className="h-9 w-9 flex-shrink-0 rounded object-cover"
+                      <button
+                        type="button"
+                        onClick={() => setCompareWith(active ? null : cover ?? null)}
+                        disabled={!cover}
+                        title={active ? "Cerrar comparación" : "Comparar con esta versión"}
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:opacity-50"
+                      >
+                        {cover ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={cover}
+                            alt=""
+                            className="h-9 w-9 flex-shrink-0 rounded object-cover"
+                          />
+                        ) : (
+                          <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded bg-zinc-100 text-[10px] text-zinc-500">
+                            —
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12px] font-semibold text-zinc-900">
+                            Versión {v.version}
+                          </p>
+                          <p className="truncate text-[10px] text-zinc-500">
+                            {new Date(v.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <GitCompare
+                          className={`h-3.5 w-3.5 ${
+                            active ? "text-fuchsia-700" : "text-zinc-400"
+                          }`}
                         />
-                      ) : (
-                        <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded bg-zinc-100 text-[10px] text-zinc-500">
-                          —
-                        </span>
+                      </button>
+                      {canEdit && !isDeleted && cover && (
+                        <button
+                          type="button"
+                          onClick={() => restoreVersion(v.id, v.version)}
+                          disabled={busy}
+                          title={`Restaurar a versión ${v.version}`}
+                          className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-md text-zinc-400 opacity-0 transition hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-30 group-hover:opacity-100 focus:opacity-100"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
                       )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-semibold text-zinc-900">
-                          Versión {v.version}
-                        </p>
-                        <p className="truncate text-[10px] text-zinc-500">
-                          {new Date(v.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <GitCompare
-                        className={`h-3.5 w-3.5 ${
-                          active ? "text-fuchsia-700" : "text-zinc-400"
-                        }`}
-                      />
-                    </button>
+                    </div>
                   </li>
                 );
               })}
@@ -644,7 +920,7 @@ export default function PostBoard({
 
         {canEdit && !isDeleted && (
           <StatusSelector
-            current={currentStatus}
+            current={liveStatus}
             disabled={busy}
             onChange={(s) => changeStatus(s)}
           />
@@ -699,35 +975,64 @@ export default function PostBoard({
         )}
 
         {!isDeleted && canApprove &&
-          (currentStatus === "in_review" || currentStatus === "changes_requested") && (
-            <div className="card p-4">
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                placeholder="Nota opcional (sobre todo si pides cambios)"
-                className="w-full rounded-lg input-soft px-3 py-2 text-sm"
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => decide("approved")}
-                  disabled={busy}
-                  className="btn-gradient flex-1 rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60"
-                >
-                  ✓ Aprobar
-                </button>
-                <button
-                  onClick={() => decide("changes_requested")}
-                  disabled={busy}
-                  className="flex-1 rounded-lg border border-rose-200 bg-white py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
-                >
-                  Solicitar cambios
-                </button>
-              </div>
+          (liveStatus === "in_review" || liveStatus === "changes_requested") && (
+            <div className="rounded-xl border divider bg-white px-3.5 py-2.5">
+              {!confirmingApprove ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <ShieldCheck className="h-4 w-4 flex-shrink-0 text-emerald-600" />
+                  <p className="flex-1 min-w-[180px] text-[12.5px] text-zinc-700">
+                    Si está listo, aprobalo. Si necesita ajustes, dejá un comentario y se enviará como pedido de cambios.
+                  </p>
+                  <button
+                    onClick={() => setConfirmingApprove(true)}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                    Aprobar post
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Check className="h-4 w-4 flex-shrink-0 text-emerald-600" strokeWidth={3} />
+                  <p className="flex-1 min-w-[180px] text-[12.5px] font-medium text-zinc-800">
+                    ¿Confirmás la aprobación de este post?
+                  </p>
+                  <button
+                    onClick={() => setConfirmingApprove(false)}
+                    disabled={busy}
+                    className="rounded-full px-3 py-1.5 text-[12px] font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-60"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      decide("approved");
+                      setConfirmingApprove(false);
+                    }}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-[12.5px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                    Sí, aprobar
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
         <div className="flex flex-1 flex-col lg:min-h-0">
+          {/* Banner de modo equipo: aparece cuando el post está en draft (cliente no ve) */}
+          {isInternalMode && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] text-violet-900">
+              <span className="text-base leading-none">🔒</span>
+              <p className="flex-1 leading-tight">
+                <span className="font-bold">Modo equipo.</span> Los comentarios nuevos quedan
+                privados — el cliente no ve este post ni los comentarios. Cambiá el status a{" "}
+                <span className="font-semibold">En revisión</span> cuando esté listo.
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900">
               Comentarios{" "}
@@ -771,6 +1076,7 @@ export default function PostBoard({
                     }}
                     onDelete={() => deleteComment(c.id)}
                     onResolve={() => toggleResolve(c)}
+                    onToggleInternal={isAgency ? () => toggleInternalComment(c) : undefined}
                   />
                   {isEditing ? (
                     <EditBox
@@ -781,7 +1087,20 @@ export default function PostBoard({
                       busy={busy}
                     />
                   ) : (
-                    <p className="mt-1 whitespace-pre-wrap text-zinc-800">{c.body}</p>
+                    <>
+                      <MentionText
+                        text={c.body}
+                        className="mt-1 block whitespace-pre-wrap text-zinc-800"
+                      />
+                      {c.attachmentUrl && (
+                        <CommentAttachment
+                          url={c.attachmentUrl}
+                          name={c.attachmentName}
+                          mime={c.attachmentMime}
+                        />
+                      )}
+                      <WidgetContext c={c} />
+                    </>
                   )}
 
                   {replies.length > 0 && (
@@ -810,9 +1129,19 @@ export default function PostBoard({
                                 busy={busy}
                               />
                             ) : (
-                              <p className="mt-0.5 whitespace-pre-wrap text-zinc-700">
-                                {r.body}
-                              </p>
+                              <>
+                                <MentionText
+                                  text={r.body}
+                                  className="mt-0.5 block whitespace-pre-wrap text-zinc-700"
+                                />
+                                {r.attachmentUrl && (
+                                  <CommentAttachment
+                                    url={r.attachmentUrl}
+                                    name={r.attachmentName}
+                                    mime={r.attachmentMime}
+                                  />
+                                )}
+                              </>
                             )}
                           </li>
                         );
@@ -823,10 +1152,14 @@ export default function PostBoard({
                   {!c.resolved &&
                     (replyTo === c.id ? (
                       <div className="mt-2 flex gap-2">
-                        <input
-                          autoFocus
+                        <MentionInput
                           value={replyBody}
-                          onChange={(e) => setReplyBody(e.target.value)}
+                          onChange={setReplyBody}
+                          brandId={brandIdFromUrl ?? ""}
+                          autoFocus
+                          placeholder="Escribe una respuesta… usá @ para mencionar"
+                          containerClassName="flex-1"
+                          className="w-full rounded-md input-soft px-2 py-1.5 text-[13px]"
                           onKeyDown={(e) => {
                             if (e.key === "Escape") setReplyTo(null);
                             if (e.key === "Enter" && !e.shiftKey) {
@@ -834,8 +1167,6 @@ export default function PostBoard({
                               sendReply(c.id);
                             }
                           }}
-                          placeholder="Escribe una respuesta..."
-                          className="flex-1 rounded-md input-soft px-2 py-1.5 text-[13px]"
                         />
                         <button
                           onClick={() => sendReply(c.id)}
@@ -862,21 +1193,102 @@ export default function PostBoard({
             })}
           </ul>
 
-          <form onSubmit={addComment} className="mt-3 flex gap-2">
-            <input
-              ref={commentInputRef}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Comentario general..."
-              className="flex-1 rounded-lg input-soft px-3 py-2 text-sm"
-            />
-            <button
-              disabled={busy || !body.trim()}
-              className="btn-gradient rounded-lg px-4 text-sm font-semibold disabled:opacity-60"
-            >
-              Enviar
-            </button>
+          <form onSubmit={addComment} className="mt-3 space-y-2">
+            <div className="flex gap-2">
+              <MentionInput
+                value={body}
+                onChange={setBody}
+                brandId={brandIdFromUrl ?? ""}
+                placeholder="Escribir un comentario… usá @ para mencionar"
+                inputRef={commentInputRef}
+                containerClassName="flex-1"
+                className="w-full rounded-lg input-soft pl-3 pr-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => attachInputRef.current?.click()}
+                disabled={attaching || busy}
+                title="Adjuntar archivo"
+                className="grid h-9 w-9 flex-shrink-0 place-items-center self-end rounded-lg btn-secondary text-zinc-600 disabled:opacity-50"
+              >
+                {attaching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Paperclip className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <input
+                ref={attachInputRef}
+                type="file"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadAttachment(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                disabled={busy || (!body.trim() && !attachment)}
+                className="h-9 rounded-lg bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-40"
+                title={isInternalMode ? "El cliente no lo verá (modo equipo)" : "El cliente lo verá"}
+              >
+                Comentar
+              </button>
+              {isAgency && !isInternalMode && (
+                <button
+                  type="button"
+                  onClick={() => addComment(null, { internal: true })}
+                  disabled={
+                    busy || (!body.trim() && !attachment) || bodyHasClientMention
+                  }
+                  className="hidden h-9 items-center rounded-lg border border-violet-200 bg-violet-50 px-3 text-sm font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-40 sm:inline-flex"
+                  title={
+                    bodyHasClientMention
+                      ? "Mencionaste a un cliente — no se puede marcar como interno (necesita verlo para enterarse)"
+                      : "Solo el equipo lo verá. El cliente no se entera."
+                  }
+                >
+                  🔒 Nota interna
+                </button>
+              )}
+            </div>
+            {attachment && (
+              <div className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5">
+                {attachment.mime.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={attachment.url}
+                    alt={attachment.name}
+                    className="h-8 w-8 flex-shrink-0 rounded object-cover"
+                  />
+                ) : (
+                  <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded bg-white text-zinc-500">
+                    <FileIcon className="h-3.5 w-3.5" />
+                  </span>
+                )}
+                <p className="min-w-0 flex-1 truncate text-[12px] font-medium text-zinc-700">
+                  {attachment.name}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setAttachment(null)}
+                  className="grid h-6 w-6 flex-shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-200"
+                  aria-label="Quitar adjunto"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
           </form>
+          {canApprove && liveStatus === "in_review" ? (
+            <p className="mt-1.5 text-[10.5px] text-zinc-500">
+              Si comentás, el post pasa automáticamente a <span className="font-semibold text-rose-600">Cambios solicitados</span> y se notifica a la agencia.
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[10.5px] text-zinc-400">
+              Los comentarios agregan contexto sin cambiar el estado.
+            </p>
+          )}
         </div>
 
         {canEdit && !isDeleted && (
@@ -909,6 +1321,7 @@ function CommentHead({
   onEdit,
   onDelete,
   onResolve,
+  onToggleInternal,
 }: {
   c: Comment;
   pinIdx?: number;
@@ -917,6 +1330,8 @@ function CommentHead({
   onEdit: () => void;
   onDelete: () => void;
   onResolve?: () => void;
+  /** Solo se muestra el toggle si está definido (= la agencia puede cambiar visibility). */
+  onToggleInternal?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState(false);
   const edited = c.updatedAt && c.updatedAt !== c.createdAt;
@@ -942,6 +1357,14 @@ function CommentHead({
         </span>
         <span>· {new Date(c.createdAt).toLocaleString()}</span>
         {edited && <span className="italic">(editado)</span>}
+        {c.internal && (
+          <span
+            className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-violet-700 ring-1 ring-violet-200"
+            title="Comentario interno — solo lo ve el equipo, no el cliente"
+          >
+            🔒 equipo
+          </span>
+        )}
         {c.resolved && (
           <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
             Resuelto
@@ -962,7 +1385,7 @@ function CommentHead({
             {c.resolved ? "Reabrir" : "Resolver"}
           </button>
         )}
-        {isOwn && (
+        {(isOwn || onToggleInternal) && (
           <button
             onClick={() => setOpenMenu((v) => !v)}
             className="grid h-5 w-5 place-items-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
@@ -973,32 +1396,88 @@ function CommentHead({
         )}
         {openMenu && (
           <div
-            className="absolute right-0 top-6 z-20 w-32 overflow-hidden rounded-lg border divider bg-white shadow-lg"
+            className="absolute right-0 top-6 z-20 w-44 overflow-hidden rounded-lg border divider bg-white shadow-lg"
             onMouseLeave={() => setOpenMenu(false)}
           >
-            <button
-              onClick={() => {
-                setOpenMenu(false);
-                onEdit();
-              }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-zinc-700 hover:bg-zinc-50"
-            >
-              <Pencil className="h-3 w-3" />
-              Editar
-            </button>
-            <button
-              onClick={() => {
-                setOpenMenu(false);
-                onDelete();
-              }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-rose-600 hover:bg-rose-50"
-            >
-              <Trash2 className="h-3 w-3" />
-              Borrar
-            </button>
+            {onToggleInternal && (
+              <button
+                onClick={() => {
+                  setOpenMenu(false);
+                  onToggleInternal();
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-[12px] hover:bg-zinc-50 ${
+                  c.internal ? "text-emerald-700" : "text-violet-700"
+                }`}
+              >
+                {c.internal ? "🌍 Hacer público" : "🔒 Solo equipo"}
+              </button>
+            )}
+            {isOwn && (
+              <>
+                <button
+                  onClick={() => {
+                    setOpenMenu(false);
+                    onEdit();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => {
+                    setOpenMenu(false);
+                    onDelete();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-rose-600 hover:bg-rose-50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Borrar
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function WidgetContext({ c }: { c: Comment }) {
+  if (!c.pageUrl) return null;
+  let host = "";
+  try {
+    host = new URL(c.pageUrl).host.replace(/^www\./, "");
+  } catch {}
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-md bg-violet-50 px-2 py-1 ring-1 ring-violet-100">
+      <span className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-violet-700 ring-1 ring-violet-200">
+        <Globe className="h-2.5 w-2.5" />
+        Widget
+      </span>
+      <a
+        href={c.pageUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-w-0 items-center gap-1 truncate font-mono text-[10.5px] text-violet-900 hover:underline"
+        title={c.pageUrl}
+      >
+        {host || c.pageUrl}
+      </a>
+      {c.viewportW && c.viewportH && (
+        <span className="inline-flex items-center gap-1 text-[10.5px] text-violet-800">
+          <Monitor className="h-2.5 w-2.5" />
+          {c.viewportW}×{c.viewportH}
+        </span>
+      )}
+      {c.selector && (
+        <span
+          className="truncate font-mono text-[10px] text-violet-700/80"
+          title={c.selector}
+        >
+          {c.selector}
+        </span>
+      )}
     </div>
   );
 }

@@ -37,12 +37,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ posts: [], brands: [] });
   }
 
-  const [posts, brands] = await Promise.all([
+  // Si el user es cliente en alguna marca, escondemos los internos en search global
+  // (conservador: si es cliente en B y agencia en A, no verá internos de A en search;
+  // pero los puede ver entrando al detalle del post directo).
+  const isClientAnywhere = memberships.some((m) => m.role === "client");
+
+  const [posts, brands, comments] = await Promise.all([
     prisma.post.findMany({
       where: {
         brandId: { in: brandIds },
         deletedAt: null,
-        caption: { contains: q },
+        caption: { contains: q, mode: "insensitive" },
       },
       orderBy: { updatedAt: "desc" },
       take: 8,
@@ -51,10 +56,33 @@ export async function GET(req: Request) {
     prisma.brand.findMany({
       where: {
         id: { in: brandIds },
-        name: { contains: q },
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { handle: { contains: q, mode: "insensitive" } },
+        ],
       },
       orderBy: { name: "asc" },
       take: 5,
+    }),
+    prisma.comment.findMany({
+      where: {
+        body: { contains: q, mode: "insensitive" },
+        post: { brandId: { in: brandIds }, deletedAt: null },
+        ...(isClientAnywhere ? { internal: false } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      include: {
+        user: { select: { name: true, email: true } },
+        post: {
+          select: {
+            id: true,
+            brandId: true,
+            imageUrl: true,
+            brand: { select: { name: true } },
+          },
+        },
+      },
     }),
   ]);
 
@@ -71,6 +99,16 @@ export async function GET(req: Request) {
       id: b.id,
       name: b.name,
       handle: b.handle,
+    })),
+    comments: comments.map((c) => ({
+      id: c.id,
+      body: c.body,
+      authorName: c.user.name ?? c.user.email,
+      postId: c.post.id,
+      brandId: c.post.brandId,
+      brandName: c.post.brand.name,
+      postImageUrl: c.post.imageUrl,
+      createdAt: c.createdAt.toISOString(),
     })),
   });
 }

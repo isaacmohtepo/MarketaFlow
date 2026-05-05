@@ -121,6 +121,27 @@ export function tplChangesRequested(opts: {
   });
 }
 
+export function tplCommentMention(opts: {
+  brandName: string;
+  actorName: string;
+  body: string;
+  postUrl: string;
+}) {
+  // Trunca el comentario para que el email sea liviano y resalta @menciones
+  const safe = opts.body.length > 280 ? `${opts.body.slice(0, 277)}…` : opts.body;
+  const highlighted = safe.replace(
+    /@(?:"[^"]+"|[\w.\-áéíóúñÁÉÍÓÚÑ]+)/g,
+    (m) => `<span style="color:#8a2be2;font-weight:600;">${m}</span>`,
+  );
+  return shell({
+    preheader: `${opts.actorName} te mencionó en ${opts.brandName}`,
+    title: `${opts.actorName} te mencionó`,
+    intro: `En el post de <strong>${opts.brandName}</strong>:<br/><span style="display:inline-block;margin-top:10px;font-size:13px;color:#1d1d1f;background:#faf5ff;border-left:3px solid #8a2be2;padding:10px 12px;border-radius:6px;">"${highlighted}"</span>`,
+    ctaLabel: "Ver comentario",
+    ctaUrl: opts.postUrl,
+  });
+}
+
 export function tplPostPublished(opts: {
   brandName: string;
   postUrl: string;

@@ -9,7 +9,7 @@ export default async function RegisterPage() {
   const user = await getCurrentUser();
   if (user) redirect("/dashboard");
   return (
-    <div className="flex min-h-screen flex-col bg-black">
+    <div className="theme-dark flex min-h-screen flex-col bg-black">
       <PublicHeader />
       <div className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-12">
         <Particles count={18} />

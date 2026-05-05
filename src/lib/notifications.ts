@@ -5,6 +5,7 @@ import {
   tplPostApproved,
   tplChangesRequested,
   tplPostPublished,
+  tplCommentMention,
 } from "./email-templates";
 
 type NotifType =
@@ -12,7 +13,8 @@ type NotifType =
   | "post_approved"
   | "post_changes_requested"
   | "post_published"
-  | "post_publish_failed";
+  | "post_publish_failed"
+  | "comment_mention";
 
 async function buildEmail(opts: {
   type: string;
@@ -72,6 +74,16 @@ async function buildEmail(opts: {
           publishedUrl: post?.publishedUrl ?? null,
         }),
       };
+    case "comment_mention":
+      return {
+        subject: `${opts.actorName} te mencionó en ${brand.name}`,
+        html: tplCommentMention({
+          brandName: brand.name,
+          actorName: opts.actorName,
+          body: opts.body,
+          postUrl,
+        }),
+      };
     default:
       return null;
   }
@@ -123,9 +135,39 @@ export async function notifyBrandClients(opts: {
   dispatchEmails(userIds, opts).catch((err) => console.error("dispatchEmails", err));
 }
 
-export async function notifyBrandAgency(opts: {
+/**
+ * Crea notificación in-app + dispara email para los usuarios mencionados con @ en un comentario.
+ */
+export async function notifyMentionedUsers(opts: {
+  userIds: string[];
   brandId: string;
   postId: string;
+  body: string;
+  actorName: string;
+}) {
+  if (opts.userIds.length === 0) return;
+  await prisma.notification.createMany({
+    data: opts.userIds.map((userId) => ({
+      userId,
+      type: "comment_mention",
+      body: `${opts.actorName} te mencionó: "${opts.body.slice(0, 120)}"`,
+      brandId: opts.brandId,
+      postId: opts.postId,
+      actorName: opts.actorName,
+    })),
+  });
+  dispatchEmails(opts.userIds, {
+    type: "comment_mention",
+    brandId: opts.brandId,
+    postId: opts.postId,
+    actorName: opts.actorName,
+    body: opts.body,
+  }).catch((err) => console.error("dispatchEmails (mention)", err));
+}
+
+export async function notifyBrandAgency(opts: {
+  brandId: string;
+  postId?: string;
   type: string;
   body: string;
   actorName: string;
@@ -151,9 +193,11 @@ export async function notifyBrandAgency(opts: {
       type: opts.type,
       body: opts.body,
       brandId: opts.brandId,
-      postId: opts.postId,
+      postId: opts.postId || null,
       actorName: opts.actorName,
     })),
   });
-  dispatchEmails(targets, opts).catch((err) => console.error("dispatchEmails", err));
+  dispatchEmails(targets, { ...opts, postId: opts.postId ?? "" }).catch((err) =>
+    console.error("dispatchEmails", err),
+  );
 }

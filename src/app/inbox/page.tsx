@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import AppShell from "@/components/AppShell";
+import InboxNotifications from "./InboxNotifications";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 
 const MONTHS = [
@@ -38,8 +39,15 @@ export default async function InboxPage() {
   const now = new Date();
   const in7d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const [pendingApproval, changesRequested, readyToPublish, upcoming, recentlyPublished] =
-    await Promise.all([
+  const [
+    pendingApproval,
+    changesRequested,
+    readyToPublish,
+    upcoming,
+    recentlyPublished,
+    notifications,
+    unreadCount,
+  ] = await Promise.all([
       // Por aprobar (relevante a cliente; agencia también ve para saber qué espera)
       prisma.post.findMany({
         where: { ...accessFilter, status: "in_review" },
@@ -85,14 +93,33 @@ export default async function InboxPage() {
         take: 5,
         include: { brand: true },
       }),
+      // Notificaciones personales (in-app)
+      prisma.notification.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      prisma.notification.count({ where: { userId: user.id, read: false } }),
     ]);
+
+  const notifItems = notifications.map((n) => ({
+    id: n.id,
+    type: n.type,
+    body: n.body,
+    brandId: n.brandId,
+    postId: n.postId,
+    actorName: n.actorName,
+    read: n.read,
+    createdAt: n.createdAt.toISOString(),
+  }));
 
   const empty =
     pendingApproval.length === 0 &&
     changesRequested.length === 0 &&
     readyToPublish.length === 0 &&
     upcoming.length === 0 &&
-    recentlyPublished.length === 0;
+    recentlyPublished.length === 0 &&
+    notifItems.length === 0;
 
   return (
     <AppShell userName={user.name ?? user.email} agencyName={agencyName} title="Inbox">
@@ -117,6 +144,10 @@ export default async function InboxPage() {
         )}
 
         <div className="mt-6 space-y-7">
+          {notifItems.length > 0 && (
+            <InboxNotifications initialItems={notifItems} initialUnread={unreadCount} />
+          )}
+
           {/* Pendientes de aprobación */}
           {pendingApproval.length > 0 && (
             <Section
@@ -306,7 +337,7 @@ function Section({
         </div>
       </div>
       {hint && <p className="ml-8 text-[11px] text-zinc-500">{hint}</p>}
-      <ul className="card mt-2 divide-y divider overflow-hidden">{children}</ul>
+      <ul className="card mt-2 divide-y divide-zinc-100/80 overflow-hidden">{children}</ul>
     </section>
   );
 }

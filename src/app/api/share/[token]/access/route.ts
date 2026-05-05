@@ -49,6 +49,9 @@ export async function POST(
     },
   });
 
-  await createSession(user.id);
+  await createSession(user.id, {
+    userAgent: req.headers.get("user-agent"),
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+  });
   return NextResponse.json({ ok: true, brandId: brand.id });
 }

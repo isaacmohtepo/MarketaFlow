@@ -18,7 +18,12 @@ export async function POST(req: Request) {
 
   try {
     const { url } = await uploadFile(file);
-    return NextResponse.json({ url });
+    return NextResponse.json({
+      url,
+      name: file.name,
+      mime: file.type || "application/octet-stream",
+      size: file.size,
+    });
   } catch (err) {
     console.error("upload failed", err);
     return NextResponse.json({ error: "Error al subir" }, { status: 500 });

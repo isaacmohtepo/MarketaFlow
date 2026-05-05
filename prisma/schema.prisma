@@ -11,12 +11,14 @@ model User {
   id                 String         @id @default(cuid())
   email              String         @unique
   name               String?
+  avatarUrl          String?
   passwordHash       String
   role               String         @default("agency")
   emailNotifications Boolean        @default(true)
   createdAt          DateTime       @default(now())
   memberships   Membership[]
-  comments      Comment[]
+  comments      Comment[] @relation("CommentAuthor")
+  assignedComments Comment[] @relation("CommentAssignee")
   approvals     Approval[]
   sessions      Session[]
   notifications Notification[]
@@ -40,11 +42,17 @@ model Notification {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  userAgent  String?
+  ip         String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Agency {
@@ -90,14 +98,16 @@ model Brand {
   handle      String?
   inviteCode  String       @unique @default(cuid())
   publicToken String?      @unique
+  widgetToken String?      @unique
   logoUrl     String?
   color       String?
   bio         String?
   createdAt   DateTime     @default(now())
   agency      Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  posts       Post[]
-  memberships Membership[]
-  hashtagSets HashtagSet[]
+  posts        Post[]
+  memberships  Membership[]
+  hashtagSets  HashtagSet[]
+  templates    PostTemplate[]
 }
 
 model HashtagSet {
@@ -105,6 +115,41 @@ model HashtagSet {
   brandId   String
   name      String
   tags      String   @default("") // hashtags separados por espacio
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+}
+
+model PostView {
+  id           String   @id @default(cuid())
+  userId       String
+  postId       String
+  lastViewedAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model Presence {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, postId])
+  @@index([postId, updatedAt])
+}
+
+model PostTemplate {
+  id        String   @id @default(cuid())
+  brandId   String
+  name      String
+  caption   String   @default("")
+  platform  String   @default("instagram")
+  postType  String   @default("feed")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
@@ -121,6 +166,8 @@ model Post {
   imageUrl    String?
   platform    String     @default("instagram")
   postType    String     @default("feed")
+  assetType   String     @default("social_post") // social_post | web_design | graphic | video | branding | other
+  sourceUrl   String?    // URL externa: web_design embebida en iframe o video (YouTube/Vimeo)
   scheduledAt  DateTime?
   publishedAt  DateTime?
   publishedUrl String?
@@ -170,25 +217,58 @@ model PostImage {
   postId    String
   url       String
   position  Int      @default(0)
+  mime      String?
+  name      String?
   createdAt DateTime @default(now())
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
-  id        String    @id @default(cuid())
-  postId    String
-  userId    String
-  body      String
-  x         Float?
-  y         Float?
-  parentId  String?
-  resolved  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  postId        String
+  userId        String
+  body          String
+  x             Float?
+  y             Float?
+  parentId      String?
+  resolved      Boolean   @default(false)
+  // Comentario interno del equipo: el cliente NO lo ve. Por default, si el post
+  // está en draft y la agencia comenta, queda como interno.
+  internal      Boolean   @default(false)
+  // Miembro del equipo al que se le asignó este comentario
+  assignedToId  String?
+  attachmentUrl String?
+  attachmentName String?
+  attachmentMime String?
+  // Contexto del widget de feedback (cuando un comment viene del widget en sitio)
+  pageUrl       String?
+  selector      String?
+  viewportW     Int?
+  viewportH     Int?
+  scrollY       Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation("CommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo User?    @relation("CommentAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
+
+  @@index([assignedToId])
+}
+
+model WidgetPing {
+  id         String   @id @default(cuid())
+  brandId    String
+  url        String
+  origin     String
+  userAgent  String?
+  firstSeenAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  hitCount   Int      @default(1)
+
+  @@unique([brandId, url])
+  @@index([brandId, lastSeenAt])
 }
 
 model Approval {

@@ -5,6 +5,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPostAccess } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
+import { invalidateBrandKpis } from "@/lib/kpis";
+
+import { ASSET_TYPES } from "@/lib/asset-types";
 
 const schema = z.object({
   caption: z.string().optional(),
@@ -12,6 +15,8 @@ const schema = z.object({
   status: z
     .enum(["draft", "in_review", "changes_requested", "approved", "scheduled", "published"])
     .optional(),
+  assetType: z.enum(ASSET_TYPES).optional(),
+  sourceUrl: z.string().url().nullable().optional(),
 });
 
 export async function PATCH(
@@ -45,6 +50,8 @@ export async function PATCH(
             ? new Date(body.scheduledAt)
             : null,
       status: body.status,
+      assetType: body.assetType,
+      sourceUrl: body.sourceUrl,
     },
   });
 
@@ -71,6 +78,7 @@ export async function PATCH(
     });
   }
 
+  invalidateBrandKpis(updated.brandId);
   return NextResponse.json({ ok: true, post: updated });
 }
 

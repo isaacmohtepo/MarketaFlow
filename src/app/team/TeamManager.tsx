@@ -125,7 +125,7 @@ export default function TeamManager() {
         {loading ? (
           <p className="mt-3 text-[12px] text-zinc-500">Cargando...</p>
         ) : (
-          <ul className="mt-3 card divide-y divider overflow-hidden">
+          <ul className="mt-3 card divide-y divide-zinc-100/80 overflow-hidden">
             {members.map((m) => (
               <li
                 key={m.id}
@@ -173,7 +173,7 @@ export default function TeamManager() {
           <h2 className="text-[13px] font-semibold uppercase tracking-wider text-zinc-500">
             Invitaciones pendientes
           </h2>
-          <ul className="mt-3 card divide-y divider overflow-hidden">
+          <ul className="mt-3 card divide-y divide-zinc-100/80 overflow-hidden">
             {invitations.map((inv) => (
               <li key={inv.id} className="flex items-center gap-3 p-3">
                 <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-amber-50">

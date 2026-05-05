@@ -29,7 +29,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     title: "Workspace",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
-      { label: "Marcas", href: "/dashboard", icon: Layers, match: (p) => p.startsWith("/brands") },
+      { label: "Marcas", href: "/brands", icon: Layers, match: (p) => p.startsWith("/brands") },
       { label: "Inbox", href: "/inbox", icon: Inbox, match: (p) => p.startsWith("/inbox") },
     ],
   },
@@ -75,7 +75,7 @@ export default function Sidebar({
       } catch {}
     }
     load();
-    const id = setInterval(load, 30000);
+    const id = setInterval(load, 10000);
     return () => {
       alive = false;
       clearInterval(id);

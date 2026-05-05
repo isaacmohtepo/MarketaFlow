@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostAccess } from "@/lib/permissions";
 import { notifyBrandAgency } from "@/lib/notifications";
+import { invalidateBrandKpis } from "@/lib/kpis";
 
 const schema = z.object({
   decision: z.enum(["approved", "changes_requested"]),
@@ -60,5 +61,6 @@ export async function POST(
     actorName: user.name ?? user.email,
   });
 
+  invalidateBrandKpis(ctx.post.brandId);
   return NextResponse.json({ ok: true, status: nextStatus });
 }

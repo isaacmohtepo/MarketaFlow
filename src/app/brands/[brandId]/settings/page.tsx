@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Download } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 import { getUserAgencyName } from "@/lib/agency";
@@ -9,7 +9,9 @@ import AppShell from "@/components/AppShell";
 import InviteLink from "./InviteLink";
 import PublicShareToggle from "./PublicShareToggle";
 import HashtagSetsManager from "./HashtagSetsManager";
+import TemplatesManager from "./TemplatesManager";
 import BrandCustomization from "./BrandCustomization";
+import WidgetInstall from "./WidgetInstall";
 
 export default async function BrandSettings({
   params,
@@ -88,6 +90,26 @@ export default async function BrandSettings({
           </div>
         </section>
 
+        <section id="widget" className="card mt-6 scroll-mt-20 p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-900">
+                Widget de feedback en el sitio
+              </h2>
+              <p className="mt-1 text-xs text-zinc-500">
+                Estilo Marker.io — el cliente comenta directamente sobre el sitio web del staging y vos
+                recibís capturas pixel-perfect en este tablero.
+              </p>
+            </div>
+            <span className="flex-shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-700">
+              Web feedback
+            </span>
+          </div>
+          <div className="mt-4">
+            <WidgetInstall brandId={brandId} initialToken={brand.widgetToken} />
+          </div>
+        </section>
+
         <section className="card mt-6 p-6">
           <h2 className="text-sm font-semibold text-zinc-900">
             Link de invitación con cuenta
@@ -113,8 +135,32 @@ export default async function BrandSettings({
         </section>
 
         <section className="card mt-6 p-6">
+          <h2 className="text-sm font-semibold text-zinc-900">Plantillas de post</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Guarda estructuras repetidas (caption + plataforma) para reusar al crear posts. Ideal para "el post de los lunes".
+          </p>
+          <div className="mt-4">
+            <TemplatesManager brandId={brandId} />
+          </div>
+        </section>
+
+        <section className="card mt-6 p-6">
+          <h2 className="text-sm font-semibold text-zinc-900">Audit log</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Descarga toda la actividad de la marca (cambios de estado, aprobaciones, comentarios, publicaciones) de los últimos 90 días en CSV.
+          </p>
+          <a
+            href={`/api/brands/${brandId}/audit`}
+            className="mt-3 inline-flex items-center gap-2 rounded-md btn-secondary px-3 py-2 text-[12px] font-semibold"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Descargar CSV
+          </a>
+        </section>
+
+        <section className="card mt-6 p-6">
           <h2 className="text-sm font-semibold text-zinc-900">Clientes con acceso</h2>
-          <ul className="mt-3 divide-y divider">
+          <ul className="mt-3 divide-y divide-zinc-100/80">
             {clients.length === 0 && (
               <li className="py-3 text-sm text-zinc-500">
                 Aún no hay clientes invitados.

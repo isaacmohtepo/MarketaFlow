@@ -11,11 +11,24 @@
   --foreground: #1d1d1f;
   --muted: #6e6e73;
   --muted-2: #a1a1a6;
-  --line: rgba(0, 0, 0, 0.08);
-  --line-strong: rgba(0, 0, 0, 0.14);
+  --line: rgba(15, 23, 42, 0.05);
+  --line-strong: rgba(15, 23, 42, 0.10);
   --line-dark: rgba(255, 255, 255, 0.07);
 
   /* Brand */
+}
+
+/* Scope dark theme — landing, pricing, login, register */
+.theme-dark {
+  --bg-elev: #0e0e12;
+  --bg-elev-2: #16161c;
+  --foreground: #ededf0;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+}
+
+/* placeholder para que el bloque de :root cierre correcto */
+:root {
   --brand-from: #3b5fff;
   --brand-via1: #8a2be2;
   --brand-via2: #ff4d8f;
@@ -100,11 +113,41 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
   box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.10);
 }
 
+/* Variantes oscuras de botones/inputs para landing pública (.theme-dark) */
+.theme-dark .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ededf0;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.theme-dark .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.theme-dark .input-soft {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ededf0;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.theme-dark .input-soft::placeholder { color: rgba(255, 255, 255, 0.40); }
+
 /* === Surfaces === */
 .card {
   background: var(--bg-elev);
   border: 1px solid var(--line);
   border-radius: 12px;
+}
+
+/* Card oscura para superficies dark (landing pública) */
+.card-dark {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+.card-dark:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
 }
 .card-flat {
   background: var(--bg-elev);
@@ -241,6 +284,55 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
 }
 .scroll-visible::-webkit-scrollbar-thumb:hover {
   background: rgba(60, 60, 67, 0.50);
+}
+
+/* === Skeleton loaders === */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(228, 228, 231, 0.55) 0%,
+    rgba(244, 244, 245, 0.95) 50%,
+    rgba(228, 228, 231, 0.55) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* === Toast notifications === */
+@keyframes toast-in {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in { animation: toast-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+
+@keyframes toast-progress {
+  0%   { width: 100%; }
+  100% { width: 0%; }
+}
+.animate-toast-progress { animation: toast-progress 6s linear forwards; }
+
+/* === Print (reportes) === */
+@media print {
+  body { background: white !important; }
+  /* Quita el AppShell sidebar/topbar si la página de reporte se renderiza por fuera; aquí los reportes no usan AppShell */
+  .print\:hidden { display: none !important; }
+  .print\:bg-white { background: white !important; }
+  .print\:p-0 { padding: 0 !important; }
+  .print\:mt-0 { margin-top: 0 !important; }
+  .print\:rounded-none { border-radius: 0 !important; }
+  .print\:shadow-none { box-shadow: none !important; }
+  /* Forzar colores de fondos en impresión */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Evita cortar imágenes y secciones a la mitad */
+  img, section, article { break-inside: avoid; }
 }
 
 /* Scrollbar oscura para superficies dark (sidebar) */

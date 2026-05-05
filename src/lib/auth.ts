@@ -14,10 +14,21 @@ export async function verifyPassword(plain: string, hash: string) {
   return bcrypt.compare(plain, hash);
 }
 
-export async function createSession(userId: string) {
+export async function createSession(
+  userId: string,
+  meta?: { userAgent?: string | null; ip?: string | null },
+) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await prisma.session.create({ data: { userId, token, expiresAt } });
+  await prisma.session.create({
+    data: {
+      userId,
+      token,
+      expiresAt,
+      userAgent: meta?.userAgent ?? null,
+      ip: meta?.ip ?? null,
+    },
+  });
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
@@ -27,6 +38,14 @@ export async function createSession(userId: string) {
     path: "/",
   });
   return token;
+}
+
+/**
+ * Devuelve el token de sesión actual (lo usamos para marcar "esta sesión" en la UI).
+ */
+export async function getCurrentSessionToken(): Promise<string | null> {
+  const jar = await cookies();
+  return jar.get(COOKIE)?.value ?? null;
 }
 
 export async function destroySession() {

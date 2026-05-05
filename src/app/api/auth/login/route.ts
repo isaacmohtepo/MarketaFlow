@@ -19,6 +19,9 @@ export async function POST(req: Request) {
   if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
     return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
   }
-  await createSession(user.id);
+  await createSession(user.id, {
+    userAgent: req.headers.get("user-agent"),
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+  });
   return NextResponse.json({ ok: true });
 }

@@ -4,14 +4,19 @@ import { ReactNode, useState } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import ShortcutsOverlay from "./ShortcutsOverlay";
+import CommandPalette from "./CommandPalette";
+import NotificationToaster from "./NotificationToaster";
+import OnboardingTour from "./OnboardingTour";
 
 export default function AppShell({
   userName,
+  avatarUrl,
   agencyName,
   title,
   children,
 }: {
   userName: string;
+  avatarUrl?: string | null;
   agencyName: string | null;
   title?: string;
   children: ReactNode;
@@ -47,6 +52,7 @@ export default function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           userName={userName}
+          avatarUrl={avatarUrl}
           title={title}
           onMobileMenu={() => setMobileOpen(true)}
         />
@@ -55,6 +61,9 @@ export default function AppShell({
         </main>
       </div>
       <ShortcutsOverlay />
+      <CommandPalette />
+      <NotificationToaster />
+      <OnboardingTour />
     </div>
   );
 }

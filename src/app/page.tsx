@@ -59,7 +59,7 @@ export default async function Home() {
   if (user) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-screen flex-col bg-black">
+    <div className="theme-dark flex min-h-screen flex-col bg-black">
       <PublicHeader />
 
       {/* HERO */}

@@ -7,10 +7,12 @@ import { LogOut, Menu } from "lucide-react";
 
 export default function TopBar({
   userName,
+  avatarUrl,
   title,
   onMobileMenu,
 }: {
   userName: string;
+  avatarUrl?: string | null;
   title?: string;
   onMobileMenu?: () => void;
 }) {
@@ -46,12 +48,22 @@ export default function TopBar({
       <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
         <SearchBox />
         <NotificationsBell />
-        <span
-          className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold text-white brand-gradient"
-          title={userName}
-        >
-          {initials || "?"}
-        </span>
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={userName}
+            title={userName}
+            className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
+          />
+        ) : (
+          <span
+            className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold text-white brand-gradient"
+            title={userName}
+          >
+            {initials || "?"}
+          </span>
+        )}
         <button
           onClick={logout}
           className="grid h-7 w-7 place-items-center rounded-md border border-[var(--line)] bg-white text-zinc-600 hover:bg-zinc-100"
