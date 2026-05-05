@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Layout, Pencil, Plus, Trash2, X, Check } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Template = {
   id: string;
@@ -21,6 +22,7 @@ export default function TemplatesManager({ brandId }: { brandId: string }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editCaption, setEditCaption] = useState("");
+  const { confirm: confirmDialog } = useConfirm();
 
   async function load() {
     setLoading(true);
@@ -75,7 +77,13 @@ export default function TemplatesManager({ brandId }: { brandId: string }) {
   }
 
   async function remove(id: string) {
-    if (!confirm("¿Eliminar esta plantilla?")) return;
+    const ok = await confirmDialog({
+      title: "¿Eliminar esta plantilla?",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     const r = await fetch(`/api/templates/${id}`, { method: "DELETE" });
     if (r.ok) load();
   }

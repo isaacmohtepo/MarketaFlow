@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, LogOut, Monitor, Smartphone, Tablet, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Session = {
   id: string;
@@ -51,6 +52,7 @@ export default function SessionsList() {
   const [items, setItems] = useState<Session[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
 
   async function load() {
     const r = await fetch("/api/account/sessions", { cache: "no-store" });
@@ -64,7 +66,14 @@ export default function SessionsList() {
   }, []);
 
   async function revoke(id: string) {
-    if (!confirm("¿Cerrar esta sesión? El otro dispositivo será desconectado.")) return;
+    const ok = await confirmDialog({
+      title: "¿Cerrar esta sesión?",
+      description: "El otro dispositivo será desconectado al instante.",
+      confirmLabel: "Cerrar sesión",
+      cancelLabel: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
     setBusyId(id);
     try {
       await fetch(`/api/account/sessions?id=${id}`, { method: "DELETE" });
@@ -75,7 +84,14 @@ export default function SessionsList() {
   }
 
   async function revokeAllOthers() {
-    if (!confirm("¿Cerrar todas las otras sesiones? Tu sesión actual se mantiene.")) return;
+    const ok = await confirmDialog({
+      title: "¿Cerrar todas las otras sesiones?",
+      description: "Tu sesión actual se mantiene; todos los demás dispositivos serán desconectados.",
+      confirmLabel: "Cerrar todas",
+      cancelLabel: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
     setBulkBusy(true);
     try {
       await fetch("/api/account/sessions?others=1", { method: "DELETE" });

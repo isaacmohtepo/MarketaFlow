@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import BrandCustomization from "./BrandCustomization";
+import DuplicateBrandButton from "./DuplicateBrandButton";
 
 /**
  * Settings → General. Personalización de la marca (logo, color, bio) +
@@ -46,6 +47,17 @@ export default async function BrandSettingsGeneral({
               bio: brand.bio,
             }}
           />
+        </div>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="text-sm font-semibold text-zinc-900">Duplicar marca</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Crea una nueva marca con el mismo color, bio, logo, hashtags y plantillas.
+          Útil para onboardear clientes nuevos con setup similar — los posts, comentarios y miembros no se copian.
+        </p>
+        <div className="mt-3">
+          <DuplicateBrandButton brandId={brandId} brandName={brand.name} />
         </div>
       </section>
 

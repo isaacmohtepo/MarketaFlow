@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Hash, Pencil, Trash2, Check, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Set = {
   id: string;
@@ -19,6 +20,7 @@ export default function HashtagSetsManager({ brandId }: { brandId: string }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editTags, setEditTags] = useState("");
+  const { confirm: confirmDialog } = useConfirm();
 
   async function load() {
     setLoading(true);
@@ -72,7 +74,13 @@ export default function HashtagSetsManager({ brandId }: { brandId: string }) {
   }
 
   async function remove(id: string) {
-    if (!confirm("¿Borrar este set de hashtags?")) return;
+    const ok = await confirmDialog({
+      title: "¿Borrar este set de hashtags?",
+      confirmLabel: "Borrar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     await fetch(`/api/hashtag-sets/${id}`, { method: "DELETE" });
     load();
   }

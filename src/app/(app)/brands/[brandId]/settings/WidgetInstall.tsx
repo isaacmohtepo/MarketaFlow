@@ -11,6 +11,7 @@ import {
   Trash2,
   AlertCircle,
 } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Ping = {
   origin: string;
@@ -50,6 +51,7 @@ export default function WidgetInstall({
   const [copied, setCopied] = useState(false);
   const [pings, setPings] = useState<Ping[] | null>(null);
   const [pingsBusy, setPingsBusy] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
 
   const loadPings = useCallback(async () => {
     if (!token) {
@@ -96,9 +98,14 @@ export default function WidgetInstall({
   }
 
   async function revoke() {
-    if (!confirm("¿Desactivar el widget? El script en el sitio del cliente dejará de funcionar.")) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: "¿Desactivar el widget?",
+      description: "El script en el sitio del cliente dejará de funcionar. Vas a tener que reinstalar si lo querés volver a usar.",
+      confirmLabel: "Desactivar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await fetch(`/api/brands/${brandId}/widget-token`, { method: "DELETE" });

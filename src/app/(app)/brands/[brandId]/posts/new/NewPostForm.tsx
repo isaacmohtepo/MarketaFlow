@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UploadCloud, X, Loader2, ImagePlus, RotateCcw, FileIcon } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 import CaptionAssist from "./CaptionAssist";
 import HashtagPicker from "./HashtagPicker";
 import TemplatePicker from "./TemplatePicker";
@@ -74,6 +75,7 @@ export default function NewPostForm({
   const [zoneActive, setZoneActive] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  const { confirm: confirmDialog } = useConfirm();
   const hydratedRef = useRef(false);
 
   // Cargar draft al montar
@@ -136,8 +138,15 @@ export default function NewPostForm({
     setDraftRestored(false);
   }
 
-  function discardDraft() {
-    if (!confirm("¿Descartar el borrador y empezar de cero?")) return;
+  async function discardDraft() {
+    const ok = await confirmDialog({
+      title: "¿Descartar el borrador?",
+      description: "Vas a empezar de cero. No se puede deshacer.",
+      confirmLabel: "Descartar",
+      cancelLabel: "Mantener",
+      variant: "danger",
+    });
+    if (!ok) return;
     setCaption("");
     setPlatform("instagram");
     setAssetType("social_post");

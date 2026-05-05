@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, FileEdit, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Draft = {
   caption: string;
@@ -27,6 +28,7 @@ function relTime(iso: string) {
 export default function UnsavedDraftBanner({ brandId }: { brandId: string }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [hidden, setHidden] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
 
   useEffect(() => {
     try {
@@ -38,8 +40,15 @@ export default function UnsavedDraftBanner({ brandId }: { brandId: string }) {
     } catch {}
   }, [brandId]);
 
-  function discard() {
-    if (!confirm("¿Descartar el borrador no guardado?")) return;
+  async function discard() {
+    const ok = await confirmDialog({
+      title: "¿Descartar el borrador?",
+      description: "Perderás lo que escribiste. No se puede deshacer.",
+      confirmLabel: "Descartar",
+      cancelLabel: "Mantener",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       localStorage.removeItem(KEY(brandId));
     } catch {}

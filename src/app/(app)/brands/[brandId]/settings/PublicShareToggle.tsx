@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Check, Power, Loader2 } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export default function PublicShareToggle({
   brandId,
@@ -13,6 +14,7 @@ export default function PublicShareToggle({
   const [token, setToken] = useState<string | null>(initialToken);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
   const url =
     token && typeof window !== "undefined"
       ? `${window.location.origin}/share/${token}`
@@ -29,9 +31,14 @@ export default function PublicShareToggle({
   }
 
   async function revoke() {
-    if (!confirm("¿Desactivar el link público? Cualquiera con el link perderá acceso.")) {
-      return;
-    }
+    const ok = await confirmDialog({
+      title: "¿Desactivar el link público?",
+      description: "Cualquiera con el link perderá acceso al instante. Podés generar uno nuevo después.",
+      confirmLabel: "Desactivar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     await fetch(`/api/brands/${brandId}/share-token`, { method: "DELETE" });
     setBusy(false);

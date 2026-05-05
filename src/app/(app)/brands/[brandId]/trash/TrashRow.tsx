@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { RotateCcw, Trash2, ImageOff } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export default function TrashRow({
   post,
@@ -22,6 +23,7 @@ export default function TrashRow({
   const params = useParams<{ brandId: string }>();
   const brandId = params?.brandId;
   const [busy, setBusy] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
 
   async function restore() {
     setBusy(true);
@@ -31,7 +33,14 @@ export default function TrashRow({
   }
 
   async function purge() {
-    if (!confirm("¿Eliminar definitivamente? No se puede deshacer.")) return;
+    const ok = await confirmDialog({
+      title: "¿Eliminar definitivamente?",
+      description: "No se puede deshacer. Imágenes y comentarios se borran para siempre.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     await fetch(`/api/posts/${post.id}/purge`, { method: "DELETE" });
     setBusy(false);

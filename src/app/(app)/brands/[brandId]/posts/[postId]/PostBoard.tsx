@@ -395,16 +395,33 @@ export default function PostBoard({
   }
 
   async function toggleResolve(c: Comment) {
-    setBusy(true);
-    const res = await fetch(`/api/comments/${c.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resolved: !c.resolved }),
-    });
-    setBusy(false);
-    if (res.ok) {
+    // Optimistic: aplicamos el flip al instante. Si falla, revertimos.
+    const next = !c.resolved;
+    setComments((arr) => arr.map((x) => (x.id === c.id ? { ...x, resolved: next } : x)));
+    try {
+      const res = await fetch(`/api/comments/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resolved: next }),
+      });
+      if (!res.ok) {
+        // Revert
+        setComments((arr) =>
+          arr.map((x) => (x.id === c.id ? { ...x, resolved: c.resolved } : x)),
+        );
+        const j = await res.json().catch(() => ({}));
+        toast.error(next ? "No se pudo marcar como resuelto" : "No se pudo reabrir", {
+          description: j.error ?? res.statusText,
+        });
+        return;
+      }
       const j = await res.json();
       setComments((arr) => arr.map((x) => (x.id === c.id ? { ...x, ...j.comment } : x)));
+    } catch {
+      setComments((arr) =>
+        arr.map((x) => (x.id === c.id ? { ...x, resolved: c.resolved } : x)),
+      );
+      toast.error("Error de red");
     }
   }
 
@@ -434,11 +451,19 @@ export default function PostBoard({
       variant: "danger",
     });
     if (!ok) return;
-    setBusy(true);
-    const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
-    setBusy(false);
-    if (res.ok) {
-      setComments((arr) => arr.filter((x) => x.id !== id && x.parentId !== id));
+    // Optimistic: removemos al instante (hilo + replies). Si falla, restauramos.
+    const removed = comments.filter((x) => x.id === id || x.parentId === id);
+    setComments((arr) => arr.filter((x) => x.id !== id && x.parentId !== id));
+    try {
+      const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setComments((arr) => [...arr, ...removed]);
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo borrar", { description: j.error ?? res.statusText });
+      }
+    } catch {
+      setComments((arr) => [...arr, ...removed]);
+      toast.error("Error de red");
     }
   }
 
@@ -579,7 +604,9 @@ export default function PostBoard({
     setBusy(false);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      alert(j.error ?? "Error al publicar");
+      toast.error("No se pudo publicar", {
+        description: j.error ?? "Error al publicar",
+      });
       return;
     }
     router.refresh();

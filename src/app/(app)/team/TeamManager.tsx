@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Mail, Trash2, Crown, Pencil, Copy, Check } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Member = {
   id: string;
@@ -25,6 +26,7 @@ export default function TeamManager() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"editor" | "owner">("editor");
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,14 @@ export default function TeamManager() {
   }
 
   async function remove(id: string, label: string) {
-    if (!confirm(`¿Quitar ${label}?`)) return;
+    const ok = await confirmDialog({
+      title: `¿Quitar ${label}?`,
+      description: "Perderá acceso a la agencia y a todas sus marcas.",
+      confirmLabel: "Quitar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     await fetch(`/api/team/${id}`, { method: "DELETE" });
     load();
   }

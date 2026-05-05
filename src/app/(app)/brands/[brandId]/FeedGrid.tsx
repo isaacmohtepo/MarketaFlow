@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 import {
   CalendarClock,
   CheckCircle2,
@@ -62,6 +64,7 @@ export default function FeedGrid({
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const { confirm: confirmDialog } = useConfirm();
 
   useEffect(() => {
     setPosts(initialPosts);
@@ -140,11 +143,24 @@ export default function FeedGrid({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        alert(j.error ?? "No se pudo aplicar");
+        toast.error("No se pudo aplicar la acción", {
+          description: j.error ?? res.statusText,
+        });
         return;
       }
+      const count = selected.size;
       exitSelect();
       router.refresh();
+      const verb =
+        payload.action === "delete"
+          ? `${count === 1 ? "Post movido" : `${count} posts movidos`} a la papelera`
+          : payload.action === "duplicate"
+            ? `${count === 1 ? "Post duplicado" : `${count} posts duplicados`}`
+            : `Estado actualizado en ${count} ${count === 1 ? "post" : "posts"}`;
+      toast.success(verb);
+    } catch (err) {
+      console.error("bulkAction failed", err);
+      toast.error("Error de red");
     } finally {
       setBusy(false);
     }
@@ -390,22 +406,31 @@ export default function FeedGrid({
             <button
               onClick={() => bulkAction({ action: "duplicate" })}
               disabled={busy}
+              title="Duplicar"
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
             >
               <Copy className="h-3.5 w-3.5" />
-              Duplicar
+              <span className="hidden sm:inline">Duplicar</span>
             </button>
             <button
-              onClick={() => {
-                if (confirm(`¿Mover ${selected.size} a la papelera?`)) {
-                  bulkAction({ action: "delete" });
-                }
+              onClick={async () => {
+                const ok = await confirmDialog({
+                  title: `¿Mover ${selected.size} ${
+                    selected.size === 1 ? "post" : "posts"
+                  } a la papelera?`,
+                  description: "Podés restaurarlos desde la papelera durante 30 días.",
+                  confirmLabel: "Mover a papelera",
+                  cancelLabel: "Cancelar",
+                  variant: "danger",
+                });
+                if (ok) bulkAction({ action: "delete" });
               }}
               disabled={busy}
+              title="Eliminar"
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Eliminar
+              <span className="hidden sm:inline">Eliminar</span>
             </button>
             <button
               onClick={exitSelect}

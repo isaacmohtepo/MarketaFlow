@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 import {
   CalendarClock,
   CheckCircle2,
@@ -127,9 +129,17 @@ export default function DeliverablesList({
   const [menuId, setMenuId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const { confirm: confirmDialog } = useConfirm();
 
   async function trashItem(id: string) {
-    if (!confirm("¿Mandar a papelera? Podrás recuperarlo desde la papelera.")) return;
+    const ok = await confirmDialog({
+      title: "¿Mover a la papelera?",
+      description: "Podrás recuperarlo desde la papelera durante 30 días.",
+      confirmLabel: "Mover a papelera",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setDeletingId(id);
     setMenuId(null);
     try {
@@ -142,7 +152,7 @@ export default function DeliverablesList({
         });
         router.refresh();
       } else {
-        alert("No se pudo mandar a papelera.");
+        toast.error("No se pudo mandar a papelera");
       }
     } finally {
       setDeletingId(null);

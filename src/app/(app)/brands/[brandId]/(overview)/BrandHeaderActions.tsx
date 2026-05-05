@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { UserPlus, Trash2, FileText, Plus } from "lucide-react";
+import { UserPlus, Trash2, FileText, Plus, Activity } from "lucide-react";
 import { ASSET_TYPE_NEW_CTA, type AssetType } from "@/lib/asset-types";
 import NewPostButton from "@/app/(app)/dashboard/NewPostButton";
 import BulkUploadButton from "../BulkUploadButton";
@@ -41,6 +41,14 @@ export default function BrandHeaderActions({
           <span className="tabular-nums">{trashCount}</span>
         </Link>
       )}
+      <Link
+        href={`/brands/${brandId}/activity`}
+        className="inline-flex items-center gap-2 rounded-full btn-secondary px-3 py-2 text-[13px] font-semibold sm:px-4"
+        title="Actividad"
+      >
+        <Activity className="h-4 w-4" />
+        <span className="hidden sm:inline">Actividad</span>
+      </Link>
       <Link
         href={`/brands/${brandId}/report`}
         className="inline-flex items-center gap-2 rounded-full btn-secondary px-3 py-2 text-[13px] font-semibold sm:px-4"

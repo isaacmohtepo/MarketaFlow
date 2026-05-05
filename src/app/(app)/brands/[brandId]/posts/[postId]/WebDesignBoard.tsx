@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 import MentionInput from "@/components/MentionInput";
 import MentionText from "@/components/MentionText";
 import { useModKey } from "@/lib/platform";
@@ -130,6 +132,7 @@ export default function WebDesignBoard({
   const [searchQuery, setSearchQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm: confirmDialog } = useConfirm();
   const [capturing, setCapturing] = useState(false);
   const [bridge, setBridge] = useState<BridgeState>({ state: "idle" });
   const [liveViewport, setLiveViewport] = useState<LiveViewport | null>(null);
@@ -173,11 +176,16 @@ export default function WebDesignBoard({
         (c) => !c.parentId && c.internal && !c.resolved,
       ).length;
       if (pendingInternal > 0) {
-        const ok = confirm(
-          `Hay ${pendingInternal} ${
+        const ok = await confirmDialog({
+          title: `${pendingInternal} ${
             pendingInternal === 1 ? "nota interna sin resolver" : "notas internas sin resolver"
-          }. El cliente no las verá, pero quizás conviene atenderlas antes.\n\n¿Cambiar el estado de todos modos?`,
-        );
+          }`,
+          description:
+            "El cliente no las verá, pero quizás conviene atenderlas antes de pasar a revisión.",
+          confirmLabel: "Cambiar igual",
+          cancelLabel: "Volver",
+          variant: "warning",
+        });
         if (!ok) return;
       }
     }
@@ -192,7 +200,17 @@ export default function WebDesignBoard({
       });
       if (!res.ok) {
         setLiveStatus(prev); // revert
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo cambiar el estado", {
+          description: j.error ?? res.statusText,
+        });
+        return;
       }
+      toast.success("Estado actualizado");
+    } catch (err) {
+      setLiveStatus(prev);
+      console.error("changeStatus failed", err);
+      toast.error("Error de red al cambiar el estado");
     } finally {
       setBusy(false);
     }
@@ -704,19 +722,32 @@ export default function WebDesignBoard({
   }
 
   async function toggleResolved(c: Comment) {
-    setBusy(true);
+    // Optimistic: flip al instante, revert si falla
+    const next = !c.resolved;
+    setComments((arr) => arr.map((x) => (x.id === c.id ? { ...x, resolved: next } : x)));
     try {
       const res = await fetch(`/api/comments/${c.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resolved: !c.resolved }),
+        body: JSON.stringify({ resolved: next }),
       });
-      if (res.ok) {
-        const j = await res.json();
-        setComments((arr) => arr.map((x) => (x.id === c.id ? { ...x, ...j.comment } : x)));
+      if (!res.ok) {
+        setComments((arr) =>
+          arr.map((x) => (x.id === c.id ? { ...x, resolved: c.resolved } : x)),
+        );
+        const j = await res.json().catch(() => ({}));
+        toast.error(next ? "No se pudo marcar como resuelto" : "No se pudo reabrir", {
+          description: j.error ?? res.statusText,
+        });
+        return;
       }
-    } finally {
-      setBusy(false);
+      const j = await res.json();
+      setComments((arr) => arr.map((x) => (x.id === c.id ? { ...x, ...j.comment } : x)));
+    } catch {
+      setComments((arr) =>
+        arr.map((x) => (x.id === c.id ? { ...x, resolved: c.resolved } : x)),
+      );
+      toast.error("Error de red");
     }
   }
 
@@ -837,13 +868,25 @@ export default function WebDesignBoard({
   }
 
   async function deleteComment(id: string) {
-    if (!confirm("¿Eliminar este comentario? No se puede deshacer.")) return;
+    const ok = await confirmDialog({
+      title: "¿Borrar este comentario?",
+      description: "No se puede deshacer.",
+      confirmLabel: "Borrar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
       if (res.ok) {
         setComments((arr) => arr.filter((c) => c.id !== id && c.parentId !== id));
         if (activeId === id) setActiveId(null);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo borrar el comentario", {
+          description: j.error ?? res.statusText,
+        });
       }
     } finally {
       setBusy(false);
