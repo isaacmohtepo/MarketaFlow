@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { getOrCreateSubscription } from "@/lib/billing";
 import { createPaymentLink, generateReference } from "@/lib/wompi";
+import { resolveWompiEnvironment } from "@/lib/integrations";
 
 const schema = z.object({
   planId: z.enum(["pro", "agency"]),
@@ -94,6 +95,27 @@ export async function POST(req: Request) {
   const appUrl = process.env.APP_URL ?? "http://localhost:3000";
   const redirectUrl = `${appUrl}/billing/return?ref=${reference}`;
 
+  // Resolver el environment desde admin: prefiere production si está habilitado,
+  // sino sandbox. Si no hay ninguno, devolvemos error claro al cliente.
+  const environment = await resolveWompiEnvironment();
+  if (!environment) {
+    await prisma.invoice.updateMany({
+      where: { wompiReference: reference },
+      data: {
+        status: "failed",
+        failedReason: "Wompi no está configurado en /admin/integrations.",
+        failedAt: new Date(),
+      },
+    });
+    return NextResponse.json(
+      {
+        error:
+          "El admin todavía no configuró las llaves de Wompi. Andá a /admin/integrations.",
+      },
+      { status: 503 },
+    );
+  }
+
   try {
     const link = await createPaymentLink({
       reference,
@@ -103,7 +125,7 @@ export async function POST(req: Request) {
       customerEmail: user.email,
       redirectUrl,
       paymentMethods: ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"],
-      environment: "sandbox", // TODO: leer de config admin
+      environment,
     });
     return NextResponse.json({
       checkoutUrl: link.data.public_url,

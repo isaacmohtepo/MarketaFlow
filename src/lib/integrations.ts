@@ -123,8 +123,7 @@ export async function deleteConfig(id: string) {
 }
 
 /**
- * Helper específico para Wompi: devuelve la config activa según el modo
- * (sandbox por default; en producción podemos cambiar a "production").
+ * Helper específico para Wompi: devuelve la config activa según el modo.
  * Lanza si no hay config — los callers deben proteger sus endpoints.
  */
 export async function getWompiConfig(
@@ -137,4 +136,22 @@ export async function getWompiConfig(
     );
   }
   return cfg;
+}
+
+/**
+ * Resuelve qué environment de Wompi usar para iniciar checkout: prefiere
+ * production si está habilitada (cobro real), sino cae a sandbox (testing).
+ * Devuelve null si no hay ninguna configurada.
+ *
+ * Esto evita que el checkout asuma "sandbox" hardcoded y rompa cuando el
+ * admin solo cargó llaves de producción.
+ */
+export async function resolveWompiEnvironment(): Promise<IntegrationEnvironment | null> {
+  const enabled = await prisma.integrationConfig.findMany({
+    where: { provider: "wompi", enabled: true },
+    select: { environment: true },
+  });
+  if (enabled.some((e) => e.environment === "production")) return "production";
+  if (enabled.some((e) => e.environment === "sandbox")) return "sandbox";
+  return null;
 }
