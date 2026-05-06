@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess } from "@/lib/permissions";
+import { getPostAccess, hasPermission } from "@/lib/permissions";
 import { notifyBrandAgency } from "@/lib/notifications";
 import { invalidateBrandKpis } from "@/lib/kpis";
 
@@ -20,8 +20,17 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const ctx = await getPostAccess(user.id, id);
-  if (!ctx || !ctx.access.canApprove) {
+  if (!ctx) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const canApprove = await hasPermission(
+    user.id,
+    ctx.access.agencyId,
+    "posts.approve",
+    ctx.access.brandId,
+  );
+  if (!canApprove) {
+    return NextResponse.json({ error: "Sin permiso: posts.approve" }, { status: 403 });
   }
 
   let body;

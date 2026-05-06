@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { notifyMentionedUsers } from "@/lib/notifications";
 
 const editSchema = z.object({
@@ -57,27 +57,36 @@ export async function PATCH(
     body.selector !== undefined ||
     body.x !== undefined ||
     body.y !== undefined;
-  if (isReanchor && ctx.comment.userId !== user.id && !ctx.access.canEdit) {
-    return NextResponse.json(
-      { error: "Solo el autor o la agencia puede reubicar este pin" },
-      { status: 403 },
-    );
+  if (isReanchor && ctx.comment.userId !== user.id) {
+    const ok = await hasPermission(user.id, ctx.access.agencyId, "comments.write", ctx.access.brandId);
+    if (!ok) {
+      return NextResponse.json(
+        { error: "Solo el autor o la agencia puede reubicar este pin" },
+        { status: 403 },
+      );
+    }
   }
-  // Asignar: solo agencia (canEdit)
+  // Asignar: requiere comments.write
   const isAssign = body.assignedToId !== undefined;
-  if (isAssign && !ctx.access.canEdit) {
-    return NextResponse.json(
-      { error: "Solo la agencia puede asignar comentarios" },
-      { status: 403 },
-    );
+  if (isAssign) {
+    const ok = await hasPermission(user.id, ctx.access.agencyId, "comments.write", ctx.access.brandId);
+    if (!ok) {
+      return NextResponse.json(
+        { error: "Sin permiso: comments.write" },
+        { status: 403 },
+      );
+    }
   }
-  // Toggle internal: solo agencia
+  // Toggle internal: requiere comments.write
   const isToggleInternal = body.internal !== undefined;
-  if (isToggleInternal && !ctx.access.canEdit) {
-    return NextResponse.json(
-      { error: "Solo la agencia puede cambiar la visibilidad" },
-      { status: 403 },
-    );
+  if (isToggleInternal) {
+    const ok = await hasPermission(user.id, ctx.access.agencyId, "comments.write", ctx.access.brandId);
+    if (!ok) {
+      return NextResponse.json(
+        { error: "Sin permiso: comments.write" },
+        { status: 403 },
+      );
+    }
   }
   // Si se está asignando, validar que el destinatario tenga acceso a la marca
   if (isAssign && body.assignedToId) {
@@ -161,8 +170,11 @@ export async function DELETE(
 
   const ctx = await loadCommentWithAccess(user.id, id);
   if (!ctx) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
-  if (ctx.comment.userId !== user.id && !ctx.access.canEdit) {
-    return NextResponse.json({ error: "Solo el autor o agencia puede borrar" }, { status: 403 });
+  if (ctx.comment.userId !== user.id) {
+    const ok = await hasPermission(user.id, ctx.access.agencyId, "comments.resolve", ctx.access.brandId);
+    if (!ok) {
+      return NextResponse.json({ error: "Solo el autor o agencia puede borrar" }, { status: 403 });
+    }
   }
 
   await prisma.comment.delete({ where: { id } });

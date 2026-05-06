@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 export async function POST(
   _req: Request,
@@ -13,8 +13,12 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const access = await getBrandAccess(user.id, id);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "share.manage", id);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: share.manage" }, { status: 403 });
   }
 
   const token = randomBytes(20).toString("hex");
@@ -35,8 +39,12 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const access = await getBrandAccess(user.id, id);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "share.manage", id);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: share.manage" }, { status: 403 });
   }
 
   await prisma.brand.update({

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 const createSchema = z.object({
   name: z.string().min(1).max(80),
@@ -38,8 +38,12 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const access = await getBrandAccess(user.id, brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "library.manage", brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: library.manage" }, { status: 403 });
   }
 
   let body;

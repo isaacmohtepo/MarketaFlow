@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { recordActivity } from "@/lib/activity";
 
 export async function POST(
@@ -16,8 +16,12 @@ export async function POST(
   if (!post) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
   const access = await getBrandAccess(user.id, post.brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "posts.delete", post.brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: posts.delete" }, { status: 403 });
   }
 
   await prisma.post.update({ where: { id }, data: { deletedAt: null } });

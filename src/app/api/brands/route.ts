@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canCreateBrand } from "@/lib/billing";
 import { assertAgencyNotSuspended } from "@/lib/suspension";
+import { hasPermission } from "@/lib/permissions";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -22,10 +23,18 @@ export async function POST(req: Request) {
   }
 
   const owner = await prisma.membership.findFirst({
-    where: { userId: user.id, role: { in: ["owner", "editor"] }, brandId: null },
+    where: { userId: user.id, brandId: null },
+    select: { agencyId: true },
   });
   if (!owner) {
-    return NextResponse.json({ error: "Solo agencias pueden crear marcas" }, { status: 403 });
+    return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, owner.agencyId, "brands.create");
+  if (!ok) {
+    return NextResponse.json(
+      { error: "Sin permiso: brands.create" },
+      { status: 403 },
+    );
   }
   const suspendGuard = await assertAgencyNotSuspended(owner.agencyId);
   if (!suspendGuard.ok) return suspendGuard.response;

@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { canUseAi } from "@/lib/billing";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
@@ -108,8 +108,12 @@ export async function POST(req: Request) {
   }
 
   const access = await getBrandAccess(user.id, body.brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "posts.edit_caption", body.brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: posts.edit_caption" }, { status: 403 });
   }
 
   // Plan limits enforcement: AI Caption Assist está limitado por plan

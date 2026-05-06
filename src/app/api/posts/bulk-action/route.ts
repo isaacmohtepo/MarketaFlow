@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { recordActivity } from "@/lib/activity";
 import { invalidateBrandKpis } from "@/lib/kpis";
 
@@ -46,9 +46,14 @@ export async function POST(req: Request) {
   // Invalida cache de KPIs de cada marca afectada al final de la request
   const invalidate = () => brandIds.forEach((bid) => invalidateBrandKpis(bid));
   const accessChecks = await Promise.all(brandIds.map((bid) => getBrandAccess(user.id, bid)));
-  for (const a of accessChecks) {
-    if (!a || !a.canEdit) {
+  for (let i = 0; i < accessChecks.length; i++) {
+    const a = accessChecks[i];
+    if (!a) {
       return NextResponse.json({ error: "Sin permiso en una de las marcas" }, { status: 403 });
+    }
+    const ok = await hasPermission(user.id, a.agencyId, "posts.schedule", brandIds[i]);
+    if (!ok) {
+      return NextResponse.json({ error: "Sin permiso: posts.schedule" }, { status: 403 });
     }
   }
 

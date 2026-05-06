@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { assertBrandNotSuspended } from "@/lib/suspension";
@@ -66,8 +66,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const access = await getBrandAccess(user.id, body.brandId);
-  if (!access || !access.canEdit) {
+  // posts.create gateway: cualquier rol con este permiso (CM, Designer NO,
+  // Manager, Owner). Designer entra por upload_media en PATCH, no acá.
+  const brandForGate = await prisma.brand.findUnique({
+    where: { id: body.brandId },
+    select: { agencyId: true },
+  });
+  if (!brandForGate) {
+    return NextResponse.json({ error: "Brand no encontrado" }, { status: 404 });
+  }
+  const canCreate = await hasPermission(
+    user.id,
+    brandForGate.agencyId,
+    "posts.create",
+    body.brandId,
+  );
+  if (!canCreate) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
   // Suspension guard: si la agency está suspended, bloqueamos creates.
@@ -77,10 +91,7 @@ export async function POST(req: Request) {
   // Plan limits enforcement: chequea posts/mes. Lo hacemos ANTES del transaction
   // (lectura sola, no race-sensitive en este punto). El check final + create
   // van en una Serializable transaction abajo para cerrar TOCTOU.
-  const brandRow = await prisma.brand.findUnique({
-    where: { id: body.brandId },
-    select: { agencyId: true },
-  });
+  const brandRow = brandForGate;
 
   // Gate: web_design solo se permite si la URL del sitio coincide con un origen
   // donde detectamos el widget pingeando. Si está en draft (no envío a review)

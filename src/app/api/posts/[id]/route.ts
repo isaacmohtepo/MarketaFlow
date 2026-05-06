@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess } from "@/lib/permissions";
+import { getPostAccess, hasPermission } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { invalidateBrandKpis } from "@/lib/kpis";
@@ -37,7 +37,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const ctx = await getPostAccess(user.id, id);
-  if (!ctx || !ctx.access.canEdit) {
+  if (!ctx) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
   const suspendGuard = await assertPostNotSuspended(id);
@@ -48,6 +48,38 @@ export async function PATCH(
     body = schema.parse(await req.json());
   } catch {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  }
+
+  // Permisos por campo: cada cambio requiere su permiso. status tiene
+  // semánticas distintas: approved/changes_requested → posts.approve;
+  // in_review/scheduled/published/draft → posts.schedule.
+  const required = new Set<string>();
+  if (body.caption !== undefined) required.add("posts.edit_caption");
+  if (body.sourceUrl !== undefined) required.add("posts.edit_caption");
+  if (body.assetType !== undefined) required.add("posts.edit_caption");
+  if (body.scheduledAt !== undefined) required.add("posts.schedule");
+  if (body.status !== undefined && body.status !== ctx.post.status) {
+    if (body.status === "approved" || body.status === "changes_requested") {
+      required.add("posts.approve");
+    } else if (body.status === "published") {
+      required.add("posts.publish");
+    } else {
+      required.add("posts.schedule");
+    }
+  }
+  for (const perm of required) {
+    const ok = await hasPermission(
+      user.id,
+      ctx.access.agencyId,
+      perm,
+      ctx.access.brandId,
+    );
+    if (!ok) {
+      return NextResponse.json(
+        { error: `Sin permiso: ${perm}` },
+        { status: 403 },
+      );
+    }
   }
 
   const updated = await prisma.post.update({
@@ -102,8 +134,17 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const ctx = await getPostAccess(user.id, id);
-  if (!ctx || !ctx.access.canEdit) {
+  if (!ctx) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const canDelete = await hasPermission(
+    user.id,
+    ctx.access.agencyId,
+    "posts.delete",
+    ctx.access.brandId,
+  );
+  if (!canDelete) {
+    return NextResponse.json({ error: "Sin permiso: posts.delete" }, { status: 403 });
   }
   const suspendGuard = await assertPostNotSuspended(id);
   if (!suspendGuard.ok) return suspendGuard.response;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 export async function DELETE(
   _req: Request,
@@ -21,8 +21,12 @@ export async function DELETE(
   }
 
   const access = await getBrandAccess(user.id, post.brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "posts.delete", post.brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: posts.delete" }, { status: 403 });
   }
 
   await prisma.post.delete({ where: { id } });

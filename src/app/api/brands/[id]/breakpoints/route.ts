@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import {
   parseBreakpoints,
   validateBreakpoints,
@@ -23,8 +23,12 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const access = await getBrandAccess(user.id, id);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "brands.edit", id);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: brands.edit" }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);

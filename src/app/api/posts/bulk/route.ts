@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 // Misma policy que posts/route.ts: solo http(s) o /uploads/ local.
 // Bloquea javascript:/data: que renderizados como <img src> o <a href> = XSS.
@@ -31,8 +31,12 @@ export async function POST(req: Request) {
   }
 
   const access = await getBrandAccess(user.id, body.brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "posts.create", body.brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: posts.create" }, { status: 403 });
   }
 
   // Posición arranca después del último post de la marca

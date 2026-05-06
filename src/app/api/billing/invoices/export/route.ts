@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
 import type { Prisma } from "@/generated/prisma";
 
 /**
@@ -21,12 +22,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Falta agencyId" }, { status: 400 });
   }
 
-  // Solo owner de la agency puede exportar
-  const ownership = await prisma.membership.findFirst({
-    where: { userId: user.id, agencyId, role: "owner", brandId: null },
-  });
-  if (!ownership) {
-    return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  // Necesita billing.view para exportar facturas (owner + manager por default)
+  const ok = await hasPermission(user.id, agencyId, "billing.view");
+  if (!ok) {
+    return NextResponse.json(
+      { error: "Sin permiso: billing.view" },
+      { status: 403 },
+    );
   }
 
   const status = url.searchParams.get("status");

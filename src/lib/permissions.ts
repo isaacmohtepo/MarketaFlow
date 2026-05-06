@@ -102,6 +102,39 @@ export async function requirePermission(
   if (!ok) throw new PermissionError(perm);
 }
 
+/**
+ * Versión brand-aware: dado un brandId, resuelve agencyId, valida `perm`
+ * con scope = ese brand. Usado por la mayoría de las routes que operan
+ * sobre un brand específico (posts, comments, library, share, IG).
+ *
+ * Tira `PermissionError` si el user no tiene el permiso o si el brand no
+ * existe / no es accesible.
+ */
+export async function requireBrandPermission(
+  userId: string,
+  brandId: string,
+  perm: Permission | string,
+): Promise<{ brandId: string; agencyId: string }> {
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+    select: { id: true, agencyId: true },
+  });
+  if (!brand) throw new PermissionError(perm);
+  await requirePermission(userId, brand.agencyId, perm, brand.id);
+  return { brandId: brand.id, agencyId: brand.agencyId };
+}
+
+/** Helper para mapear PermissionError → 403 JSON desde catch en routes. */
+export function permissionErrorResponse(e: unknown): {
+  error: string;
+  status: number;
+} | null {
+  if (e instanceof PermissionError) {
+    return { error: `Sin permiso: ${e.perm}`, status: 403 };
+  }
+  return null;
+}
+
 export class PermissionError extends Error {
   constructor(public perm: string) {
     super(`Falta permiso: ${perm}`);

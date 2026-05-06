@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess } from "@/lib/permissions";
+import { getPostAccess, hasPermission } from "@/lib/permissions";
 import { publishPost } from "@/lib/publishers";
 import { notifyBrandClients, notifyBrandAgency } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
@@ -15,8 +15,17 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const ctx = await getPostAccess(user.id, id);
-  if (!ctx || !ctx.access.canEdit) {
+  if (!ctx) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const canPublish = await hasPermission(
+    user.id,
+    ctx.access.agencyId,
+    "posts.publish",
+    ctx.access.brandId,
+  );
+  if (!canPublish) {
+    return NextResponse.json({ error: "Sin permiso: posts.publish" }, { status: 403 });
   }
 
   if (!["approved", "scheduled"].includes(ctx.post.status)) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 const schema = z.object({
   brandId: z.string().max(64),
@@ -23,8 +23,12 @@ export async function POST(req: Request) {
   }
 
   const access = await getBrandAccess(user.id, body.brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "posts.schedule", body.brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: posts.schedule" }, { status: 403 });
   }
 
   const owned = await prisma.post.findMany({

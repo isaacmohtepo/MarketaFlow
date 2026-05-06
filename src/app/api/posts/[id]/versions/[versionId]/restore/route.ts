@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess } from "@/lib/permissions";
+import { getPostAccess, hasPermission } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { invalidateBrandKpis } from "@/lib/kpis";
@@ -15,8 +15,12 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const ctx = await getPostAccess(user.id, id);
-  if (!ctx || !ctx.access.canEdit) {
+  if (!ctx) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, ctx.access.agencyId, "posts.upload_media", ctx.access.brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: posts.upload_media" }, { status: 403 });
   }
 
   const target = await prisma.postVersion.findUnique({ where: { id: versionId } });

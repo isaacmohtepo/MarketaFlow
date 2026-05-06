@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 const editSchema = z.object({
   name: z.string().min(1).max(40).optional(),
@@ -14,7 +14,10 @@ async function loadWithAccess(userId: string, setId: string, mustEdit = false) {
   if (!set) return null;
   const access = await getBrandAccess(userId, set.brandId);
   if (!access) return null;
-  if (mustEdit && !access.canEdit) return null;
+  if (mustEdit) {
+    const ok = await hasPermission(userId, access.agencyId, "library.manage", set.brandId);
+    if (!ok) return null;
+  }
   return { set, access };
 }
 

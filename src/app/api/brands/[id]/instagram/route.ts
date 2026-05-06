@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 
 /**
@@ -30,8 +30,12 @@ export async function GET(
   if (!me) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { id } = await params;
   const access = await getBrandAccess(me.id, id);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(me.id, access.agencyId, "instagram.manage", id);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
   }
   const brand = await prisma.brand.findUnique({
     where: { id },
@@ -53,8 +57,12 @@ export async function POST(
   if (!me) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { id } = await params;
   const access = await getBrandAccess(me.id, id);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(me.id, access.agencyId, "instagram.manage", id);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
   }
 
   let body;
@@ -124,8 +132,12 @@ export async function DELETE(
   if (!me) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { id } = await params;
   const access = await getBrandAccess(me.id, id);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(me.id, access.agencyId, "instagram.manage", id);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
   }
   await prisma.brand.update({
     where: { id },

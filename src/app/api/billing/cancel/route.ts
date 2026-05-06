@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { hasPermission } from "@/lib/permissions";
 
 /**
  * POST /api/billing/cancel
@@ -15,11 +16,16 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const ownership = await prisma.membership.findFirst({
-    where: { userId: user.id, role: "owner", brandId: null },
+    where: { userId: user.id, brandId: null },
+    select: { agencyId: true },
   });
   if (!ownership) {
+    return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, ownership.agencyId, "billing.manage");
+  if (!ok) {
     return NextResponse.json(
-      { error: "Solo el owner puede cancelar la suscripción" },
+      { error: "Sin permiso: billing.manage" },
       { status: 403 },
     );
   }

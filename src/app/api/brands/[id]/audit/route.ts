@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,9 +37,13 @@ export async function GET(
 
   const access = await getBrandAccess(user.id, brandId);
   // El audit log incluye comentarios internos del equipo. Los clients NO
-  // deberían poder descargarlo. Restringimos a canEdit (owner/editor).
-  if (!access || !access.canEdit) {
+  // deberían poder descargarlo. Restringimos a audit.view.
+  if (!access) {
     return new Response("Forbidden", { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "audit.view", brandId);
+  if (!ok) {
+    return new Response("Forbidden: audit.view", { status: 403 });
   }
 
   const url = new URL(req.url);

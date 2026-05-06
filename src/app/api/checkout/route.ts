@@ -6,6 +6,7 @@ import { PLANS, type PlanId } from "@/lib/plans";
 import { getOrCreateSubscription } from "@/lib/billing";
 import { createPaymentLink, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
+import { hasPermission } from "@/lib/permissions";
 
 const schema = z.object({
   planId: z.enum(["pro", "agency"]),
@@ -37,18 +38,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  // Encontrar la agency del user (owner de alguna agency-level membership)
+  // Resolver agency del user: cualquier membership agency-wide. Después
+  // gateamos por billing.manage para asegurar que tiene permiso.
   const ownership = await prisma.membership.findFirst({
     where: {
       userId: user.id,
-      role: { in: ["owner"] },
       brandId: null,
       ...(body.agencyId ? { agencyId: body.agencyId } : {}),
     },
+    select: { agencyId: true },
   });
   if (!ownership) {
+    return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
+  }
+  const okPay = await hasPermission(
+    user.id,
+    ownership.agencyId,
+    "billing.manage",
+  );
+  if (!okPay) {
     return NextResponse.json(
-      { error: "Solo el owner de la agencia puede iniciar checkout" },
+      { error: "Sin permiso: billing.manage" },
       { status: 403 },
     );
   }

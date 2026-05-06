@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 
 /**
  * GET /api/instagram/oauth/start?brandId=xxx
@@ -41,8 +41,12 @@ export async function GET(req: Request) {
   }
 
   const access = await getBrandAccess(user.id, brandId);
-  if (!access || !access.canEdit) {
+  if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "instagram.manage", brandId);
+  if (!ok) {
+    return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
   }
 
   const appId = process.env.META_APP_ID;
