@@ -7,6 +7,8 @@ import {
   ALL_PERMISSIONS,
   slugifyRoleName,
   isSystemRole,
+  SYSTEM_ROLES,
+  ASSIGNABLE_SYSTEM_ROLES,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 
@@ -23,25 +25,51 @@ export async function GET() {
   const me = await getMyAgency(user.id);
   if (!me) return NextResponse.json({ roles: [] });
 
-  const roles = await prisma.role.findMany({
+  const dbRoles = await prisma.role.findMany({
     where: { agencyId: me.agencyId },
     orderBy: { createdAt: "asc" },
   });
 
-  // Conteo de miembros por rol custom para mostrar "en uso por X personas"
-  const slugs = roles.map((r) => r.slug);
+  // Separamos: rows con slug de system role = override; el resto = custom
+  const overrideBySlug = new Map(
+    dbRoles.filter((r) => isSystemRole(r.slug)).map((r) => [r.slug, r]),
+  );
+  const customRoles = dbRoles.filter((r) => !isSystemRole(r.slug));
+
+  // Conteos: custom (por slug en memberships) + system (también por slug)
+  const allSlugs = [
+    ...customRoles.map((r) => r.slug),
+    ...ASSIGNABLE_SYSTEM_ROLES,
+  ];
   const counts =
-    slugs.length > 0
+    allSlugs.length > 0
       ? await prisma.membership.groupBy({
           by: ["role"],
-          where: { agencyId: me.agencyId, role: { in: slugs }, brandId: null },
+          where: { agencyId: me.agencyId, role: { in: allSlugs }, brandId: null },
           _count: true,
         })
       : [];
   const countBySlug = new Map(counts.map((c) => [c.role, c._count]));
 
   return NextResponse.json({
-    roles: roles.map((r) => ({
+    systemRoles: ASSIGNABLE_SYSTEM_ROLES.map((slug) => {
+      const sys = SYSTEM_ROLES[slug];
+      const override = overrideBySlug.get(slug);
+      return {
+        slug,
+        name: sys.name,
+        description: override?.description ?? sys.description,
+        defaultDescription: sys.description,
+        tone: sys.tone,
+        permissions: override?.permissions ?? sys.permissions,
+        defaultPermissions: sys.permissions,
+        isOverridden: !!override,
+        noScope: sys.noScope ?? false,
+        editable: slug !== "owner", // owner siempre tiene todo
+        memberCount: countBySlug.get(slug) ?? 0,
+      };
+    }),
+    customRoles: customRoles.map((r) => ({
       id: r.id,
       slug: r.slug,
       name: r.name,

@@ -42,21 +42,30 @@ export type { Permission, SystemRoleSlug, SystemRoleDef };
 // ============================================================================
 
 /**
- * Devuelve el set de permisos de un role slug. Primero contra system roles
- * (in-memory), si no matchea busca custom Role en DB. Deny-by-default si no
- * existe.
+ * Devuelve el set de permisos efectivo de un role slug.
+ *
+ * Prioridad:
+ *   1. Override en DB (Role row con ese slug + agencyId) — sirve tanto para
+ *      custom roles como para overrides de system roles.
+ *   2. Hardcoded SYSTEM_ROLES.
+ *   3. [] (deny by default).
+ *
+ * Esto permite que la agency edite los permisos de un system role sin
+ * perder la posibilidad de "restaurar defaults" (basta con borrar la Role
+ * row override).
  */
 export async function permissionsForRole(
   agencyId: string,
   roleSlug: string,
 ): Promise<readonly string[]> {
-  const sys = SYSTEM_ROLES[roleSlug as SystemRoleSlug];
-  if (sys) return sys.permissions;
-  const custom = await prisma.role.findUnique({
+  const override = await prisma.role.findUnique({
     where: { agencyId_slug: { agencyId, slug: roleSlug } },
     select: { permissions: true },
   });
-  return custom?.permissions ?? [];
+  if (override) return override.permissions;
+  const sys = SYSTEM_ROLES[roleSlug as SystemRoleSlug];
+  if (sys) return sys.permissions;
+  return [];
 }
 
 /**

@@ -46,6 +46,39 @@ export const PERMISSION_GROUPS = [
       { key: "posts.delete", label: "Eliminar posts" },
       { key: "posts.schedule", label: "Programar fecha de publicación" },
       { key: "posts.publish", label: "Publicar a Instagram" },
+      { key: "posts.approve", label: "Aprobar o pedir cambios en posts" },
+    ],
+  },
+  {
+    key: "comments",
+    label: "Comentarios",
+    permissions: [
+      { key: "comments.write", label: "Comentar y mencionar en posts" },
+      { key: "comments.resolve", label: "Resolver y reabrir hilos de comentarios" },
+    ],
+  },
+  {
+    key: "library",
+    label: "Biblioteca",
+    permissions: [
+      {
+        key: "library.manage",
+        label: "Gestionar hashtag sets y plantillas de la marca",
+      },
+    ],
+  },
+  {
+    key: "integrations",
+    label: "Integraciones",
+    permissions: [
+      {
+        key: "instagram.manage",
+        label: "Conectar y desconectar la cuenta de Instagram",
+      },
+      {
+        key: "share.manage",
+        label: "Generar y revocar links públicos y de widget",
+      },
     ],
   },
   {
@@ -115,6 +148,7 @@ const POSTS_FULL = [
   "posts.delete",
   "posts.schedule",
   "posts.publish",
+  "posts.approve",
 ];
 
 export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
@@ -144,6 +178,11 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "brands.delete",
       "clients.invite",
       ...POSTS_FULL,
+      "comments.write",
+      "comments.resolve",
+      "library.manage",
+      "instagram.manage",
+      "share.manage",
       "inbox.read",
       "inbox.reply",
       "analytics.view",
@@ -156,10 +195,15 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
     slug: "community_manager",
     name: "Community Manager",
     description:
-      "Crea, edita, programa y publica posts. Maneja inbox y ve analytics.",
+      "Crea, edita, programa y publica posts. Maneja inbox, biblioteca, comentarios y links de share.",
     tone: "fuchsia",
     permissions: [
       ...POSTS_FULL,
+      "comments.write",
+      "comments.resolve",
+      "library.manage",
+      "instagram.manage",
+      "share.manage",
       "inbox.read",
       "inbox.reply",
       "analytics.view",
@@ -169,30 +213,48 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
   designer: {
     slug: "designer",
     name: "Diseñador/a",
-    description: "Sube y cambia imágenes y videos en posts. No edita caption ni publica.",
+    description:
+      "Sube y cambia imágenes y videos en posts. Comenta para coordinar con el CM. No edita caption ni publica.",
     tone: "emerald",
-    permissions: ["posts.view", "posts.upload_media", "analytics.view"],
+    permissions: [
+      "posts.view",
+      "posts.upload_media",
+      "comments.write",
+      "analytics.view",
+    ],
   },
   copywriter: {
     slug: "copywriter",
     name: "Copywriter",
-    description: "Edita caption y hashtags de posts existentes. No sube media ni publica.",
+    description:
+      "Edita caption y hashtags de posts existentes. Comenta. No sube media ni publica.",
     tone: "sky",
-    permissions: ["posts.view", "posts.edit_caption", "analytics.view"],
+    permissions: [
+      "posts.view",
+      "posts.edit_caption",
+      "comments.write",
+      "analytics.view",
+    ],
   },
   strategist: {
     slug: "strategist",
     name: "Estratega",
-    description: "Read-only en posts y analytics. Ideal para planners y stakeholders.",
+    description:
+      "Read-only en posts y analytics. Comenta para dejar notas estratégicas.",
     tone: "violet",
-    permissions: ["posts.view", "analytics.view"],
+    permissions: [
+      "posts.view",
+      "comments.write",
+      "analytics.view",
+    ],
   },
   client: {
     slug: "client",
     name: "Cliente",
-    description: "Aprueba o pide cambios en los posts de su marca. Solo a nivel marca.",
+    description:
+      "Ve, aprueba o pide cambios y comenta en los posts de su marca. Solo a nivel marca.",
     tone: "zinc",
-    permissions: ["posts.view"],
+    permissions: ["posts.view", "posts.approve", "comments.write"],
     brandOnly: true,
   },
 };

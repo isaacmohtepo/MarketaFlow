@@ -10,13 +10,26 @@ import {
   X,
   Lock,
   Copy as Duplicate,
+  RotateCcw,
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
-import {
-  PERMISSION_GROUPS,
-  SYSTEM_ROLES,
-  ASSIGNABLE_SYSTEM_ROLES,
-} from "@/lib/permissions-data";
+import { PERMISSION_GROUPS } from "@/lib/permissions-data";
+
+type Tone = "amber" | "indigo" | "fuchsia" | "emerald" | "sky" | "violet" | "zinc";
+
+type SystemRole = {
+  slug: string;
+  name: string;
+  description: string;
+  defaultDescription: string;
+  tone: Tone;
+  permissions: string[];
+  defaultPermissions: string[];
+  isOverridden: boolean;
+  noScope: boolean;
+  editable: boolean;
+  memberCount: number;
+};
 
 type CustomRole = {
   id: string;
@@ -28,7 +41,7 @@ type CustomRole = {
   createdAt: string;
 };
 
-const TONE: Record<string, string> = {
+const TONE: Record<Tone, string> = {
   amber: "bg-amber-50 text-amber-700 ring-amber-200",
   indigo: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   fuchsia: "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200",
@@ -38,19 +51,21 @@ const TONE: Record<string, string> = {
   zinc: "bg-zinc-100 text-zinc-700 ring-zinc-200",
 };
 
+type EditorTarget =
+  | { kind: "create" }
+  | { kind: "duplicate"; name: string; permissions: string[] }
+  | { kind: "edit-custom"; role: CustomRole }
+  | { kind: "edit-system"; role: SystemRole };
+
 export default function RolesManager({
   canManageRoles,
 }: {
   canManageRoles: boolean;
 }) {
-  const [roles, setRoles] = useState<CustomRole[]>([]);
+  const [systemRoles, setSystemRoles] = useState<SystemRole[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<CustomRole | null>(null);
-  const [duplicateFrom, setDuplicateFrom] = useState<{
-    name: string;
-    permissions: string[];
-  } | null>(null);
+  const [target, setTarget] = useState<EditorTarget | null>(null);
   const { confirm } = useConfirm();
 
   async function load() {
@@ -58,7 +73,8 @@ export default function RolesManager({
     const r = await fetch("/api/team/roles", { cache: "no-store" });
     if (r.ok) {
       const j = await r.json();
-      setRoles(j.roles ?? []);
+      setSystemRoles(j.systemRoles ?? []);
+      setCustomRoles(j.customRoles ?? []);
     }
     setLoading(false);
   }
@@ -66,7 +82,7 @@ export default function RolesManager({
     load();
   }, []);
 
-  async function deleteRole(role: CustomRole) {
+  async function deleteCustom(role: CustomRole) {
     if (role.memberCount > 0) {
       await confirm({
         title: "No se puede eliminar",
@@ -100,6 +116,20 @@ export default function RolesManager({
     load();
   }
 
+  async function restoreSystemDefaults(role: SystemRole) {
+    const ok = await confirm({
+      title: `¿Restaurar permisos de "${role.name}"?`,
+      description:
+        "Vuelve a los permisos predefinidos del sistema. Cualquier ajuste custom de este rol se pierde.",
+      confirmLabel: "Restaurar",
+      cancelLabel: "Cancelar",
+      variant: "default",
+    });
+    if (!ok) return;
+    await fetch(`/api/team/roles/system/${role.slug}`, { method: "DELETE" });
+    load();
+  }
+
   return (
     <div className="space-y-7">
       <section>
@@ -109,23 +139,20 @@ export default function RolesManager({
               Roles del sistema
             </h2>
             <p className="mt-0.5 text-[12px] text-zinc-500">
-              Predefinidos. No se pueden editar ni eliminar — pero podés
-              duplicarlos como base para crear uno custom.
+              Predefinidos. Podés ajustar sus permisos para tu agencia o
+              restaurar los defaults cuando quieras.
             </p>
           </div>
         </div>
-        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-          {ASSIGNABLE_SYSTEM_ROLES.map((slug) => {
-            const r = SYSTEM_ROLES[slug];
-            return (
-              <li
-                key={slug}
-                className="card flex items-start gap-3 p-4"
-              >
+
+        {loading && systemRoles.length === 0 ? (
+          <p className="mt-3 text-[12px] text-zinc-500">Cargando...</p>
+        ) : (
+          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+            {systemRoles.map((r) => (
+              <li key={r.slug} className="card flex items-start gap-3 p-4">
                 <span
-                  className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg ring-1 ${
-                    TONE[r.tone] ?? TONE.zinc
-                  }`}
+                  className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg ring-1 ${TONE[r.tone]}`}
                 >
                   <Shield className="h-4 w-4" />
                 </span>
@@ -134,7 +161,12 @@ export default function RolesManager({
                     <p className="truncate text-[13px] font-semibold text-zinc-900">
                       {r.name}
                     </p>
-                    <Lock className="h-3 w-3 text-zinc-400" />
+                    {!r.editable && <Lock className="h-3 w-3 text-zinc-400" />}
+                    {r.isOverridden && (
+                      <span className="rounded-full bg-amber-100 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-amber-700">
+                        Custom
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 line-clamp-2 text-[11.5px] text-zinc-500">
                     {r.description}
@@ -142,29 +174,50 @@ export default function RolesManager({
                   <p className="mt-1 text-[10.5px] text-zinc-400">
                     {r.permissions.length}{" "}
                     {r.permissions.length === 1 ? "permiso" : "permisos"}
+                    {r.memberCount > 0 && <> · {r.memberCount} miembros</>}
                   </p>
                 </div>
                 {canManageRoles && (
-                  <button
-                    onClick={() => {
-                      setDuplicateFrom({
-                        name: `${r.name} (copia)`,
-                        permissions: [...r.permissions],
-                      });
-                      setEditingRole(null);
-                      setEditorOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100"
-                    title="Duplicar como rol custom"
-                  >
-                    <Duplicate className="h-3 w-3" />
-                    Duplicar
-                  </button>
+                  <div className="flex flex-col items-end gap-1">
+                    {r.editable && (
+                      <button
+                        onClick={() =>
+                          setTarget({ kind: "edit-system", role: r })
+                        }
+                        className="grid h-7 w-7 place-items-center rounded text-zinc-500 hover:bg-zinc-100"
+                        title="Editar permisos"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {r.isOverridden && (
+                      <button
+                        onClick={() => restoreSystemDefaults(r)}
+                        className="grid h-7 w-7 place-items-center rounded text-zinc-500 hover:bg-zinc-100"
+                        title="Restaurar defaults"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() =>
+                        setTarget({
+                          kind: "duplicate",
+                          name: `${r.name} (copia)`,
+                          permissions: [...r.permissions],
+                        })
+                      }
+                      className="grid h-7 w-7 place-items-center rounded text-zinc-500 hover:bg-zinc-100"
+                      title="Duplicar como rol custom"
+                    >
+                      <Duplicate className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section>
@@ -179,11 +232,7 @@ export default function RolesManager({
           </div>
           {canManageRoles && (
             <button
-              onClick={() => {
-                setEditingRole(null);
-                setDuplicateFrom(null);
-                setEditorOpen(true);
-              }}
+              onClick={() => setTarget({ kind: "create" })}
               className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -194,22 +243,24 @@ export default function RolesManager({
 
         {loading ? (
           <p className="mt-3 text-[12px] text-zinc-500">Cargando...</p>
-        ) : roles.length === 0 ? (
+        ) : customRoles.length === 0 ? (
           <div className="card mt-3 p-6 text-center">
             <Shield className="mx-auto h-8 w-8 text-zinc-300" />
             <p className="mt-2 text-[13px] font-semibold text-zinc-700">
               Todavía no creaste ningún rol custom
             </p>
             <p className="mt-0.5 text-[11.5px] text-zinc-500">
-              Los 6 roles del sistema cubren la mayoría de los casos. Creá uno
+              Los roles del sistema cubren la mayoría de los casos. Creá uno
               custom solo si necesitás algo específico.
             </p>
           </div>
         ) : (
           <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-            {roles.map((r) => (
+            {customRoles.map((r) => (
               <li key={r.id} className="card flex items-start gap-3 p-4">
-                <span className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg ring-1 ${TONE.zinc}`}>
+                <span
+                  className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg ring-1 ${TONE.zinc}`}
+                >
                   <Shield className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -224,26 +275,22 @@ export default function RolesManager({
                   <p className="mt-1 text-[10.5px] text-zinc-400">
                     {r.permissions.length}{" "}
                     {r.permissions.length === 1 ? "permiso" : "permisos"}
-                    {r.memberCount > 0 && (
-                      <> · {r.memberCount} miembros</>
-                    )}
+                    {r.memberCount > 0 && <> · {r.memberCount} miembros</>}
                   </p>
                 </div>
                 {canManageRoles && (
                   <div className="flex flex-col gap-1">
                     <button
-                      onClick={() => {
-                        setEditingRole(r);
-                        setDuplicateFrom(null);
-                        setEditorOpen(true);
-                      }}
+                      onClick={() =>
+                        setTarget({ kind: "edit-custom", role: r })
+                      }
                       className="grid h-7 w-7 place-items-center rounded text-zinc-500 hover:bg-zinc-100"
                       title="Editar"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      onClick={() => deleteRole(r)}
+                      onClick={() => deleteCustom(r)}
                       className="grid h-7 w-7 place-items-center rounded text-zinc-400 hover:bg-rose-50 hover:text-rose-700"
                       title="Eliminar"
                     >
@@ -257,27 +304,12 @@ export default function RolesManager({
         )}
       </section>
 
-      {editorOpen && (
+      {target && (
         <RoleEditor
-          initial={
-            editingRole
-              ? {
-                  name: editingRole.name,
-                  description: editingRole.description ?? "",
-                  permissions: editingRole.permissions,
-                }
-              : duplicateFrom
-                ? {
-                    name: duplicateFrom.name,
-                    description: "",
-                    permissions: duplicateFrom.permissions,
-                  }
-                : { name: "", description: "", permissions: [] }
-          }
-          editingId={editingRole?.id ?? null}
-          onClose={() => setEditorOpen(false)}
+          target={target}
+          onClose={() => setTarget(null)}
           onSaved={() => {
-            setEditorOpen(false);
+            setTarget(null);
             load();
           }}
         />
@@ -290,16 +322,47 @@ export default function RolesManager({
 // Editor modal
 // ============================================================================
 function RoleEditor({
-  initial,
-  editingId,
+  target,
   onClose,
   onSaved,
 }: {
-  initial: { name: string; description: string; permissions: string[] };
-  editingId: string | null;
+  target: EditorTarget;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  // Modo: editar system, editar custom, crear custom, duplicar a custom
+  const isSystemEdit = target.kind === "edit-system";
+  const isCustomEdit = target.kind === "edit-custom";
+  const isCreate = target.kind === "create" || target.kind === "duplicate";
+
+  const initial = useMemo(() => {
+    if (target.kind === "edit-system") {
+      return {
+        name: target.role.name,
+        description: target.role.description,
+        permissions: target.role.permissions,
+        nameEditable: false,
+      };
+    }
+    if (target.kind === "edit-custom") {
+      return {
+        name: target.role.name,
+        description: target.role.description ?? "",
+        permissions: target.role.permissions,
+        nameEditable: true,
+      };
+    }
+    if (target.kind === "duplicate") {
+      return {
+        name: target.name,
+        description: "",
+        permissions: target.permissions,
+        nameEditable: true,
+      };
+    }
+    return { name: "", description: "", permissions: [], nameEditable: true };
+  }, [target]);
+
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [perms, setPerms] = useState<Set<string>>(new Set(initial.permissions));
@@ -330,7 +393,7 @@ function RoleEditor({
 
   async function save() {
     setError(null);
-    if (!name.trim()) {
+    if (initial.nameEditable && !name.trim()) {
       setError("Falta el nombre");
       return;
     }
@@ -339,17 +402,37 @@ function RoleEditor({
       return;
     }
     setSaving(true);
-    const url = editingId ? `/api/team/roles/${editingId}` : "/api/team/roles";
-    const method = editingId ? "PATCH" : "POST";
-    const r = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        description: description.trim() || null,
-        permissions: [...perms],
-      }),
-    });
+    let r: Response;
+    if (isSystemEdit && target.kind === "edit-system") {
+      r = await fetch(`/api/team/roles/system/${target.role.slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          permissions: [...perms],
+          description: description.trim() || null,
+        }),
+      });
+    } else if (isCustomEdit && target.kind === "edit-custom") {
+      r = await fetch(`/api/team/roles/${target.role.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+          permissions: [...perms],
+        }),
+      });
+    } else {
+      r = await fetch("/api/team/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+          permissions: [...perms],
+        }),
+      });
+    }
     setSaving(false);
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
@@ -359,12 +442,18 @@ function RoleEditor({
     onSaved();
   }
 
+  const heading = isSystemEdit
+    ? `Editar permisos de ${initial.name}`
+    : isCustomEdit
+      ? "Editar rol"
+      : "Crear rol personalizado";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-6">
       <div className="card flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[85vh]">
         <div className="flex items-center justify-between border-b divider px-5 py-3">
           <h3 className="text-[14px] font-bold tracking-tight text-zinc-900">
-            {editingId ? "Editar rol" : "Crear rol personalizado"}
+            {heading}
           </h3>
           <button
             onClick={onClose}
@@ -375,21 +464,30 @@ function RoleEditor({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {initial.nameEditable ? (
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                Nombre
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej. Editor de Video"
+                className="mt-1.5 w-full rounded-md input-soft px-3 py-2 text-[13px]"
+                maxLength={40}
+              />
+            </div>
+          ) : (
+            <div className="rounded-md bg-zinc-50 px-3 py-2 text-[12px] text-zinc-600">
+              Estás editando los permisos del rol del sistema{" "}
+              <strong className="text-zinc-900">{initial.name}</strong>. El
+              nombre no se puede cambiar — para crear uno con nombre custom,
+              usá "Duplicar".
+            </div>
+          )}
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Nombre
-            </label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Editor de Video"
-              className="mt-1.5 w-full rounded-md input-soft px-3 py-2 text-[13px]"
-              maxLength={40}
-            />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Descripción (opcional)
+              Descripción {isCreate && "(opcional)"}
             </label>
             <input
               value={description}
@@ -466,9 +564,7 @@ function RoleEditor({
             </div>
           </div>
 
-          {error && (
-            <p className="text-[12px] text-rose-600">{error}</p>
-          )}
+          {error && <p className="text-[12px] text-rose-600">{error}</p>}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t divider px-5 py-3">
@@ -483,7 +579,13 @@ function RoleEditor({
             disabled={saving}
             className="btn-gradient rounded-md px-4 py-1.5 text-[12px] font-semibold disabled:opacity-60"
           >
-            {saving ? "Guardando..." : editingId ? "Guardar" : "Crear rol"}
+            {saving
+              ? "Guardando..."
+              : isSystemEdit
+                ? "Guardar cambios"
+                : isCustomEdit
+                  ? "Guardar"
+                  : "Crear rol"}
           </button>
         </div>
       </div>
