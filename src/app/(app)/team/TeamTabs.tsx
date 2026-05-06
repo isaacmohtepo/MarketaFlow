@@ -22,16 +22,18 @@ export default function TeamTabs({
           icon={<Users className="h-3.5 w-3.5" />}
           label="Miembros"
         />
-        <TabBtn
-          active={tab === "roles"}
-          onClick={() => setTab("roles")}
-          icon={<Shield className="h-3.5 w-3.5" />}
-          label="Roles y permisos"
-        />
+        {canManageRoles && (
+          <TabBtn
+            active={tab === "roles"}
+            onClick={() => setTab("roles")}
+            icon={<Shield className="h-3.5 w-3.5" />}
+            label="Roles y permisos"
+          />
+        )}
       </div>
       <div className="mt-6">
         {tab === "members" && <TeamManager canInvite={canInvite} />}
-        {tab === "roles" && <RolesManager canManageRoles={canManageRoles} />}
+        {tab === "roles" && canManageRoles && <RolesManager canManageRoles={canManageRoles} />}
       </div>
     </div>
   );

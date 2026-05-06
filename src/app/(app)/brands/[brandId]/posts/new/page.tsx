@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import NewPostForm from "./NewPostForm";
@@ -22,6 +22,8 @@ export default async function NewPostPage({
   if (!user) redirect("/login");
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
+  const canCreate = await hasPermission(user.id, access.agencyId, "posts.create", brandId);
+  if (!canCreate) redirect(`/brands/${brandId}`);
   const [agencyName, brand, widgetPings] = await Promise.all([
     getUserAgencyName(user.id),
     prisma.brand.findUnique({ where: { id: brandId } }),

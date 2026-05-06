@@ -62,6 +62,8 @@ export default async function PostPage({
     canSchedule,
     canPublish,
     canApprovePost,
+    canWriteComments,
+    canResolveComments,
   ] = await Promise.all([
     hasPermission(user.id, access.agencyId, "posts.edit_caption", brandId),
     hasPermission(user.id, access.agencyId, "posts.upload_media", brandId),
@@ -70,6 +72,8 @@ export default async function PostPage({
     hasPermission(user.id, access.agencyId, "posts.schedule", brandId),
     hasPermission(user.id, access.agencyId, "posts.publish", brandId),
     hasPermission(user.id, access.agencyId, "posts.approve", brandId),
+    hasPermission(user.id, access.agencyId, "comments.write", brandId),
+    hasPermission(user.id, access.agencyId, "comments.resolve", brandId),
   ]);
 
   const [comments, lastApproval, agencyName, brand] = await Promise.all([
@@ -255,6 +259,8 @@ export default async function PostPage({
             canSchedule={canSchedule}
             canPublish={canPublish}
             canApprovePost={canApprovePost}
+            canWriteComments={canWriteComments}
+            canResolveComments={canResolveComments}
             isAgency={access.role !== "client"}
             currentStatus={post.status}
             publishedUrl={post.publishedUrl}

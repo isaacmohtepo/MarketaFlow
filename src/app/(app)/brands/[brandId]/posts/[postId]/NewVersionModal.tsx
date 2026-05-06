@@ -7,9 +7,11 @@ import { UploadCloud, X, Loader2, ImagePlus, Pencil } from "lucide-react";
 export default function NewVersionModal({
   postId,
   onClose,
+  canEditCaption = true,
 }: {
   postId: string;
   onClose: () => void;
+  canEditCaption?: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -201,7 +203,7 @@ export default function NewVersionModal({
         </div>
 
         <div className="mt-4">
-          {editCaption ? (
+          {!canEditCaption ? null : editCaption ? (
             <>
               <div className="flex items-center justify-between">
                 <label className="block text-[12px] font-medium text-zinc-700">

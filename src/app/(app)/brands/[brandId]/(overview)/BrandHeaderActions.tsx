@@ -6,6 +6,7 @@ import { UserPlus, Trash2, FileText, Plus, Activity } from "lucide-react";
 import { ASSET_TYPE_NEW_CTA, type AssetType } from "@/lib/asset-types";
 import NewPostButton from "@/app/(app)/dashboard/NewPostButton";
 import BulkUploadButton from "../BulkUploadButton";
+import { usePermissions } from "@/components/PermissionsProvider";
 
 const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "other"] as const;
 type AT = (typeof ALL_TYPES)[number];
@@ -24,6 +25,8 @@ export default function BrandHeaderActions({
   allBrands: { id: string; name: string; logoUrl: string | null; color: string | null }[];
 }) {
   const sp = useSearchParams();
+  const { has } = usePermissions();
+  const canCreatePost = has("posts.create", brandId);
   const rawType = sp.get("type") ?? "social_post";
   const activeType: AT = (ALL_TYPES as readonly string[]).includes(rawType)
     ? (rawType as AT)
@@ -65,8 +68,8 @@ export default function BrandHeaderActions({
         <UserPlus className="h-4 w-4" />
         <span className="hidden sm:inline">Invitar cliente</span>
       </Link>
-      {activeType === "social_post" && <BulkUploadButton brandId={brandId} />}
-      {activeType === "social_post" ? (
+      {activeType === "social_post" && canCreatePost && <BulkUploadButton brandId={brandId} />}
+      {canCreatePost && (activeType === "social_post" ? (
         <NewPostButton brands={allBrands} defaultBrandId={brandId} />
       ) : (
         <Link
@@ -76,7 +79,7 @@ export default function BrandHeaderActions({
           <Plus className="h-4 w-4" />
           {ASSET_TYPE_NEW_CTA[activeType as AssetType]}
         </Link>
-      )}
+      ))}
     </div>
   );
 }

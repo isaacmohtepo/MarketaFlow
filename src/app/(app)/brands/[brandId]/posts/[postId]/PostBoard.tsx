@@ -57,6 +57,8 @@ export default function PostBoard({
   canSchedule,
   canPublish,
   canApprovePost,
+  canWriteComments,
+  canResolveComments,
   currentStatus,
   publishedUrl,
   publishError,
@@ -80,6 +82,8 @@ export default function PostBoard({
   canSchedule: boolean;
   canPublish: boolean;
   canApprovePost: boolean;
+  canWriteComments: boolean;
+  canResolveComments: boolean;
   currentStatus: string;
   publishedUrl: string | null;
   publishError: string | null;
@@ -295,6 +299,7 @@ export default function PostBoard({
   const hovered = comments.find((c) => c.id === hoverId);
 
   function onImageClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!canWriteComments) return;
     const wrap = imgWrapRef.current;
     if (!wrap) return;
     const rect = wrap.getBoundingClientRect();
@@ -1116,7 +1121,7 @@ export default function PostBoard({
                       setEditBody(c.body);
                     }}
                     onDelete={() => deleteComment(c.id)}
-                    onResolve={() => toggleResolve(c)}
+                    onResolve={canResolveComments ? () => toggleResolve(c) : undefined}
                     onToggleInternal={isAgency ? () => toggleInternalComment(c) : undefined}
                   />
                   {isEditing ? (
@@ -1190,7 +1195,7 @@ export default function PostBoard({
                     </ul>
                   )}
 
-                  {!c.resolved &&
+                  {!c.resolved && canWriteComments &&
                     (replyTo === c.id ? (
                       <div className="mt-2 flex gap-2">
                         <MentionInput
@@ -1234,6 +1239,7 @@ export default function PostBoard({
             })}
           </ul>
 
+          {canWriteComments && (
           <form onSubmit={addComment} className="mt-3 space-y-2">
             <div className="flex gap-2">
               <MentionInput
@@ -1321,6 +1327,7 @@ export default function PostBoard({
               </div>
             )}
           </form>
+          )}
           {canApprovePost && liveStatus === "in_review" ? (
             <p className="mt-1.5 text-[10.5px] text-zinc-500">
               Si comentás, el post pasa automáticamente a <span className="font-semibold text-rose-600">Cambios solicitados</span> y se notifica a la agencia.
@@ -1348,6 +1355,7 @@ export default function PostBoard({
         <NewVersionModal
           postId={postId}
           onClose={() => setVersionModalOpen(false)}
+          canEditCaption={canEditCaption}
         />
       )}
     </div>
