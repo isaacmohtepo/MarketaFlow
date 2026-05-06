@@ -13,7 +13,7 @@
  * - Validar firma de webhook
  */
 
-import { createHmac, randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { getWompiConfig, type WompiConfig, type IntegrationEnvironment } from "./integrations";
 
 const PRODUCTION_API = "https://production.wompi.co/v1";
@@ -75,34 +75,69 @@ export function buildIntegritySignature(args: {
 }
 
 function createSha256Hex(input: string): string {
-  // Built-in node crypto SHA-256
-  const { createHash } = require("crypto") as typeof import("crypto");
   return createHash("sha256").update(input, "utf8").digest("hex");
 }
 
 /**
- * Verifica la firma HMAC de un evento de webhook. Wompi envía la firma en
- * el header `X-Event-Checksum`. Calculamos HMAC-SHA-256 sobre el cuerpo
- * concatenado con el eventsSecret y comparamos.
+ * Verifica la firma de un evento webhook de Wompi.
+ *
+ * Wompi NO firma el body crudo con HMAC. El algoritmo es:
+ *  1. Tomar los valores del evento listados en signature.properties
+ *     (ej. ["transaction.id", "transaction.status", "transaction.amount_in_cents"])
+ *  2. Concatenarlos EN ORDEN, sin separador
+ *  3. Concatenar el timestamp del evento
+ *  4. Concatenar el eventsSecret
+ *  5. SHA-256 plain hash (NO HMAC)
+ *  6. Comparar con signature.checksum (case-insensitive)
  *
  * Docs: https://docs.wompi.co/docs/colombia/eventos
  */
 export function verifyEventSignature(args: {
-  rawBody: string;
-  signature: string;
+  event: WompiEventPayload;
   eventsSecret: string;
 }): boolean {
-  const computed = createHmac("sha256", args.eventsSecret)
-    .update(args.rawBody, "utf8")
-    .digest("hex");
-  // timing-safe compare
-  if (computed.length !== args.signature.length) return false;
+  const { event, eventsSecret } = args;
+  const sig = event.signature;
+  if (!sig?.checksum || !Array.isArray(sig.properties)) return false;
+  if (event.timestamp == null) return false;
+
+  // Resolver cada property como path "transaction.id" → event.data.transaction.id
+  const values: string[] = [];
+  for (const prop of sig.properties) {
+    const v = resolvePath(event.data, prop);
+    if (v == null) return false; // property faltante = firma inválida
+    values.push(String(v));
+  }
+  const concat = values.join("") + String(event.timestamp) + eventsSecret;
+  const computed = createHash("sha256").update(concat, "utf8").digest("hex");
+
+  const expected = sig.checksum.toLowerCase();
+  const got = computed.toLowerCase();
+  if (expected.length !== got.length) return false;
   let diff = 0;
-  for (let i = 0; i < computed.length; i++) {
-    diff |= computed.charCodeAt(i) ^ args.signature.charCodeAt(i);
+  for (let i = 0; i < got.length; i++) {
+    diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
   }
   return diff === 0;
 }
+
+/** Resuelve un path tipo "transaction.id" sobre un objeto. */
+function resolvePath(obj: unknown, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === "object" && key in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
+}
+
+/** Shape mínimo de un evento Wompi para verificar firma. */
+export type WompiEventPayload = {
+  event?: string;
+  data?: unknown;
+  timestamp?: number | string;
+  signature?: { checksum: string; properties: string[] };
+};
 
 /**
  * Crea un payment link (Checkout Web hosted) para que el usuario pague el

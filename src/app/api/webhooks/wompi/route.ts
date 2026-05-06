@@ -25,26 +25,21 @@ import type { PlanId } from "@/lib/plans";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  // Wompi envía el body como JSON pero la firma se calcula sobre el TEXT raw,
-  // así que tenemos que leer raw y parsear nosotros.
+  // Body raw (lo conservamos por si hay que loguear, aunque la firma de Wompi
+  // se computa de los CAMPOS DEL JSON, no del raw).
   const rawBody = await req.text();
-  const signature = req.headers.get("x-event-checksum") ?? "";
 
-  if (!signature) {
-    return NextResponse.json({ error: "Falta firma" }, { status: 401 });
+  let payload: WompiEvent;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  // Detectar environment del payload. Wompi manda `environment: "test"|"prod"`
-  // en el evento. Si usábamos sandbox hardcoded, en producción la firma se
-  // verificaría con secret de sandbox → todos los webhooks reales rechazados.
+  // Detectar environment del payload. Wompi manda `environment: "test"|"prod"`.
   let envFromPayload: "sandbox" | "production" = "production";
-  try {
-    const peek = JSON.parse(rawBody) as { environment?: string };
-    if (peek.environment === "test" || peek.environment === "sandbox") {
-      envFromPayload = "sandbox";
-    }
-  } catch {
-    // Si el body no parsea, dejamos production y dejamos que la firma falle
+  if (payload.environment === "test" || payload.environment === "sandbox") {
+    envFromPayload = "sandbox";
   }
 
   let cfg;
@@ -58,16 +53,11 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!verifyEventSignature({ rawBody, signature, eventsSecret: cfg.eventsSecret })) {
+  // Verificar firma usando el algoritmo correcto de Wompi (SHA-256 de
+  // properties + timestamp + secret). Ver verifyEventSignature.
+  if (!verifyEventSignature({ event: payload, eventsSecret: cfg.eventsSecret })) {
     console.error("Webhook: firma inválida");
     return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
-  }
-
-  let payload: WompiEvent;
-  try {
-    payload = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
   // Idempotency: si YA procesamos este evento antes, devolvemos OK y no
