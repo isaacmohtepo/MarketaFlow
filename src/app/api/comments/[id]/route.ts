@@ -6,7 +6,7 @@ import { getBrandAccess } from "@/lib/permissions";
 import { notifyMentionedUsers } from "@/lib/notifications";
 
 const editSchema = z.object({
-  body: z.string().min(1).optional(),
+  body: z.string().min(1).max(5000).optional(),
   resolved: z.boolean().optional(),
   internal: z.boolean().optional(),
   assignedToId: z.string().nullable().optional(),

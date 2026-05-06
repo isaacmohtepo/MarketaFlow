@@ -5,7 +5,11 @@ import { verifyPassword, createSession } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
-  email: z.string().email(),
+  // Normalizamos a lowercase para matchear emails que register guarda así.
+  email: z
+    .string()
+    .email()
+    .transform((s) => s.toLowerCase().trim()),
   password: z.string().min(1),
 });
 

@@ -10,13 +10,21 @@ import { invalidateBrandKpis } from "@/lib/kpis";
 import { ASSET_TYPES } from "@/lib/asset-types";
 
 const schema = z.object({
-  caption: z.string().optional(),
+  caption: z.string().max(10_000).optional(),
   scheduledAt: z.string().nullable().optional(),
   status: z
     .enum(["draft", "in_review", "changes_requested", "approved", "scheduled", "published"])
     .optional(),
   assetType: z.enum(ASSET_TYPES).optional(),
-  sourceUrl: z.string().url().nullable().optional(),
+  // sourceUrl restringido a http(s) — la URL se guarda en DB y luego se
+  // renderiza como link clickeable en el panel; sin restricción permite
+  // javascript:/data: → XSS. Igual al schema de creación en posts/route.ts.
+  sourceUrl: z
+    .string()
+    .url()
+    .refine((u) => /^https?:\/\//i.test(u), "URL debe ser http/https")
+    .nullable()
+    .optional(),
 });
 
 export async function PATCH(

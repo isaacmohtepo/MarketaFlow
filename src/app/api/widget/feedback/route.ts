@@ -38,8 +38,16 @@ const schema = z.object({
   token: z.string().min(8),
   body: z.string().min(1).max(2000),
   reporterName: z.string().min(1).max(80),
-  reporterEmail: z.string().email().optional().nullable(),
-  pageUrl: z.string().url(),
+  // reporterEmail removido — antes permitía indicar un email arbitrario
+  // que era usado para identificar al user, lo que abría un vector de
+  // overwriting de users reales. Ahora siempre generamos un email guest.
+  // Restringir a http(s) — z.url() permite javascript:/data: que se renderizan
+  // como link clickeable en el panel de comentarios → XSS si un attacker manda
+  // un screenshot con un pageUrl javascript:alert(1).
+  pageUrl: z
+    .string()
+    .url()
+    .refine((u) => /^https?:\/\//i.test(u), "URL debe ser http/https"),
   pageTitle: z.string().max(200).optional().nullable(),
   selector: z.string().max(500).optional().nullable(),
   x: z.number().min(0).max(1),
@@ -132,10 +140,18 @@ export async function POST(req: Request) {
     return jsonCors(req, { error: "No se pudo procesar la captura" }, 500);
   }
 
-  // 2) Resolver "reporter" como User (guest user reusable por nombre+email+brand)
-  const reporterEmail =
-    body.reporterEmail ??
-    `widget_${brand.id}_${body.reporterName.toLowerCase().replace(/\s+/g, "_")}@guest.local`;
+  // 2) Resolver "reporter" como User. SIEMPRE generamos un email guest
+  //    derivado del brand+nombre para evitar:
+  //    a) "account takeover por nombre": un widget anónimo NO puede modificar
+  //       el name de un user real registrado (antes pasábamos reporterEmail
+  //       al server, si coincidía con un user real le cambiábamos el name).
+  //    b) Phishing reverso: alguien deja feedback como "support@google.com"
+  //       y aparece como ese user en la timeline.
+  //
+  //    Si el reporter quiere recibir notificaciones, eso se maneja afuera
+  //    con un opt-in explícito (no implementado todavía).
+  const safeName = body.reporterName.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 60);
+  const reporterEmail = `widget_${brand.id}_${safeName}@guest.local`;
   let reporter = await prisma.user.findUnique({ where: { email: reporterEmail } });
   if (!reporter) {
     const passwordHash = await hashPassword(randomBytes(16).toString("hex"));
@@ -156,10 +172,15 @@ export async function POST(req: Request) {
       },
     });
   } else if (reporter.name !== body.reporterName) {
-    await prisma.user.update({
-      where: { id: reporter.id },
-      data: { name: body.reporterName },
-    });
+    // Solo actualizamos si el email es @guest.local (sino tocaríamos un
+    // user real). El email lo generamos nosotros arriba así que esto siempre
+    // se cumple, pero defensa-en-profundidad por si cambia la lógica.
+    if (reporter.email.endsWith("@guest.local")) {
+      await prisma.user.update({
+        where: { id: reporter.id },
+        data: { name: body.reporterName },
+      });
+    }
   }
 
   // 3) Crear el Post (web_design) con la screenshot como cover y la URL como sourceUrl

@@ -6,7 +6,7 @@ import { getBrandAccess } from "@/lib/permissions";
 
 const createSchema = z.object({
   name: z.string().min(1).max(40),
-  tags: z.string().min(1),
+  tags: z.string().min(1).max(5000),
 });
 
 export async function GET(

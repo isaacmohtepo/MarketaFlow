@@ -5,10 +5,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 
 const schema = z.object({
-  brandId: z.string(),
-  imageUrls: z.array(z.string().min(1)).min(1).max(50),
-  platform: z.string().optional(),
-  postType: z.string().optional(),
+  brandId: z.string().max(64),
+  imageUrls: z.array(z.string().min(1).max(2048)).min(1).max(50),
+  platform: z.string().max(40).optional(),
+  postType: z.string().max(40).optional(),
 });
 
 export async function POST(req: Request) {

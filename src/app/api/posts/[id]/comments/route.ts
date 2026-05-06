@@ -25,10 +25,14 @@ async function resolveMentionedUsers(opts: {
   const mentions = extractMentions(opts.body);
   if (mentions.length === 0) return [];
 
-  // Pool: usuarios con membresía directa a la marca + agency-side de la agencia dueña
+  // Pool: members brand-scoped + agency-level (brandId null) de la agencia dueña.
+  // No incluir clients de OTRAS brands de la misma agencia (cross-brand leak).
   const members = await prisma.membership.findMany({
     where: {
-      OR: [{ brandId: opts.brandId }, { agency: { brands: { some: { id: opts.brandId } } } }],
+      OR: [
+        { brandId: opts.brandId },
+        { brandId: null, agency: { brands: { some: { id: opts.brandId } } } },
+      ],
     },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
@@ -55,10 +59,11 @@ async function resolveMentionedUsers(opts: {
 }
 
 const schema = z.object({
-  body: z.string().min(1),
+  // 5000 chars cubre comentarios largos sin permitir DoS por payloads gigantes.
+  body: z.string().min(1).max(5000),
   x: z.number().min(0).max(1).optional(),
   y: z.number().min(0).max(1).optional(),
-  parentId: z.string().optional(),
+  parentId: z.string().max(64).optional(),
   internal: z.boolean().optional(),
   // attachmentUrl: z.url() permitía javascript: y data: → XSS si se renderiza
   // en <a href>. Restringimos a http(s) explícito.

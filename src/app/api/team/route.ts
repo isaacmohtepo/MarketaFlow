@@ -7,7 +7,13 @@ import { canInviteTeamMember } from "@/lib/billing";
 import { audit } from "@/lib/audit";
 
 const inviteSchema = z.object({
-  email: z.string().email(),
+  // Lowercase + trim para match con register/login (case-insensitive lookup).
+  // Sin esto, invitar "Alice@x.com" cuando ella se registró como "alice@x.com"
+  // crea invitación duplicada porque el findUnique por email no matchea.
+  email: z
+    .string()
+    .email()
+    .transform((s) => s.toLowerCase().trim()),
   role: z.enum(["editor", "owner"]).default("editor"),
 });
 

@@ -19,11 +19,18 @@ const passwordSchema = z
   });
 
 const schema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
+  name: z.string().min(1).max(120),
+  // Normalizamos a lowercase + trim para que "Alice@x.com" y "alice@x.com"
+  // sean la misma cuenta (sino se podrían crear dos users con el mismo
+  // email lógico, generando confusión + account-confusion attacks).
+  email: z
+    .string()
+    .email()
+    .max(254) // RFC 5321
+    .transform((s) => s.toLowerCase().trim()),
   password: passwordSchema,
-  agencyName: z.string().min(1).optional(),
-  inviteCode: z.string().optional(),
+  agencyName: z.string().min(1).max(120).optional(),
+  inviteCode: z.string().max(64).optional(),
 });
 
 export async function POST(req: Request) {

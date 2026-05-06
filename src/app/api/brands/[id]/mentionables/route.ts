@@ -25,10 +25,17 @@ export async function GET(
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
   const all = url.searchParams.get("all") === "1";
 
-  // Pool: members directos a la marca + miembros agency-side de la agencia
+  // Pool: members directos a la marca (clients de esta brand) + agency-level
+  // (owner/editor de la agencia dueña, brandId null). El query anterior usaba
+  // `agency: { brands: { some: { id: brandId } } }` SIN restringir brandId,
+  // lo que filtraba clients de OTRAS brands de la misma agencia a un client
+  // de esta brand → enumeration cross-brand de PII (nombres + handles + role).
   const members = await prisma.membership.findMany({
     where: {
-      OR: [{ brandId }, { agency: { brands: { some: { id: brandId } } } }],
+      OR: [
+        { brandId },
+        { brandId: null, agency: { brands: { some: { id: brandId } } } },
+      ],
     },
     include: { user: { select: { id: true, name: true, email: true } } },
     take: 100,

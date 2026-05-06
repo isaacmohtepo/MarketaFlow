@@ -8,7 +8,7 @@ import { invalidateBrandKpis } from "@/lib/kpis";
 
 const schema = z.object({
   decision: z.enum(["approved", "changes_requested"]),
-  note: z.string().nullable().optional(),
+  note: z.string().max(2000).nullable().optional(),
 });
 
 export async function POST(

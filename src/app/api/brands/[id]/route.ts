@@ -6,7 +6,7 @@ import { getBrandAccess } from "@/lib/permissions";
 
 const schema = z.object({
   name: z.string().min(1).max(80).optional(),
-  handle: z.string().nullable().optional(),
+  handle: z.string().max(80).nullable().optional(),
   // logoUrl: solo http(s) externo o /uploads/ local. Bloquea javascript:/data:
   // que serían XSS si se renderiza con <img>.
   logoUrl: z

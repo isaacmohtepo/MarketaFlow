@@ -24,20 +24,23 @@ const fileMetaSchema = z.object({
 });
 
 const schema = z.object({
-  brandId: z.string(),
-  caption: z.string().optional().nullable(),
+  brandId: z.string().max(64),
+  caption: z.string().max(10_000).optional().nullable(),
   imageUrl: z
     .string()
+    .max(2048)
     .refine(isSafeImagePath, "URL no permitida")
     .nullable()
     .optional(),
   // Acepta tanto la forma vieja (string[]) como la nueva con metadata
-  images: z.union([
-    z.array(z.string().refine(isSafeImagePath, "URL no permitida")),
-    z.array(fileMetaSchema),
-  ]).optional(),
-  platform: z.string().default("instagram"),
-  postType: z.string().default("feed"),
+  images: z
+    .union([
+      z.array(z.string().max(2048).refine(isSafeImagePath, "URL no permitida")).max(20),
+      z.array(fileMetaSchema).max(20),
+    ])
+    .optional(),
+  platform: z.string().max(40).default("instagram"),
+  postType: z.string().max(40).default("feed"),
   assetType: z.enum(ASSET_TYPES).default("social_post"),
   sourceUrl: z
     .string()

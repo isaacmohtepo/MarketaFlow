@@ -7,9 +7,9 @@ import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 
 const schema = z.object({
-  images: z.array(z.string()).min(1),
-  caption: z.string().optional(),
-  note: z.string().optional(),
+  images: z.array(z.string().max(2048)).min(1).max(20),
+  caption: z.string().max(10_000).optional(),
+  note: z.string().max(2000).optional(),
 });
 
 export async function POST(

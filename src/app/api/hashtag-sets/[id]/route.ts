@@ -6,7 +6,7 @@ import { getBrandAccess } from "@/lib/permissions";
 
 const editSchema = z.object({
   name: z.string().min(1).max(40).optional(),
-  tags: z.string().optional(),
+  tags: z.string().max(5000).optional(),
 });
 
 async function loadWithAccess(userId: string, setId: string, mustEdit = false) {

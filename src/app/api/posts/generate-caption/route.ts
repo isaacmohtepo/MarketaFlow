@@ -9,10 +9,13 @@ import { prisma } from "@/lib/db";
 import { canUseAi } from "@/lib/billing";
 
 const schema = z.object({
-  brandId: z.string(),
-  imageUrls: z.array(z.string()).min(1).max(3),
-  currentCaption: z.string().optional(),
-  platform: z.string().optional(),
+  brandId: z.string().max(64),
+  // imageUrls: max 3 + 2048 chars c/u — evita pasar URLs gigantes que terminen
+  // costando tokens al LLM o saturando el filesystem read.
+  imageUrls: z.array(z.string().max(2048)).min(1).max(3),
+  // currentCaption se concatena al prompt — un caption gigante = costo ↑↑.
+  currentCaption: z.string().max(10_000).optional(),
+  platform: z.string().max(40).optional(),
 });
 
 const SYSTEM_PROMPT = `Eres un copywriter senior especializado en redes sociales para agencias digitales latinoamericanas. Generas captions para Instagram, Facebook y TikTok.
@@ -47,7 +50,17 @@ const MIME_BY_EXT: Record<string, "image/jpeg" | "image/png" | "image/webp" | "i
 async function loadImageAsBase64(url: string) {
   // Solo aceptamos rutas locales /uploads/...
   if (!url.startsWith("/uploads/")) return null;
-  const filePath = path.join(process.cwd(), "public", url.replace(/^\/+/, ""));
+  // Path traversal guard: rechazar cualquier "..", null bytes o caracteres
+  // raros antes de tocar el filesystem. path.join NO previene traversal por
+  // sí solo — un input "/uploads/../../.env" se "limpia" a "/.env" relativo
+  // a public, leaking archivos fuera del directorio de uploads.
+  if (url.includes("..") || url.includes("\0")) return null;
+  const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
+  const filePath = path.resolve(process.cwd(), "public", url.replace(/^\/+/, ""));
+  // Confirmamos que la ruta resuelta queda dentro de public/uploads/
+  if (!filePath.startsWith(uploadsRoot + path.sep) && filePath !== uploadsRoot) {
+    return null;
+  }
   try {
     const buf = await readFile(filePath);
     const ext = (url.split(".").pop() ?? "jpg").toLowerCase();
