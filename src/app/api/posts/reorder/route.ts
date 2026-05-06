@@ -5,8 +5,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 
 const schema = z.object({
-  brandId: z.string(),
-  order: z.array(z.string()).min(1),
+  brandId: z.string().max(64),
+  // .max(500) — un brand normal tiene decenas/cientos de posts; 500 es holgado
+  // y previene un payload de 100k IDs que hace un findMany + 100k UPDATE.
+  order: z.array(z.string().max(64)).min(1).max(500),
 });
 
 export async function POST(req: Request) {

@@ -4,9 +4,17 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 
+// Misma policy que posts/route.ts: solo http(s) o /uploads/ local.
+// Bloquea javascript:/data: que renderizados como <img src> o <a href> = XSS.
+const isSafeImagePath = (u: string) =>
+  /^https?:\/\//i.test(u) || u.startsWith("/uploads/");
+
 const schema = z.object({
   brandId: z.string().max(64),
-  imageUrls: z.array(z.string().min(1).max(2048)).min(1).max(50),
+  imageUrls: z
+    .array(z.string().min(1).max(2048).refine(isSafeImagePath, "URL no permitida"))
+    .min(1)
+    .max(50),
   platform: z.string().max(40).optional(),
   postType: z.string().max(40).optional(),
 });

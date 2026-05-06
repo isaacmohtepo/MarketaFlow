@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { canUseAi } from "@/lib/billing";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   brandId: z.string().max(64),
@@ -74,6 +75,17 @@ async function loadImageAsBase64(url: string) {
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  // Rate limit: 20 generaciones/min/user. Cada call cuesta tokens a Anthropic
+  // y el plan check (canUseAi) es booleano — sin esto un user en plan Pro
+  // podía disparar miles de calls en paralelo y quemar el budget de la API.
+  const rl = rateLimit(req, {
+    key: "ai-caption",
+    limit: 20,
+    windowMs: 60_000,
+    extra: user.id,
+  });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(

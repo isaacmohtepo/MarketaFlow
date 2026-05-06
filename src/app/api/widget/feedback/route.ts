@@ -86,7 +86,11 @@ export async function POST(req: Request) {
   try {
     body = schema.parse(await req.json());
   } catch (err) {
-    return jsonCors(req, { error: "Datos inválidos", detail: String(err) }, 400);
+    // No echo del error original — endpoint público (CORS *) y errores de zod
+    // pueden incluir nombres de campos internos / paths. Log server-side y
+    // devolvemos un mensaje genérico al cliente.
+    console.error("widget/feedback: zod parse failed", err);
+    return jsonCors(req, { error: "Datos inválidos" }, 400);
   }
 
   const brand = await prisma.brand.findUnique({

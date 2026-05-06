@@ -6,8 +6,15 @@ import { getPostAccess } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 
+// Solo http(s) o /uploads/ local. Bloquea javascript:/data: → XSS al render.
+const isSafeImagePath = (u: string) =>
+  /^https?:\/\//i.test(u) || u.startsWith("/uploads/");
+
 const schema = z.object({
-  images: z.array(z.string().max(2048)).min(1).max(20),
+  images: z
+    .array(z.string().max(2048).refine(isSafeImagePath, "URL no permitida"))
+    .min(1)
+    .max(20),
   caption: z.string().max(10_000).optional(),
   note: z.string().max(2000).optional(),
 });
