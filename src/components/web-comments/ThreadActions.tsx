@@ -6,14 +6,18 @@ import {
   Crosshair,
   Globe,
   Lock,
+  MoreHorizontal,
   Pencil,
   Trash2,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import AssigneePicker from "./AssigneePicker";
 
 /**
- * Barra inferior de acciones de un thread:
- * Resolver/Reabrir · Responder · Ir al pin · Asignar · (Editar · Eliminar si es propio)
+ * Barra inferior de acciones de un thread. Diseño compacto: la acción primaria
+ * (Resolver) tiene presencia; las secundarias son icon-only con tooltip; las
+ * destructivas (Editar/Eliminar) viven en un menú "•••" para no apretar la
+ * barra y solo aparecen para el autor del comentario.
  */
 export default function ThreadActions({
   brandId,
@@ -55,105 +59,136 @@ export default function ThreadActions({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [moreOpen]);
+
+  const hasMoreMenu = isOwn && (onEdit || onDelete);
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-1.5 border-t border-zinc-100 bg-white p-3">
-      <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 border-t border-zinc-100 bg-white/60 px-2 py-1.5">
+      {/* Primary: Resolver/Reabrir — único con label visible */}
+      <button
+        type="button"
+        onClick={onToggleResolved}
+        disabled={busy}
+        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition disabled:opacity-60 ${
+          resolved
+            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            : "bg-zinc-900 text-white hover:bg-zinc-800"
+        }`}
+      >
+        <Check className="h-3 w-3" strokeWidth={3} />
+        {resolved ? "Reabrir" : "Resolver"}
+      </button>
+
+      {/* Secondary icon-only buttons */}
+      <button
+        type="button"
+        onClick={onToggleReply}
+        title={isReplyActive ? "Cancelar respuesta" : "Responder"}
+        className={`grid h-7 w-7 place-items-center rounded-md transition ${
+          isReplyActive
+            ? "bg-fuchsia-50 text-fuchsia-700"
+            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+        }`}
+      >
+        <CornerDownRight className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={onGoToPin}
+        title={goLabel}
+        className="grid h-7 w-7 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+      >
+        <Crosshair className="h-3.5 w-3.5" />
+      </button>
+      {canAssign && (
+        <AssigneePicker
+          brandId={brandId}
+          assignedToId={assignedToId}
+          assignedToName={assignedToName}
+          onAssign={onAssign}
+          busy={busy}
+          gradientForName={gradientForName}
+        />
+      )}
+      {onToggleInternal && (
         <button
           type="button"
-          onClick={onToggleResolved}
+          onClick={onToggleInternal}
           disabled={busy}
-          className={`rounded-md px-2 py-1 text-[11px] font-semibold transition ${
-            resolved
-              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-              : "btn-secondary"
+          title={
+            internal
+              ? "Solo equipo — click para hacer público"
+              : "Público — click para hacer interno"
+          }
+          className={`grid h-7 w-7 place-items-center rounded-md transition ${
+            internal
+              ? "bg-violet-100 text-violet-700 hover:bg-violet-200"
+              : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
           }`}
         >
-          {resolved ? (
-            <span className="inline-flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Reabrir
-            </span>
-          ) : (
-            "Resolver"
-          )}
+          {internal ? <Lock className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
         </button>
-        <button
-          type="button"
-          onClick={onToggleReply}
-          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ${
-            isReplyActive ? "bg-fuchsia-50 text-fuchsia-700" : "btn-secondary"
-          }`}
-        >
-          <CornerDownRight className="h-3 w-3" />
-          Responder
-        </button>
-        <button
-          type="button"
-          onClick={onGoToPin}
-          className="inline-flex items-center gap-1 rounded-md btn-secondary px-2 py-1 text-[11px] font-semibold"
-          title="Scrollear al pin"
-        >
-          <Crosshair className="h-3 w-3" />
-          {goLabel}
-        </button>
-        {canAssign && (
-          <AssigneePicker
-            brandId={brandId}
-            assignedToId={assignedToId}
-            assignedToName={assignedToName}
-            onAssign={onAssign}
-            busy={busy}
-            gradientForName={gradientForName}
-          />
-        )}
-        {onToggleInternal && (
+      )}
+
+      {/* Spacer empuja el menú al borde derecho */}
+      <span className="flex-1" />
+
+      {/* "•••" menu para acciones destructivas/raras (Editar, Eliminar) */}
+      {hasMoreMenu && (
+        <div className="relative" ref={moreRef}>
           <button
             type="button"
-            onClick={onToggleInternal}
-            disabled={busy}
-            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold transition ${
-              internal
-                ? "bg-violet-100 text-violet-700 ring-1 ring-violet-200 hover:bg-violet-200"
-                : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100"
+            onClick={() => setMoreOpen((v) => !v)}
+            title="Más acciones"
+            className={`grid h-7 w-7 place-items-center rounded-md transition ${
+              moreOpen
+                ? "bg-zinc-100 text-zinc-900"
+                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"
             }`}
-            title={
-              internal
-                ? "Solo el equipo lo ve. Click para hacerlo visible al cliente."
-                : "El cliente lo ve. Click para volverlo solo equipo."
-            }
           >
-            {internal ? (
-              <>
-                <Lock className="h-3 w-3" />
-                Equipo
-              </>
-            ) : (
-              <>
-                <Globe className="h-3 w-3" />
-                Público
-              </>
-            )}
+            <MoreHorizontal className="h-4 w-4" />
           </button>
-        )}
-      </div>
-      {isOwn && onEdit && onDelete && (
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onEdit}
-            title="Editar"
-            className="grid h-7 w-7 place-items-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            title="Eliminar"
-            className="grid h-7 w-7 place-items-center rounded text-zinc-500 hover:bg-rose-50 hover:text-rose-600"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          {moreOpen && (
+            <div className="absolute bottom-full right-0 z-30 mb-1 w-36 overflow-hidden rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    onEdit();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-zinc-700 transition hover:bg-zinc-50"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    onDelete();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-rose-600 transition hover:bg-rose-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

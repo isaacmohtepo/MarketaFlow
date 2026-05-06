@@ -14,10 +14,101 @@ import ThreadActions from "@/components/web-comments/ThreadActions";
 import ShortcutsHelp from "@/components/web-comments/ShortcutsHelp";
 import StatusSelector from "@/components/StatusSelector";
 import { useMentionedRoles } from "@/lib/useMentionedRoles";
+import { parseBreakpoints } from "@/lib/breakpoints";
 
 // Callback ref: focus al elemento sin scrollear el documento padre
 function focusNoScrollRef(el: HTMLTextAreaElement | null) {
   if (el) el.focus({ preventScroll: true });
+}
+
+/**
+ * Clasifica un viewport (en px) en una de las 5 categorías de breakpoints de
+ * la marca. El comment hereda esta clasificación de su `viewportW` guardado
+ * al crearlo. Comments legacy sin viewportW caen a "laptop" (default razonable).
+ */
+type DeviceClass =
+  | "mobilePortrait"
+  | "tabletPortrait"
+  | "tabletLandscape"
+  | "laptop"
+  | "widescreen";
+function deviceFromViewport(
+  w: number | null | undefined,
+  bp: {
+    mobilePortrait: number;
+    tabletPortrait: number;
+    tabletLandscape: number;
+    laptop: number;
+    widescreen: number;
+  },
+): DeviceClass {
+  if (!w || w <= 0) return "laptop";
+  if (w <= bp.mobilePortrait) return "mobilePortrait";
+  if (w <= bp.tabletPortrait) return "tabletPortrait";
+  if (w <= bp.tabletLandscape) return "tabletLandscape";
+  if (w <= bp.laptop) return "laptop";
+  return "widescreen";
+}
+
+/** Etiquetas cortas para las 5 categorías, mostradas en badges/tooltips. */
+const DEVICE_LABEL: Record<DeviceClass, string> = {
+  mobilePortrait: "Mobile",
+  tabletPortrait: "Tablet ↕",
+  tabletLandscape: "Tablet ↔",
+  laptop: "Laptop",
+  widescreen: "Widescreen",
+};
+
+/**
+ * Tiempo relativo corto, estilo chat (ej. "ahora", "5 min", "2 h", "3 d", o
+ * fecha + hora si pasa de una semana). Usado en el header de cada thread.
+ */
+function relTimeShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "ahora";
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d} d`;
+  return new Date(iso).toLocaleDateString("es", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+/**
+ * Normaliza una URL a su pathname (ignorando query/hash) para agrupar
+ * comentarios por página. Ej: "https://staging.com/about?utm=x#top" → "/about".
+ * Si la URL no parsea, devuelve el string original como fallback.
+ */
+function pagePathFromUrl(url: string | null | undefined): string {
+  if (!url) return "/";
+  try {
+    const u = new URL(url);
+    return u.pathname || "/";
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Construye una URL absoluta dentro del mismo origin del sourceUrl, dado un
+ * pathname. Útil para navegar el iframe programáticamente al click de una
+ * página descubierta.
+ */
+function urlForPath(sourceUrl: string | null, pathname: string): string {
+  if (!sourceUrl) return pathname;
+  try {
+    const u = new URL(sourceUrl);
+    u.pathname = pathname;
+    u.search = "";
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return pathname;
+  }
 }
 
 import {
@@ -30,7 +121,10 @@ import {
   ExternalLink,
   Globe,
   Loader2,
+  Lock,
+  Maximize2,
   MessageSquarePlus,
+  Minimize2,
   Monitor,
   MoreHorizontal,
   Paperclip,
@@ -86,6 +180,7 @@ export default function WebDesignBoard({
   imageUrl,
   sourceUrl,
   widgetToken,
+  brandBreakpoints,
   initialComments,
   currentUserId,
   canComment,
@@ -97,12 +192,17 @@ export default function WebDesignBoard({
   imageUrl: string | null;
   sourceUrl: string | null;
   widgetToken: string | null;
+  brandBreakpoints?: unknown;
   initialComments: Comment[];
   currentUserId: string;
   canComment: boolean;
   isAgency: boolean;
   postStatus: string;
 }) {
+  // Breakpoints específicos de la marca (con fallback a defaults Elementor).
+  // Usados para clasificar comentarios responsive y decidir el ancho de los
+  // presets mobile/tablet del preview.
+  const bp = useMemo(() => parseBreakpoints(brandBreakpoints), [brandBreakpoints]);
   const [comments, setComments] = useState(initialComments);
   const [commentMode, setCommentMode] = useState(false);
   const [draft, setDraft] = useState<{
@@ -130,6 +230,20 @@ export default function WebDesignBoard({
     | "public_only";
   const [filterMode, setFilterMode] = useState<FilterMode>("pending");
   const [searchQuery, setSearchQuery] = useState("");
+  // Filtro por página: "current" → solo muestra comentarios/pines de la página
+  // que está abierta en el iframe. "all" → muestra todos (útil para ver el
+  // overview de feedback en el sidebar). El default es "current" porque pins
+  // de otra página no tienen sentido visual.
+  const [pageFilter, setPageFilter] = useState<"current" | "all">("current");
+  // Filtro por dispositivo: "current" muestra solo comments hechos desde el
+  // mismo viewport (mobile/tablet/desktop) que el preview activo. "all" mezcla
+  // todos. Default "current" para que al cambiar a mobile veas el feedback
+  // específico de mobile (escenarios responsive).
+  const [deviceFilter, setDeviceFilter] = useState<"current" | "all">("current");
+  // URL actualmente cargada en el iframe. Cambia cuando el usuario clickea una
+  // página en el navigator (programmatic) o navega dentro del iframe (vía
+  // bridge "ready"). Iniciamos en sourceUrl.
+  const [currentSrc, setCurrentSrc] = useState<string | null>(sourceUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { confirm: confirmDialog } = useConfirm();
@@ -150,9 +264,88 @@ export default function WebDesignBoard({
   const modKey = useModKey();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
-  const viewportWidth =
-    viewport === "mobile" ? 390 : viewport === "tablet" ? 820 : null;
+  // Fullscreen "app-level": el board se vuelve fixed inset-0 cubriendo todo
+  // el viewport (incluyendo sidebar de AppShell). Útil para revisar diseños
+  // grandes sin chrome alrededor. Toggle con botón o tecla F. Esc para salir.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Lock body scroll mientras estamos en fullscreen para que la página detrás
+  // no se mueva con la rueda del mouse.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isFullscreen]);
+
+  // Detectamos el ancho de pantalla del usuario para limitar las opciones de
+  // viewport. Si el user está usando MarketaFlow desde un mobile (≤
+  // bp.mobilePortrait), no tiene sentido ofrecer previews de tablet/laptop/
+  // widescreen — no caben ni siquiera escalados. Solo mostramos Mobile.
+  // null hasta el primer client render → en SSR y primer paint NO filtramos
+  // nada, evitando hydration mismatch (server no conoce el ancho del browser).
+  const [userScreenWidth, setUserScreenWidth] = useState<number | null>(null);
+  useEffect(() => {
+    setUserScreenWidth(window.innerWidth);
+    function onResize() {
+      setUserScreenWidth(window.innerWidth);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const isUserOnMobile = userScreenWidth !== null && userScreenWidth <= bp.mobilePortrait;
+  // Viewport activo: 5 categorías matching los breakpoints de la marca.
+  // "laptop" es el default razonable (cercano a desktop sin ser full width).
+  type ViewportKey =
+    | "mobilePortrait"
+    | "tabletPortrait"
+    | "tabletLandscape"
+    | "laptop"
+    | "widescreen";
+  const [viewport, setViewport] = useState<ViewportKey>("widescreen");
+  // Si el usuario entra desde mobile y el viewport activo no es mobile,
+  // forzamos a mobile. Lo mismo cuando achica la ventana — no podemos
+  // previsualizar un widescreen desde un teléfono.
+  useEffect(() => {
+    if (isUserOnMobile && viewport !== "mobilePortrait") {
+      setViewport("mobilePortrait");
+    }
+  }, [isUserOnMobile, viewport]);
+  // Ancho REAL del iframe para cada viewport. El iframe renderiza el sitio a
+  // este ancho exacto (no se ajusta al container). Si excede el espacio
+  // disponible se escala visualmente con CSS transform para entrar — así el
+  // sitio cree estar en widescreen (2400px) y aplica los CSS responsive
+  // correspondientes, pero vos ves un preview proporcional.
+  const viewportWidth: number = (() => {
+    if (viewport === "mobilePortrait") return Math.min(390, bp.mobilePortrait);
+    if (viewport === "tabletPortrait") return bp.mobilePortrait + 1;
+    if (viewport === "tabletLandscape") return bp.tabletPortrait + 1;
+    if (viewport === "laptop") return bp.tabletLandscape + 1;
+    return bp.widescreen; // widescreen renderiza al valor configurado
+  })();
+
+  // Medimos el contenedor del canvas para calcular el scale factor cuando
+  // viewportWidth excede el espacio disponible.
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(0);
+  useEffect(() => {
+    if (!canvasContainerRef.current) return;
+    const el = canvasContainerRef.current;
+    const obs = new ResizeObserver((entries) => {
+      for (const e of entries) setCanvasWidth(e.contentRect.width);
+    });
+    obs.observe(el);
+    setCanvasWidth(el.getBoundingClientRect().width);
+    return () => obs.disconnect();
+  }, []);
+
+  // Scale factor: 1 si el viewport entra; < 1 si hay que escalarlo.
+  // Reservamos 32px de padding lateral para que no quede pegado a los bordes.
+  const previewScale =
+    canvasWidth > 0 && viewportWidth > canvasWidth - 32
+      ? (canvasWidth - 32) / viewportWidth
+      : 1;
   type Attach = { url: string; name: string; mime: string };
   const [draftAttachment, setDraftAttachment] = useState<Attach | null>(null);
   const [replyAttachment, setReplyAttachment] = useState<Attach | null>(null);
@@ -264,6 +457,92 @@ export default function WebDesignBoard({
     () => comments.filter((c) => !c.parentId && c.x !== null && c.y !== null),
     [comments],
   );
+
+  // Página actualmente abierta en el iframe. Preferimos lo que reporta el widget
+  // (bridge.pageUrl, que refleja la URL real cargada incluso si el usuario
+  // navegó dentro del iframe). Si el bridge todavía no está conectado, caemos
+  // al currentSrc que pusimos al iframe.
+  const activeIframePageUrl =
+    bridge.state === "ready" ? bridge.pageUrl : currentSrc ?? sourceUrl ?? "";
+  const currentPagePath = pagePathFromUrl(activeIframePageUrl);
+
+  // Agrupa parent comments por pathname de pageUrl. Los pins de página A no
+  // tienen sentido cuando estás en página B (los selectores no van a matchear),
+  // así que esta agrupación es lo que hace posible la UI multi-página.
+  const pagesIndex = useMemo(() => {
+    const map = new Map<
+      string,
+      { path: string; url: string; total: number; unresolved: number }
+    >();
+    // Siempre incluir la página inicial (sourceUrl) aunque no tenga comments
+    if (sourceUrl) {
+      const path = pagePathFromUrl(sourceUrl);
+      map.set(path, { path, url: sourceUrl, total: 0, unresolved: 0 });
+    }
+    // También la página actual si difiere
+    if (activeIframePageUrl) {
+      const path = pagePathFromUrl(activeIframePageUrl);
+      if (!map.has(path)) {
+        map.set(path, { path, url: activeIframePageUrl, total: 0, unresolved: 0 });
+      }
+    }
+    for (const c of parents) {
+      if (!c.pageUrl) continue;
+      const path = pagePathFromUrl(c.pageUrl);
+      const existing = map.get(path);
+      if (existing) {
+        existing.total += 1;
+        if (!c.resolved) existing.unresolved += 1;
+      } else {
+        map.set(path, {
+          path,
+          url: c.pageUrl,
+          total: 1,
+          unresolved: c.resolved ? 0 : 1,
+        });
+      }
+    }
+    return map;
+  }, [parents, sourceUrl, activeIframePageUrl]);
+
+  const pages = useMemo(() => {
+    const arr = Array.from(pagesIndex.values());
+    arr.sort((a, b) => {
+      // Home (sourceUrl path) primero
+      const homePath = sourceUrl ? pagePathFromUrl(sourceUrl) : null;
+      if (homePath) {
+        if (a.path === homePath) return -1;
+        if (b.path === homePath) return 1;
+      }
+      // Después por unresolved descendente, luego alfabético
+      if (a.unresolved !== b.unresolved) return b.unresolved - a.unresolved;
+      return a.path.localeCompare(b.path);
+    });
+    return arr;
+  }, [pagesIndex, sourceUrl]);
+
+  // Si el filtro está en "current", solo mostramos parents cuyo pageUrl matchea
+  // la página activa. Si "all", mostramos todos. Comments sin pageUrl (legacy,
+  // pre-multipage) se asumen de la home.
+  const parentsForPage = useMemo(() => {
+    if (pageFilter === "all") return parents;
+    return parents.filter((c) => {
+      if (!c.pageUrl) {
+        // Legacy: cuando no había multi-page, todo era home
+        return sourceUrl ? pagePathFromUrl(sourceUrl) === currentPagePath : true;
+      }
+      return pagePathFromUrl(c.pageUrl) === currentPagePath;
+    });
+  }, [parents, pageFilter, currentPagePath, sourceUrl]);
+
+  // Filtro por dispositivo aplicado encima del filtro de página. Cuando estás
+  // viendo el preview en mobile, por default solo aparecen los comments hechos
+  // desde mobile — útil para revisar issues responsive sin que el sidebar se
+  // mezcle con feedback de desktop.
+  const parentsForDevice = useMemo(() => {
+    if (deviceFilter === "all") return parentsForPage;
+    return parentsForPage.filter((c) => deviceFromViewport(c.viewportW, bp) === viewport);
+  }, [parentsForPage, deviceFilter, viewport, bp]);
   // repliesByParent se calcula más abajo, lo necesitamos antes para el filtro "awaiting"
   const repliesCountByParent = useMemo(() => {
     const m = new Map<string, number>();
@@ -274,7 +553,8 @@ export default function WebDesignBoard({
   }, [comments]);
 
   const visibleParents = useMemo(() => {
-    let arr = parents;
+    // Empezamos por los parents ya filtrados por página + dispositivo
+    let arr = parentsForDevice;
     if (filterMode === "pending") arr = arr.filter((p) => !p.resolved);
     else if (filterMode === "resolved") arr = arr.filter((p) => p.resolved);
     else if (filterMode === "mine") arr = arr.filter((p) => p.userId === currentUserId);
@@ -296,7 +576,7 @@ export default function WebDesignBoard({
       );
     }
     return arr;
-  }, [parents, filterMode, searchQuery, currentUserId, repliesCountByParent]);
+  }, [parentsForDevice, filterMode, searchQuery, currentUserId, repliesCountByParent]);
   const pinIndex = useMemo(() => {
     const sorted = [...parents].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -448,13 +728,28 @@ export default function WebDesignBoard({
     return () => es.close();
   }, [postId]);
 
-  // Mandar al widget la lista de pines a trackear cuando cambian o cuando se conecta
+  // Mandar al widget la lista de pines a trackear cuando cambian o cuando se
+  // conecta. Solo enviamos pins de la página activa — comments de otra página
+  // tienen selectores que no van a matchear acá y aparecerían como orphan.
   useEffect(() => {
     if (bridge.state !== "ready" || !sourceOrigin) return;
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
+    const homePath = sourceUrl ? pagePathFromUrl(sourceUrl) : null;
     const pins = parents
-      .filter((c) => c.selector)
+      .filter((c) => {
+        if (!c.selector) return false;
+        // Si el comment no tiene pageUrl (legacy), asumimos que es de la home
+        const cPath = c.pageUrl ? pagePathFromUrl(c.pageUrl) : homePath;
+        if (cPath !== currentPagePath) return false;
+        // Filtro por device: si el toggle está en "current", solo mostramos
+        // pins del mismo device class que el preview activo. Comments sin
+        // viewportW caen a "desktop".
+        if (deviceFilter === "current") {
+          return deviceFromViewport(c.viewportW, bp) === viewport;
+        }
+        return true;
+      })
       .map((c) => ({
         id: c.id,
         selector: c.selector,
@@ -469,7 +764,7 @@ export default function WebDesignBoard({
       { mf: "track-pins", pins },
       sourceOrigin,
     );
-  }, [parents, bridge.state, sourceOrigin]);
+  }, [parents, bridge.state, sourceOrigin, currentPagePath, sourceUrl, deviceFilter, viewport]);
 
   // Saluda al widget cuando el iframe carga
   function onIframeLoad() {
@@ -599,6 +894,8 @@ export default function WebDesignBoard({
           setActiveId(null);
         } else if (sidebarOpen) {
           setSidebarOpen(false);
+        } else if (isFullscreen) {
+          setIsFullscreen(false);
         }
         return;
       }
@@ -620,6 +917,11 @@ export default function WebDesignBoard({
         e.preventDefault();
         setCommentMode((v) => !v);
         if (!commentMode) setDraft(null);
+        return;
+      }
+      if (k === "f") {
+        e.preventDefault();
+        setIsFullscreen((v) => !v);
         return;
       }
       if (k === "r" && activeId) {
@@ -665,6 +967,7 @@ export default function WebDesignBoard({
     activeId,
     sidebarOpen,
     helpOpen,
+    isFullscreen,
     submitDraft,
     canComment,
     bridge.state,
@@ -684,8 +987,11 @@ export default function WebDesignBoard({
     if (x < 0 || y < 0 || x > 1 || y > 1) return;
     setCapturing(true);
     setError(null);
-    const iframeClientX = e.clientX - rect.left;
-    const iframeClientY = e.clientY - rect.top;
+    // Coords iframe-internas: dividimos por previewScale porque el wrapper
+    // está escalado con CSS transform. El widget usa coords iframe-internas
+    // (no escaladas) para el elementsFromPoint.
+    const iframeClientX = (e.clientX - rect.left) / previewScale;
+    const iframeClientY = (e.clientY - rect.top) / previewScale;
     const result = await requestClickContext(iframeClientX, iframeClientY);
     setCapturing(false);
     if (!result.ok) {
@@ -713,8 +1019,10 @@ export default function WebDesignBoard({
       clientY: iframeClientY,
       pageUrl: result.pageUrl,
       selector: result.selector,
-      viewportW: Math.round(rect.width),
-      viewportH: Math.round(rect.height),
+      // Viewport REAL del iframe (no escalado) — el widget reporta esto en
+      // result.viewportW/H. Caemos a viewportWidth si no vino info.
+      viewportW: result.viewportW || viewportWidth,
+      viewportH: result.viewportH || Math.round(rect.height / previewScale),
       scrollY: result.scrollY,
     });
     setDraftBody("");
@@ -915,6 +1223,17 @@ export default function WebDesignBoard({
     setActiveId(id);
     // Si el drawer está abierto, lo cerramos para que veas el pin/popover sobre el iframe
     if (sidebarOpen) setSidebarOpen(false);
+    // Si el thread es de otra página, navegamos el iframe a esa página
+    // automáticamente — sino el pin no aparecería y sería confuso.
+    const target = comments.find((c) => c.id === id);
+    if (target?.pageUrl) {
+      const targetPath = pagePathFromUrl(target.pageUrl);
+      if (targetPath !== currentPagePath) {
+        setCurrentSrc(target.pageUrl);
+        setIframeKey((k) => k + 1);
+        setBridge({ state: "idle" });
+      }
+    }
     // Scroll del SIDEBAR (no del documento) solo si el thread está fuera de vista
     const li = sidebarRefs.current.get(id);
     const container = sidebarScrollRef.current;
@@ -1026,7 +1345,13 @@ export default function WebDesignBoard({
   }
 
   return (
-    <div className="card overflow-hidden p-0">
+    <div
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-[100] overflow-auto bg-white"
+          : "card overflow-hidden p-0"
+      }
+    >
       {/* Banner de modo equipo: aparece cuando el post está en draft (cliente no ve nada) */}
       {isInternalMode && (
         <div className="flex items-center gap-2 border-b border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] text-violet-900">
@@ -1039,8 +1364,8 @@ export default function WebDesignBoard({
         </div>
       )}
       {/* Topbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-zinc-100 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {canComment && bridge.state === "ready" && (
             <button
               type="button"
@@ -1055,7 +1380,9 @@ export default function WebDesignBoard({
               }`}
             >
               <MessageSquarePlus className="h-3.5 w-3.5" />
-              {commentMode ? "Click sobre el sitio · Esc" : "Comentar"}
+              <span className="hidden sm:inline">
+                {commentMode ? "Click sobre el sitio · Esc" : "Comentar"}
+              </span>
             </button>
           )}
           {(() => {
@@ -1072,7 +1399,7 @@ export default function WebDesignBoard({
                 title={`${parents.length} ${parents.length === 1 ? "comentario" : "comentarios"}`}
               >
                 <MessageSquarePlus className="h-3.5 w-3.5" />
-                Conversaciones
+                <span className="hidden sm:inline">Conversaciones</span>
                 {parents.length > 0 && (
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
@@ -1094,7 +1421,7 @@ export default function WebDesignBoard({
             );
           })()}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {isAgency && (
             <StatusSelector
               current={liveStatus}
@@ -1105,7 +1432,10 @@ export default function WebDesignBoard({
             />
           )}
           {bridge.state === "ready" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
+            <span
+              className="hidden items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700 ring-1 ring-emerald-100 sm:inline-flex"
+              title="Widget conectado"
+            >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Live
             </span>
@@ -1113,97 +1443,357 @@ export default function WebDesignBoard({
           {bridge.state === "connecting" && (
             <span className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Conectando widget…
+              <span className="hidden sm:inline">Conectando widget…</span>
             </span>
           )}
-          {/* Toggle multi-device */}
+          {/* Toggle multi-device — 5 viewports basados en breakpoints de la marca.
+              El ancho mostrado en el tooltip es el preview width (lower-bound de
+              la categoría) para que veas el "worst case" de cada device. */}
           <div className="flex items-center gap-0.5 rounded-md bg-zinc-100 p-0.5 ring-1 ring-zinc-200">
             {(
               [
-                { mode: "mobile" as const, Icon: Smartphone, title: "Mobile (390px)" },
-                { mode: "tablet" as const, Icon: Tablet, title: "Tablet (820px)" },
-                { mode: "desktop" as const, Icon: Monitor, title: "Desktop (100%)" },
-              ]
-            ).map(({ mode, Icon, title }) => (
+                {
+                  mode: "mobilePortrait",
+                  Icon: Smartphone,
+                  width: Math.min(390, bp.mobilePortrait),
+                  title: "Mobile Portrait",
+                  rotated: false,
+                  large: false,
+                },
+                {
+                  mode: "tabletPortrait",
+                  Icon: Tablet,
+                  width: bp.mobilePortrait + 1,
+                  title: "Tablet Portrait",
+                  rotated: false,
+                  large: false,
+                },
+                {
+                  mode: "tabletLandscape",
+                  Icon: Tablet,
+                  width: bp.tabletPortrait + 1,
+                  title: "Tablet Landscape",
+                  rotated: true,
+                  large: false,
+                },
+                {
+                  mode: "laptop",
+                  Icon: Monitor,
+                  width: bp.tabletLandscape + 1,
+                  title: "Laptop",
+                  rotated: false,
+                  large: false,
+                },
+                {
+                  mode: "widescreen",
+                  Icon: Monitor,
+                  width: null,
+                  title: "Widescreen",
+                  rotated: false,
+                  large: true,
+                },
+              ] as Array<{
+                mode: ViewportKey;
+                Icon: typeof Smartphone;
+                width: number | null;
+                title: string;
+                rotated: boolean;
+                large: boolean;
+              }>
+            )
+              .filter(
+                // En mobile real solo mostramos Mobile Portrait — no tiene
+                // sentido previsualizar otros tamaños desde un teléfono.
+                (item) => !isUserOnMobile || item.mode === "mobilePortrait",
+              )
+              .map(({ mode, Icon, width, title, rotated, large }) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setViewport(mode)}
-                title={title}
-                className={`grid h-6 w-7 place-items-center rounded transition ${
+                title={`${title}${width ? ` · ${width}px` : " · 100%"}`}
+                className={`group/vp grid h-7 w-7 place-items-center rounded transition ${
                   viewport === mode
                     ? "bg-white text-zinc-900 shadow-sm"
                     : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon
+                  className={`${large ? "h-4 w-4" : "h-3.5 w-3.5"} ${
+                    rotated ? "rotate-90" : ""
+                  }`}
+                />
               </button>
             ))}
           </div>
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
-            className="grid h-6 w-6 place-items-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+            className="grid h-8 w-8 place-items-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 sm:h-6 sm:w-6"
             title="Atajos de teclado (?)"
           >
-            <span className="font-mono text-[12px] font-bold">?</span>
+            <span className="font-mono text-[13px] font-bold sm:text-[12px]">?</span>
           </button>
           <button
             type="button"
             onClick={reloadIframe}
-            className="inline-flex items-center gap-1 text-[11.5px] font-medium text-zinc-600 hover:text-zinc-900"
+            className="inline-flex h-8 w-8 items-center justify-center rounded text-[11.5px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:text-zinc-600"
             title="Recargar el iframe"
           >
-            <RefreshCcw className="h-3 w-3" />
-            Recargar
+            <RefreshCcw className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+            <span className="hidden sm:inline">Recargar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsFullscreen((v) => !v)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded text-[11.5px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:text-zinc-600"
+            title={
+              isFullscreen
+                ? "Salir de pantalla completa (F · Esc)"
+                : "Pantalla completa (F)"
+            }
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+            ) : (
+              <Maximize2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+            )}
+            <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Full"}</span>
           </button>
           {sourceUrl && (
             <a
               href={sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-zinc-600 hover:text-zinc-900"
+              className="inline-flex h-8 w-8 items-center justify-center rounded text-[11.5px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 sm:h-auto sm:w-auto sm:gap-1.5 sm:px-2 sm:text-zinc-600"
+              title="Abrir en nueva pestaña"
             >
-              <ExternalLink className="h-3 w-3" />
-              Abrir
+              <ExternalLink className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
+              <span className="hidden sm:inline">Abrir</span>
             </a>
           )}
         </div>
       </div>
 
+      {/* Page navigator: fila propia con scroll horizontal. Solo se muestra
+          cuando hay 2+ páginas con comentarios. */}
+      {liveModeAvailable && pages.length > 1 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto border-t border-zinc-200 bg-gradient-to-b from-white to-zinc-50/50 px-2 py-1.5 sm:gap-2 sm:px-3 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+          {pages.map((p) => {
+            const isActive = p.path === currentPagePath;
+            const isHome = sourceUrl
+              ? pagePathFromUrl(sourceUrl) === p.path
+              : false;
+            return (
+              <button
+                key={p.path}
+                type="button"
+                onClick={() => {
+                  if (p.path === currentPagePath) {
+                    setCurrentSrc(
+                      activeIframePageUrl || urlForPath(sourceUrl, p.path),
+                    );
+                  } else {
+                    const newUrl = urlForPath(sourceUrl, p.path);
+                    setCurrentSrc(newUrl);
+                  }
+                  setIframeKey((k) => k + 1);
+                  setBridge({ state: "idle" });
+                }}
+                title={p.url}
+                className={`group inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition ${
+                  isActive
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "bg-white text-zinc-700 ring-1 ring-zinc-200 hover:bg-zinc-100"
+                }`}
+              >
+                {isHome ? (
+                  <Globe className="h-3 w-3" />
+                ) : (
+                  <span className="font-mono text-[10px] opacity-60">/</span>
+                )}
+                <span className="max-w-[140px] truncate">
+                  {isHome ? "Home" : p.path.replace(/^\//, "") || "/"}
+                </span>
+                {p.unresolved > 0 ? (
+                  <span
+                    className={`rounded-full px-1.5 py-px text-[9.5px] font-bold tabular-nums ${
+                      isActive
+                        ? "bg-rose-400/30 text-white"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                    title={`${p.unresolved} sin resolver`}
+                  >
+                    {p.unresolved}
+                  </span>
+                ) : p.total > 0 ? (
+                  <span
+                    className={`rounded-full px-1.5 py-px text-[9.5px] font-bold tabular-nums ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-zinc-100 text-zinc-500"
+                    }`}
+                    title={`${p.total} resueltos`}
+                  >
+                    {p.total}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Filter toggles: fila propia con wrap. Page filter (si hay 2+ páginas)
+          + device filter. Estructura limpia que se acomoda en cualquier ancho. */}
+      {liveModeAvailable && (
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-zinc-200 bg-zinc-50/40 px-2 py-1 sm:gap-2 sm:px-3">
+          {pages.length > 1 && (
+            <div
+              className="flex items-center gap-0.5 rounded-md bg-white p-0.5 ring-1 ring-zinc-200"
+              title="Filtrar comments por página"
+            >
+              <button
+                type="button"
+                onClick={() => setPageFilter("current")}
+                className={`rounded px-2 py-0.5 text-[10.5px] font-semibold transition ${
+                  pageFilter === "current"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                Esta página
+              </button>
+              <button
+                type="button"
+                onClick={() => setPageFilter("all")}
+                className={`rounded px-2 py-0.5 text-[10.5px] font-semibold transition ${
+                  pageFilter === "all"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                Todas
+              </button>
+            </div>
+          )}
+
+          <div
+            className="flex items-center gap-0.5 rounded-md bg-white p-0.5 ring-1 ring-zinc-200"
+            title="Filtrar comments por device class"
+          >
+            <button
+              type="button"
+              onClick={() => setDeviceFilter("current")}
+              className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10.5px] font-semibold transition ${
+                deviceFilter === "current"
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-900"
+              }`}
+              title={`Solo comentarios hechos en ${DEVICE_LABEL[viewport]}`}
+            >
+              {viewport === "mobilePortrait" ? (
+                <Smartphone className="h-3 w-3" />
+              ) : viewport === "tabletPortrait" ? (
+                <Tablet className="h-3 w-3" />
+              ) : viewport === "tabletLandscape" ? (
+                <Tablet className="h-3 w-3 rotate-90" />
+              ) : (
+                <Monitor className="h-3 w-3" />
+              )}
+              {DEVICE_LABEL[viewport]}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeviceFilter("all")}
+              className={`rounded px-2 py-0.5 text-[10.5px] font-semibold transition ${
+                deviceFilter === "all"
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-900"
+              }`}
+            >
+              Todos
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="relative">
-        {/* Canvas: iframe live + overlay */}
+        {/* Canvas: iframe live + overlay. El contenedor mide su propio ancho
+            con ResizeObserver para calcular el scale factor cuando el viewport
+            elegido excede el espacio disponible. Usamos flex para centrar el
+            sizing wrapper visualmente. */}
         <div
-          className={`relative max-h-[80vh] overflow-hidden ${
-            viewportWidth ? "flex justify-center bg-zinc-100 py-4" : "bg-zinc-50"
-          }`}
+          ref={canvasContainerRef}
+          className="relative flex justify-center overflow-hidden bg-zinc-100 py-1 sm:py-4"
+          style={{
+            // 3 modos de altura del canvas. Usamos 100dvh (dynamic viewport
+            // height) en mobile para que se adapte al ocultarse el URL bar
+            // del browser y aproveche todo el alto disponible.
+            // - Fullscreen: todo el viewport menos toolbars (~110px)
+            // - Mobile: 100dvh menos las 4 toolbars del board (~140px). El
+            //   HISTORIAL queda abajo y se ve scrolleando — esto le da al
+            //   iframe casi toda la pantalla del teléfono.
+            // - Desktop normal: 80vh
+            height: isFullscreen
+              ? previewScale < 1
+                ? `calc((100vh - 110px) * ${previewScale})`
+                : "calc(100vh - 110px)"
+              : isUserOnMobile
+                ? previewScale < 1
+                  ? `calc((100dvh - 140px) * ${previewScale})`
+                  : "calc(100dvh - 140px)"
+                : previewScale < 1
+                  ? `calc(80vh * ${previewScale})`
+                  : "80vh",
+            maxHeight: isFullscreen
+              ? "calc(100vh - 110px)"
+              : isUserOnMobile
+                ? "calc(100dvh - 140px)"
+                : "80vh",
+          }}
         >
-          {/* Wrapper interno con el ancho del viewport elegido. Overlay y pines viven
-              acá adentro para coincidir con el iframe. */}
+          {/* Sizing wrapper: ocupa el espacio VISUAL (post-scale) en el layout,
+              así flex justify-center lo centra correctamente. Su hijo tiene
+              dimensiones REALES del viewport y se escala con CSS transform. */}
+          <div
+            style={{
+              width: `${viewportWidth * previewScale}px`,
+              height: isFullscreen
+                ? `calc((100vh - 110px) * ${previewScale})`
+                : isUserOnMobile
+                  ? `calc((100dvh - 140px) * ${previewScale})`
+                  : `calc(80vh * ${previewScale})`,
+            }}
+          >
           <div
             className="relative"
-            style={
-              viewportWidth
-                ? { width: `${viewportWidth}px`, maxWidth: "100%" }
-                : { width: "100%" }
-            }
+            style={{
+              width: `${viewportWidth}px`,
+              height: isFullscreen
+                ? "calc(100vh - 110px)"
+                : isUserOnMobile
+                  ? "calc(100dvh - 140px)"
+                  : "80vh",
+              transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
+              transformOrigin: "top left",
+            }}
           >
           <iframe
             key={iframeKey}
             ref={iframeRef}
-            src={sourceUrl ?? undefined}
+            src={currentSrc ?? sourceUrl ?? undefined}
             onLoad={onIframeLoad}
-            style={
-              viewportWidth
-                ? { boxShadow: "0 8px 32px -12px rgba(0,0,0,0.25)" }
-                : undefined
-            }
-            className="block h-[80vh] w-full border-0 bg-white transition-[width] duration-200"
+            style={{ boxShadow: "0 8px 32px -12px rgba(0,0,0,0.25)" }}
+            className="block h-full w-full border-0 bg-white"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
             referrerPolicy="no-referrer-when-downgrade"
           />
 
-          {/* Overlay para capturar clicks (solo en commentMode) */}
+          {/* Overlay para capturar clicks (solo en commentMode).
+              Cuando el wrapper tiene transform: scale(s), getBoundingClientRect()
+              devuelve coords escaladas. Las dividimos por previewScale para
+              obtener las coords iframe-internas que el widget espera. */}
           {bridge.state === "ready" && commentMode && canComment && !draft && (
             <div
               onClick={onOverlayClick}
@@ -1213,8 +1803,8 @@ export default function WebDesignBoard({
                 hoverThrottleRef.current = now;
                 const target = e.currentTarget;
                 const rect = target.getBoundingClientRect();
-                const iframeClientX = e.clientX - rect.left;
-                const iframeClientY = e.clientY - rect.top;
+                const iframeClientX = (e.clientX - rect.left) / previewScale;
+                const iframeClientY = (e.clientY - rect.top) / previewScale;
                 const iframe = iframeRef.current;
                 if (iframe?.contentWindow && sourceOrigin) {
                   iframe.contentWindow.postMessage(
@@ -1251,8 +1841,20 @@ export default function WebDesignBoard({
                   </span>
                 </div>
               )}
-              <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-semibold text-white shadow-lg">
-                {capturing ? "Anclando…" : "Click sobre el componente · Esc para salir"}
+              <div
+                className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg"
+                style={{
+                  // Counter-scale para que el hint se vea del mismo tamaño
+                  // sin importar el zoom del wrapper.
+                  transform: `translateX(-50%) scale(${1 / previewScale})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                {capturing
+                  ? "Anclando…"
+                  : isUserOnMobile
+                    ? "Tocá un componente para comentar"
+                    : "Click sobre el componente · Esc para salir"}
               </div>
             </div>
           )}
@@ -1272,6 +1874,10 @@ export default function WebDesignBoard({
               pos.clientX < -20 ||
               pos.clientX > liveViewport.viewportW + 20;
             const orphan = !pos.found;
+            // Counter-scale: el wrapper está escalado por previewScale, así
+            // que el pin (28px en CSS) se vería a (28*scale)px visual. Lo
+            // contra-escalamos para que mantenga su tamaño legible siempre.
+            const counterScale = 1 / previewScale;
             return (
               <button
                 key={c.id}
@@ -1286,10 +1892,12 @@ export default function WebDesignBoard({
                   left: `${pos.clientX}px`,
                   top: `${pos.clientY}px`,
                   display: isOffscreen ? "none" : undefined,
+                  // Pins más grandes en mobile (h-9 = 36px ≈ tap target ideal)
+                  // y compensados por counter-scale para que se vean del mismo
+                  // tamaño visual sin importar el zoom del wrapper.
+                  transform: `translate(-50%, -50%) scale(${counterScale * (active ? 1.25 : 1)})`,
                 }}
-                className={`absolute z-20 -translate-x-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full text-[11px] font-bold text-white shadow-md ring-2 transition ${
-                  active ? "scale-125" : ""
-                } ${
+                className={`absolute z-20 grid h-9 w-9 place-items-center rounded-full text-[12px] font-bold text-white shadow-md ring-2 transition-transform sm:h-7 sm:w-7 sm:text-[11px] ${
                   c.resolved
                     ? "bg-emerald-500 ring-white"
                     : orphan
@@ -1315,20 +1923,42 @@ export default function WebDesignBoard({
             );
           })}
 
-          {/* Hover preview: mini-tarjeta flotante al pasar el mouse sobre un pin */}
+          {/* Hover preview: mini-tarjeta flotante al pasar el mouse sobre un pin.
+              Counter-scale aplicado para que el preview mantenga tamaño legible
+              cuando el wrapper está escalado. */}
           {hoverId && hoverId !== activeId && liveViewport && (() => {
             const c = parents.find((p) => p.id === hoverId);
             if (!c) return null;
             const pos = pinPositions.get(c.id);
             if (!pos) return null;
-            const showRight = pos.clientX < liveViewport.viewportW * 0.6;
+            const counterScale = 1 / previewScale;
+            const margin = 12;
+            const previewW = 260;
+            const previewH = 90;
+
+            // Cuando contra-escalamos el preview, su layout se mide en CSS
+            // pixels sin escalar; pero la posición se aplica DESPUÉS del scale
+            // del wrapper. Para que entre en el viewport visual, calculamos
+            // las distancias en coords iframe-internas (que es lo que
+            // liveViewport.viewportW/H ya está).
+            const effectiveW = previewW; // counter-scale lo deja en su tamaño natural
+            const effectiveH = previewH;
+
+            const spaceRight = liveViewport.viewportW - pos.clientX - 22 * counterScale;
+            const showRight =
+              spaceRight >= effectiveW + margin || pos.clientX < liveViewport.viewportW * 0.6;
+            let leftPx = showRight
+              ? pos.clientX + 22 * counterScale
+              : pos.clientX - 22 * counterScale;
+
             return (
               <div
                 className="pointer-events-none absolute z-30"
                 style={{
-                  left: `${pos.clientX + (showRight ? 22 : -22)}px`,
+                  left: `${leftPx}px`,
                   top: `${pos.clientY}px`,
-                  transform: showRight ? "translateY(-50%)" : "translate(-100%, -50%)",
+                  transform: `${showRight ? "" : "translateX(-100%) "}translateY(-50%) scale(${counterScale})`,
+                  transformOrigin: showRight ? "left center" : "right center",
                 }}
               >
                 <div className="max-w-[260px] rounded-lg bg-zinc-900/95 px-2.5 py-2 text-white shadow-xl backdrop-blur-md">
@@ -1340,36 +1970,43 @@ export default function WebDesignBoard({
           })()}
 
           {/* Click popover: tarjeta con acciones cuando seleccionás un pin.
-              Max-height con scroll interno para que no crezca fuera del viewport y
-              clamp del top para que siempre quede visible aunque el pin esté en un borde. */}
+              Counter-scale aplicado para que mantenga tamaño legible cuando
+              el wrapper está escalado. Collision detection se calcula contra
+              las dimensiones iframe-internas del viewport. */}
           {activeId && !draft && liveViewport && (() => {
             const c = parents.find((p) => p.id === activeId);
             if (!c) return null;
             const pos = pinPositions.get(c.id);
             if (!pos) return null;
-            const showRight = pos.clientX < liveViewport.viewportW * 0.55;
-            const margin = 16;
-            const maxAvailable =
-              2 * Math.min(pos.clientY - margin, liveViewport.viewportH - pos.clientY - margin);
-            // Max-height: tope para que no salga del viewport. La altura real es la natural
-            // del contenido (popover chico si hay poco, crece hasta este tope si hay mucho).
-            const popoverMaxH = Math.min(440, maxAvailable);
-            const topClamped = Math.max(
-              popoverMaxH / 2 + margin,
-              Math.min(pos.clientY, liveViewport.viewportH - popoverMaxH / 2 - margin),
+            const counterScale = 1 / previewScale;
+            const margin = 16 * counterScale;
+            const popoverW = 288 * counterScale; // w-72 en coords iframe (pre counter-scale)
+            const popoverMaxH = Math.max(
+              160 * counterScale,
+              Math.min(440 * counterScale, liveViewport.viewportH - 2 * margin),
             );
+
+            const spaceRight = liveViewport.viewportW - pos.clientX - 24 * counterScale;
+            const showRight =
+              spaceRight >= popoverW + margin ||
+              pos.clientX < liveViewport.viewportW * 0.55;
+            let leftPx = showRight
+              ? pos.clientX + 24 * counterScale
+              : pos.clientX - 24 * counterScale;
+
             return (
               <div
                 className="absolute z-40"
                 style={{
-                  left: `${pos.clientX + (showRight ? 24 : -24)}px`,
-                  top: `${topClamped}px`,
-                  transform: showRight ? "translateY(-50%)" : "translate(-100%, -50%)",
+                  left: `${leftPx}px`,
+                  top: `${pos.clientY}px`,
+                  transform: `${showRight ? "" : "translateX(-100%) "}translateY(-50%) scale(${counterScale})`,
+                  transformOrigin: showRight ? "left center" : "right center",
                 }}
               >
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  style={{ maxHeight: `${popoverMaxH}px` }}
+                  style={{ maxHeight: `${popoverMaxH / counterScale}px` }}
                   className="flex w-72 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl"
                 >
                   {/* Header fijo */}
@@ -1538,21 +2175,34 @@ export default function WebDesignBoard({
           })()}
 
           {/* Draft popover — posicionado en el px exacto del click (no scrollea con iframe
-              porque el usuario está escribiendo, no se espera que scrollee) */}
+              porque el usuario está escribiendo, no se espera que scrollee).
+              Counter-scale al wrapper para que pin + composer mantengan tamaño
+              natural cuando el iframe está escalado (widescreen, etc). */}
           {draft && (
             <div
-              style={{ left: `${draft.clientX}px`, top: `${draft.clientY}px` }}
-              className="absolute z-30 -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: `${draft.clientX}px`,
+                top: `${draft.clientY}px`,
+                transform: `translate(-50%, -50%) scale(${1 / previewScale})`,
+              }}
+              className="absolute z-30"
             >
               <span className="grid h-7 w-7 place-items-center rounded-full bg-fuchsia-600 text-[11px] font-bold text-white shadow-md ring-2 ring-white">
                 {parents.length + 1}
               </span>
               <div
                 onClick={(e) => e.stopPropagation()}
-                className={`absolute mt-2 w-72 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-xl ${
+                className={`absolute w-72 rounded-xl border border-zinc-200 bg-white p-2.5 shadow-xl ${
                   liveViewport && draft.clientX > liveViewport.viewportW * 0.7
                     ? "right-0"
                     : "left-0"
+                } ${
+                  // Si el click está en el tercio inferior del viewport, ponemos
+                  // el editor ARRIBA del pin (bottom-full mb-2) en vez de abajo,
+                  // para que no se corte contra el borde inferior.
+                  liveViewport && draft.clientY > liveViewport.viewportH * 0.6
+                    ? "bottom-full mb-2"
+                    : "top-full mt-2"
                 }`}
               >
                 <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -1675,6 +2325,7 @@ export default function WebDesignBoard({
             </div>
           )}
           </div>
+          </div>
         </div>
 
         {/* Drawer flotante (slide-in desde la derecha) */}
@@ -1685,7 +2336,7 @@ export default function WebDesignBoard({
           />
         )}
         <aside
-          className={`absolute right-0 top-0 bottom-0 z-50 w-[400px] max-w-[90vw] border-l border-zinc-200 bg-zinc-50/95 shadow-2xl backdrop-blur-md transition-transform duration-200 ${
+          className={`absolute right-0 top-0 bottom-0 z-50 w-full border-l border-zinc-200 bg-zinc-50/95 shadow-2xl backdrop-blur-md transition-transform duration-200 sm:w-[400px] sm:max-w-[90vw] ${
             sidebarOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
           }`}
         >
@@ -1870,11 +2521,25 @@ export default function WebDesignBoard({
                     const idx = pinIndex.get(c.id) ?? 0;
                     const active = activeId === c.id;
                     let host = "";
+                    let path = "";
                     if (c.pageUrl) {
                       try {
-                        host = new URL(c.pageUrl).host.replace(/^www\./, "");
+                        const u = new URL(c.pageUrl);
+                        host = u.host.replace(/^www\./, "");
+                        path = u.pathname || "/";
                       } catch {}
                     }
+                    // Mostramos el badge de página cuando el comment es de
+                    // otra página distinta a la activa (modo "all" o legacy
+                    // sin filtro), para que el usuario sepa de dónde viene.
+                    const showPageBadge =
+                      pageFilter === "all" && path && path !== currentPagePath;
+                    // Device class del comment según viewportW que se guardó
+                    // al crearlo. Mostramos el badge cuando estamos en modo
+                    // "all" o el device del comment difiere del activo.
+                    const commentDevice = deviceFromViewport(c.viewportW, bp);
+                    const showDeviceBadge =
+                      deviceFilter === "all" && commentDevice !== viewport;
                     // Extraer "tag HTML" del selector (ej. "div.card > button.btn-primary" → "BUTTON")
                     const componentTag = (() => {
                       if (!c.selector) return null;
@@ -1882,6 +2547,9 @@ export default function WebDesignBoard({
                       const m = last.match(/^([a-z][a-z0-9]*)/i);
                       return m ? m[1].toUpperCase() : null;
                     })();
+                    const replies = repliesByParent.get(c.id) ?? [];
+                    const isReplyOpen =
+                      replyTo?.id === c.id && replyTo.where === "sidebar";
                     return (
                       <li
                         key={c.id}
@@ -1892,195 +2560,245 @@ export default function WebDesignBoard({
                         onMouseEnter={() => setHoverId(c.id)}
                         onMouseLeave={() => setHoverId(null)}
                         onClick={() => selectThread(c.id)}
-                        className={`group cursor-pointer rounded-xl border p-3 transition ${
+                        className={`group/thread relative cursor-pointer overflow-hidden rounded-xl border bg-white transition-all duration-200 ${
                           c.internal
-                            ? "border-violet-200 bg-violet-50/40"
-                            : "bg-white border-zinc-200"
+                            ? "border-violet-200 bg-violet-50/30"
+                            : "border-zinc-200"
                         } ${
                           active
-                            ? "shadow-md ring-2 ring-fuchsia-200 !border-fuchsia-400"
+                            ? "border-fuchsia-300 shadow-[0_4px_20px_-6px_rgba(217,70,239,0.25)] ring-1 ring-fuchsia-200"
                             : "hover:border-zinc-300 hover:shadow-sm"
-                        } ${c.resolved ? "opacity-60" : ""}`}
+                        } ${c.resolved ? "bg-emerald-50/20" : ""}`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex min-w-0 flex-1 items-center gap-2">
-                            <span
-                              className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-[12px] font-bold text-white shadow-sm ${
-                                c.resolved
-                                  ? "bg-emerald-500"
-                                  : `bg-gradient-to-br ${gradientForName(c.userName)}`
-                              }`}
-                            >
-                              {c.resolved ? (
-                                <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                              ) : (
-                                c.userName[0]?.toUpperCase()
-                              )}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="truncate text-[12.5px] font-semibold text-zinc-900">
-                                {c.userName}
-                              </p>
-                              <p className="text-[10px] text-zinc-500">
-                                {new Date(c.createdAt).toLocaleString([], {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          </div>
+                        {/* Header thin: pin#, página, tiempo, internal/orphan flags */}
+                        <div
+                          className={`flex items-center gap-2 border-b px-3 py-1.5 text-[10.5px] ${
+                            c.resolved
+                              ? "border-emerald-100 bg-emerald-50/40 text-emerald-700"
+                              : c.internal
+                                ? "border-violet-100 bg-violet-50/50 text-violet-700"
+                                : "border-zinc-100 bg-zinc-50/60 text-zinc-500"
+                          }`}
+                        >
                           <span
-                            className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-sm ${
+                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-bold tabular-nums ${
                               c.resolved
-                                ? "bg-emerald-500"
-                                : "bg-gradient-to-br from-blue-500 via-fuchsia-500 to-rose-500"
+                                ? "bg-emerald-500 text-white"
+                                : "bg-gradient-to-br from-blue-500 via-fuchsia-500 to-rose-500 text-white"
                             }`}
                             title={`Pin #${idx}`}
                           >
-                            #{idx}
+                            {c.resolved ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : `#${idx}`}
                           </span>
+                          {showPageBadge && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newUrl = urlForPath(sourceUrl, path);
+                                setCurrentSrc(newUrl);
+                                setIframeKey((k) => k + 1);
+                                setBridge({ state: "idle" });
+                              }}
+                              title={`Ir a ${path}`}
+                              className="inline-flex items-center gap-0.5 rounded-md bg-amber-50 px-1.5 py-0.5 font-mono text-[9.5px] font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100"
+                            >
+                              {path}
+                            </button>
+                          )}
+                          {showDeviceBadge && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewport(commentDevice);
+                              }}
+                              title={`Hecho en ${DEVICE_LABEL[commentDevice]} — click para cambiar viewport`}
+                              className="inline-flex items-center gap-0.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100"
+                            >
+                              {commentDevice === "mobilePortrait" ? (
+                                <Smartphone className="h-2.5 w-2.5" />
+                              ) : commentDevice === "tabletPortrait" ? (
+                                <Tablet className="h-2.5 w-2.5" />
+                              ) : commentDevice === "tabletLandscape" ? (
+                                <Tablet className="h-2.5 w-2.5 rotate-90" />
+                              ) : (
+                                <Monitor className="h-2.5 w-2.5" />
+                              )}
+                              {DEVICE_LABEL[commentDevice]}
+                            </button>
+                          )}
+                          {componentTag && (
+                            <span className="rounded bg-white/70 px-1 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider opacity-70">
+                              {componentTag}
+                            </span>
+                          )}
+                          <span className="flex-1" />
                           {c.internal && (
                             <span
-                              className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700 ring-1 ring-violet-200"
-                              title="Comentario interno — solo lo ve el equipo, no el cliente"
+                              className="inline-flex items-center gap-0.5 font-bold uppercase tracking-wider"
+                              title="Solo lo ve el equipo"
                             >
-                              🔒 equipo
+                              <Lock className="h-2.5 w-2.5" />
+                              equipo
                             </span>
                           )}
                           {orphanIds.has(c.id) && (
                             <span
-                              className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                              className="inline-flex items-center gap-0.5 text-amber-600"
                               title="El componente al que apunta ya no existe"
                             >
-                              <AlertTriangle className="h-3 w-3" />
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              huérfano
                             </span>
                           )}
                         </div>
 
-                        {/* Body / edit inline */}
-                        {editId?.id === c.id && editId.where === "sidebar" ? (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <EditInline
-                              brandId={brandId}
-                              value={editBody}
-                              onChange={setEditBody}
-                              onSave={() => saveEdit(c.id)}
-                              onCancel={() => {
-                                setEditId(null);
-                                setEditBody("");
-                              }}
-                              busy={busy}
-                              rows={3}
-                            />
-                          </div>
-                        ) : (
-                          <>
-                            <p className="mt-2 whitespace-pre-wrap text-[13px] leading-snug text-zinc-800">
-                              <MentionText text={c.body} />
-                              {c.updatedAt && c.updatedAt !== c.createdAt && (
-                                <span className="ml-1 text-[10px] italic text-zinc-400">
-                                  (editado)
-                                </span>
-                              )}
-                            </p>
-                            <CommentAttachmentInline
-                              url={c.attachmentUrl}
-                              name={c.attachmentName}
-                              mime={c.attachmentMime}
-                            />
-                          </>
-                        )}
-
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-zinc-400">
-                          {componentTag && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-violet-700 ring-1 ring-violet-100">
-                              {componentTag}
-                            </span>
-                          )}
-                          {host && (
-                            <a
-                              href={c.pageUrl ?? undefined}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-mono text-violet-700 hover:underline"
+                        {/* Cuerpo del thread: parent + replies con avatares alineados */}
+                        <div className="px-3 pt-3 pb-2">
+                          {/* Parent comment */}
+                          <div className="flex items-start gap-2.5">
+                            <span
+                              className={`relative z-[1] grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold text-white shadow-sm bg-gradient-to-br ${gradientForName(
+                                c.userName,
+                              )}`}
                             >
-                              {host}
-                            </a>
+                              {c.userName[0]?.toUpperCase()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="truncate text-[12.5px] font-semibold text-zinc-900">
+                                  {c.userName}
+                                </span>
+                                <span className="text-[10px] text-zinc-400">
+                                  {relTimeShort(c.createdAt)}
+                                </span>
+                                {c.updatedAt && c.updatedAt !== c.createdAt && (
+                                  <span className="text-[9.5px] italic text-zinc-400">editado</span>
+                                )}
+                              </div>
+                              {editId?.id === c.id && editId.where === "sidebar" ? (
+                                <div onClick={(e) => e.stopPropagation()} className="mt-1">
+                                  <EditInline
+                                    brandId={brandId}
+                                    value={editBody}
+                                    onChange={setEditBody}
+                                    onSave={() => saveEdit(c.id)}
+                                    onCancel={() => {
+                                      setEditId(null);
+                                      setEditBody("");
+                                    }}
+                                    busy={busy}
+                                    rows={3}
+                                    variant="compact"
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <p
+                                    className={`mt-0.5 whitespace-pre-wrap text-[13px] leading-snug ${
+                                      c.resolved ? "text-zinc-500" : "text-zinc-800"
+                                    }`}
+                                  >
+                                    <MentionText text={c.body} />
+                                  </p>
+                                  <CommentAttachmentInline
+                                    url={c.attachmentUrl}
+                                    name={c.attachmentName}
+                                    mime={c.attachmentMime}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Replies inline con timeline */}
+                          {replies.length > 0 && (
+                            <ul
+                              className="mt-2.5 space-y-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {replies.map((r) => (
+                                <ReplyItem
+                                  key={r.id}
+                                  reply={r}
+                                  currentUserId={currentUserId}
+                                  brandId={brandId}
+                                  editing={editId?.id === r.id && editId.where === "sidebar"}
+                                  editBody={editBody}
+                                  onEditBodyChange={setEditBody}
+                                  onStartEdit={() => {
+                                    setEditId({ id: r.id, where: "sidebar" });
+                                    setEditBody(r.body);
+                                  }}
+                                  onCancelEdit={() => {
+                                    setEditId(null);
+                                    setEditBody("");
+                                  }}
+                                  onSaveEdit={() => saveEdit(r.id)}
+                                  onDelete={() => deleteComment(r.id)}
+                                  busy={busy}
+                                  gradientForName={gradientForName}
+                                />
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* Quick reply: input expandible inline */}
+                          {isReplyOpen ? (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-3 ml-9"
+                            >
+                              <CommentComposer
+                                brandId={brandId}
+                                value={replyBody}
+                                onChange={setReplyBody}
+                                attachment={replyAttachment}
+                                onAttachmentChange={setReplyAttachment}
+                                uploading={uploading === "reply"}
+                                onUpload={(f) => uploadAttach(f, "reply")}
+                                onSubmit={() => submitReply(c.id)}
+                                onCancel={() => {
+                                  setReplyTo(null);
+                                  setReplyBody("");
+                                  setReplyAttachment(null);
+                                }}
+                                busy={busy}
+                                rows={2}
+                                placeholder="Tu respuesta…"
+                                submitLabel="Responder"
+                                modKey={modKey}
+                                autoFocusNoScroll
+                                variant="compact"
+                              />
+                            </div>
+                          ) : (
+                            !c.resolved &&
+                            canComment && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReplyTo({ id: c.id, where: "sidebar" });
+                                  setReplyBody("");
+                                }}
+                                className="mt-2.5 ml-9 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                              >
+                                <CornerDownRight className="h-3 w-3" />
+                                Responder…
+                              </button>
+                            )
                           )}
                         </div>
 
-                        {/* Replies del thread */}
-                        {(repliesByParent.get(c.id) ?? []).length > 0 && (
-                          <ul
-                            className="mt-2.5 space-y-1.5 border-l-2 border-zinc-100 pl-2.5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {(repliesByParent.get(c.id) ?? []).map((r) => (
-                              <ReplyItem
-                                key={r.id}
-                                reply={r}
-                                currentUserId={currentUserId}
-                                brandId={brandId}
-                                editing={editId?.id === r.id && editId.where === "sidebar"}
-                                editBody={editBody}
-                                onEditBodyChange={setEditBody}
-                                onStartEdit={() => {
-                                  setEditId({ id: r.id, where: "sidebar" });
-                                  setEditBody(r.body);
-                                }}
-                                onCancelEdit={() => {
-                                  setEditId(null);
-                                  setEditBody("");
-                                }}
-                                onSaveEdit={() => saveEdit(r.id)}
-                                onDelete={() => deleteComment(r.id)}
-                                busy={busy}
-                                gradientForName={gradientForName}
-                              />
-                            ))}
-                          </ul>
-                        )}
-
-                        {/* Input de respuesta */}
-                        {replyTo?.id === c.id && replyTo.where === "sidebar" ? (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-2.5"
-                          >
-                            <CommentComposer
-                              brandId={brandId}
-                              value={replyBody}
-                              onChange={setReplyBody}
-                              attachment={replyAttachment}
-                              onAttachmentChange={setReplyAttachment}
-                              uploading={uploading === "reply"}
-                              onUpload={(f) => uploadAttach(f, "reply")}
-                              onSubmit={() => submitReply(c.id)}
-                              onCancel={() => {
-                                setReplyTo(null);
-                                setReplyBody("");
-                                setReplyAttachment(null);
-                              }}
-                              busy={busy}
-                              rows={2}
-                              placeholder="Tu respuesta…"
-                              submitLabel="Responder"
-                              modKey={modKey}
-                              autoFocusNoScroll
-                              variant="compact"
-                            />
-                          </div>
-                        ) : null}
-
-                        <div onClick={(e) => e.stopPropagation()} className="mt-2.5 -mx-3 -mb-3">
+                        {/* Footer de acciones — sutil, sin bordes pesados */}
+                        <div onClick={(e) => e.stopPropagation()}>
                           <ThreadActions
                             brandId={brandId}
                             resolved={c.resolved}
                             isOwn={c.userId === currentUserId}
-                            isReplyActive={replyTo?.id === c.id && replyTo.where === "sidebar"}
+                            isReplyActive={isReplyOpen}
                             busy={busy}
                             goLabel="Ir al pin"
                             assignedToId={c.assignedToId}
@@ -2091,9 +2809,7 @@ export default function WebDesignBoard({
                             onToggleInternal={isAgency ? () => toggleInternal(c) : undefined}
                             onToggleResolved={() => toggleResolved(c)}
                             onToggleReply={() => {
-                              const isOpen =
-                                replyTo?.id === c.id && replyTo.where === "sidebar";
-                              setReplyTo(isOpen ? null : { id: c.id, where: "sidebar" });
+                              setReplyTo(isReplyOpen ? null : { id: c.id, where: "sidebar" });
                               setReplyBody("");
                             }}
                             onGoToPin={() => goToPin(c)}

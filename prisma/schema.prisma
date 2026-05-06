@@ -102,6 +102,10 @@ model Brand {
   logoUrl     String?
   color       String?
   bio         String?
+  // Breakpoints responsive Elementor-style. JSON con keys:
+  // mobilePortrait, tabletPortrait, tabletLandscape, laptop, widescreen.
+  // Cada uno es el upper-bound (px) de esa categoría. null = usar defaults.
+  breakpoints Json?
   createdAt   DateTime     @default(now())
   agency      Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   posts        Post[]

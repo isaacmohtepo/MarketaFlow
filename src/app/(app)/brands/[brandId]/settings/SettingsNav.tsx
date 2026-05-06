@@ -8,12 +8,14 @@ import {
   Code2,
   BookMarked,
   ScrollText,
+  Smartphone,
 } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "General", icon: Settings, desc: "Logo, color, clientes" },
   { slug: "sharing", label: "Compartir", icon: Share2, desc: "Link público e invitación" },
   { slug: "widget", label: "Widget", icon: Code2, desc: "Feedback en sitio" },
+  { slug: "breakpoints", label: "Breakpoints", icon: Smartphone, desc: "Mobile / tablet / desktop" },
   { slug: "library", label: "Biblioteca", icon: BookMarked, desc: "Hashtags y plantillas" },
   { slug: "audit", label: "Audit log", icon: ScrollText, desc: "Actividad reciente" },
 ] as const;

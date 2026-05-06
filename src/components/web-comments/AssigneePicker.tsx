@@ -76,11 +76,11 @@ export default function AssigneePicker({
             e.stopPropagation();
             setOpen((v) => !v);
           }}
-          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+          title="Asignar a alguien del equipo"
+          className="grid h-7 w-7 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
           disabled={busy}
         >
-          <UserPlus className="h-3 w-3" />
-          Asignar
+          <UserPlus className="h-3.5 w-3.5" />
         </button>
       )}
       {open && (

@@ -195,6 +195,7 @@ export default async function PostPage({
               imageUrl={post.imageUrl}
               sourceUrl={post.sourceUrl}
               widgetToken={brand?.widgetToken ?? null}
+              brandBreakpoints={brand?.breakpoints ?? null}
               currentUserId={user.id}
               canComment={!post.deletedAt && (access.canEdit || access.canApprove)}
               isAgency={access.role !== "client"}
