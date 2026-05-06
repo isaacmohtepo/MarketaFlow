@@ -38,11 +38,21 @@ export async function POST(req: Request) {
   let body;
   try {
     body = schema.parse(await req.json());
-  } catch (err) {
-    return NextResponse.json(
-      { error: "Datos inválidos", detail: String(err) },
-      { status: 400 },
-    );
+  } catch {
+    // No echo del zod error — el detail puede leakear field paths internos.
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  }
+
+  // Validar que los prefijos de las llaves matcheen el environment elegido.
+  // Esto cierra el error #1 que veíamos: cargar `prv_test_*` en "production"
+  // y que después Wompi rechace el checkout con 401.
+  const mismatch = validateKeyEnvironment(
+    body.provider,
+    body.environment,
+    body.config,
+  );
+  if (mismatch) {
+    return NextResponse.json({ error: mismatch }, { status: 400 });
   }
 
   // Derivar publicMeta no-secreto desde el config — depende del provider
@@ -73,6 +83,63 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json({ id: row.id, enabled: row.enabled });
+}
+
+/**
+ * Verifica que los prefijos de las llaves correspondan al environment elegido.
+ * Devuelve un mensaje de error legible o null si todo OK.
+ *
+ * Wompi usa `pub_test_` / `prv_test_` para sandbox y `pub_prod_` / `prv_prod_`
+ * para producción. Stripe usa `pk_test_` / `sk_test_` (sandbox) y
+ * `pk_live_` / `sk_live_` (producción).
+ */
+function validateKeyEnvironment(
+  provider: string,
+  environment: "sandbox" | "production",
+  config: Record<string, string>,
+): string | null {
+  if (provider === "wompi") {
+    const expectedPrefix = environment === "production" ? "_prod_" : "_test_";
+    const otherEnv = environment === "production" ? "sandbox" : "production";
+    const otherPrefix = environment === "production" ? "_test_" : "_prod_";
+
+    const checks: { key: string; label: string }[] = [
+      { key: "publicKey", label: "Public Key" },
+      { key: "privateKey", label: "Private Key" },
+    ];
+    for (const c of checks) {
+      const v = config[c.key];
+      if (!v) continue;
+      if (v.includes(otherPrefix)) {
+        return `${c.label} parece ser de ${otherEnv} (contiene "${otherPrefix.replace(/_/g, "")}") pero estás guardándola en ${environment}. Movela al ambiente correcto o usá llaves de ${environment}.`;
+      }
+      if (!v.includes(expectedPrefix)) {
+        return `${c.label} no tiene el formato esperado para ${environment} (debería contener "${expectedPrefix.replace(/_/g, "")}").`;
+      }
+    }
+  }
+
+  if (provider === "stripe") {
+    const expected = environment === "production" ? "_live_" : "_test_";
+    const other = environment === "production" ? "_test_" : "_live_";
+    const otherEnv = environment === "production" ? "sandbox" : "production";
+    const checks: { key: string; label: string }[] = [
+      { key: "publishableKey", label: "Publishable Key" },
+      { key: "secretKey", label: "Secret Key" },
+    ];
+    for (const c of checks) {
+      const v = config[c.key];
+      if (!v) continue;
+      if (v.includes(other)) {
+        return `${c.label} parece ser de ${otherEnv}. Movela al ambiente correcto.`;
+      }
+      if (!v.includes(expected)) {
+        return `${c.label} no tiene el formato esperado para ${environment}.`;
+      }
+    }
+  }
+
+  return null;
 }
 
 function derivePublicMeta(provider: string, config: Record<string, string>) {
