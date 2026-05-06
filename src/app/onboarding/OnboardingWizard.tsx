@@ -23,17 +23,22 @@ export default function OnboardingWizard({
   agencyId,
   agencyName,
   existingBrandsCount,
+  role = "owner",
 }: {
   userName: string;
   agencyId: string;
   agencyName: string;
   existingBrandsCount: number;
+  role?: string;
 }) {
+  void agencyId;
   const router = useRouter();
   const { confirm } = useConfirm();
   // Si ya tiene una marca creada, salteamos el paso 1
   const [step, setStep] = useState<Step>(existingBrandsCount > 0 ? 2 : 0);
   const [busy, setBusy] = useState(false);
+
+  const isFullWizardRole = role === "owner" || role === "manager";
 
   // Paso 1: brand
   const [brand, setBrand] = useState({
@@ -124,6 +129,21 @@ export default function OnboardingWizard({
     }
   }
 
+  async function completeAndGoTo(path: string) {
+    setBusy(true);
+    try {
+      await fetch("/api/account/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true }),
+      });
+      router.push(path);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function skipAll() {
     const ok = await confirm({
       title: "¿Saltar el onboarding?",
@@ -144,6 +164,54 @@ export default function OnboardingWizard({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!isFullWizardRole) {
+    const roleScreens = roleWelcomeScreens(role, agencyName);
+    return (
+      <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient text-white shadow-sm">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <span className="text-[14px] font-bold tracking-tight text-zinc-900">
+              MarketaFlow
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={skipAll}
+            disabled={busy}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
+          >
+            <SkipForward className="h-3 w-3" />
+            Saltar
+          </button>
+        </div>
+        <div className="mt-12 flex-1">
+          <StepCard
+            icon={<Sparkles className="h-6 w-6" />}
+            title={`Hola, ${userName} 👋`}
+            subtitle={roleScreens.subtitle}
+          >
+            <ul className="mt-6 space-y-3 text-[13px] text-zinc-700">
+              {roleScreens.bullets.map((b, i) => (
+                <Bullet key={i}>{b}</Bullet>
+              ))}
+            </ul>
+            <PrimaryButton
+              onClick={() => completeAndGoTo(roleScreens.cta.path)}
+              disabled={busy}
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {roleScreens.cta.label}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </PrimaryButton>
+          </StepCard>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -431,6 +499,74 @@ function PrimaryButton({
       {children}
     </button>
   );
+}
+
+function roleWelcomeScreens(
+  role: string,
+  agencyName: string,
+): {
+  subtitle: string;
+  bullets: string[];
+  cta: { label: string; path: string };
+} {
+  switch (role) {
+    case "community_manager":
+      return {
+        subtitle: `${agencyName} te invitó como Community Manager. Tu primer trabajo es crear o seleccionar un post para empezar.`,
+        bullets: [
+          "Vas a ver el feed de cada marca y los posts pendientes",
+          "Podés crear, editar y programar posts",
+          "Coordinás con designers y copywriters por comentarios",
+        ],
+        cta: { label: "Ir al feed", path: "/brands" },
+      };
+    case "designer":
+      return {
+        subtitle: `${agencyName} te invitó como Diseñador/a. Tu trabajo en MarketaFlow es subir creativos.`,
+        bullets: [
+          "Vas a ver los posts pendientes de cada marca",
+          "Subís imágenes y videos en cada post",
+          "El Community Manager te avisa qué se necesita",
+        ],
+        cta: { label: "Ver mis marcas", path: "/brands" },
+      };
+    case "copywriter":
+      return {
+        subtitle: `${agencyName} te invitó como Copywriter. Tu trabajo en MarketaFlow es escribir captions.`,
+        bullets: [
+          "Vas a ver los posts pendientes de caption",
+          "Editás caption y hashtags directamente en cada post",
+          "Coordinás con el equipo por comentarios",
+        ],
+        cta: { label: "Ver mis marcas", path: "/brands" },
+      };
+    case "strategist":
+      return {
+        subtitle: `${agencyName} te invitó como Estratega. Acá ves dashboards y dejás notas estratégicas.`,
+        bullets: [
+          "Dashboard con KPIs y reportes de las marcas",
+          "Comentás en posts para dejar notas",
+          "Accedés al historial de actividad",
+        ],
+        cta: { label: "Ir al dashboard", path: "/dashboard" },
+      };
+    case "client":
+      return {
+        subtitle: `${agencyName} te invitó a aprobar contenido en MarketaFlow.`,
+        bullets: [
+          "Vas a ver los posts que te mandan para revisar",
+          "Aprobás o pedís cambios con un click",
+          "Comentás puntos específicos sobre cada imagen",
+        ],
+        cta: { label: "Ver mis posts", path: "/dashboard" },
+      };
+    default:
+      return {
+        subtitle: `${agencyName} te invitó a MarketaFlow.`,
+        bullets: ["Empezá a explorar tu workspace"],
+        cta: { label: "Ir al dashboard", path: "/dashboard" },
+      };
+  }
 }
 
 function SecondaryButton({

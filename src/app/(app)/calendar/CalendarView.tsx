@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { usePermissions } from "@/components/PermissionsProvider";
 
 const MONTH_LABELS = [
   "enero",
@@ -36,6 +37,7 @@ type Post = {
 
 const STATUS_RING: Record<string, string> = {
   draft: "ring-zinc-300",
+  internal_review: "ring-violet-300",
   in_review: "ring-amber-300",
   changes_requested: "ring-rose-300",
   approved: "ring-emerald-300",
@@ -58,6 +60,7 @@ export default function CalendarView({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { has } = usePermissions();
   const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
   const [optimisticPosts, setOptimisticPosts] = useState<Post[]>(posts);
 
@@ -253,6 +256,7 @@ export default function CalendarView({
               draggedPostId={draggedPostId}
               onDragStart={setDraggedPostId}
               onDrop={handleDrop}
+              canSchedule={(brandId) => has("posts.schedule", brandId)}
             />
           ))}
         </div>
@@ -273,6 +277,7 @@ function CalendarCell({
   draggedPostId,
   onDragStart,
   onDrop,
+  canSchedule,
 }: {
   date: Date | null;
   postsForDay: Post[];
@@ -280,6 +285,7 @@ function CalendarCell({
   draggedPostId: string | null;
   onDragStart: (id: string | null) => void;
   onDrop: (postId: string, targetDate: Date) => void;
+  canSchedule: (brandId: string) => boolean;
 }) {
   const [hovering, setHovering] = useState(false);
   if (!date) {
@@ -303,7 +309,7 @@ function CalendarCell({
         if (draggedPostId) onDrop(draggedPostId, date);
       }}
       className={`min-h-[110px] border-r border-b border-zinc-100 p-1.5 transition ${
-        hovering ? "bg-fuchsia-50" : isToday ? "bg-amber-50/40" : "bg-white"
+        hovering ? "bg-zinc-100" : isToday ? "bg-amber-50/40" : "bg-white"
       }`}
     >
       <div
@@ -314,17 +320,36 @@ function CalendarCell({
         {date.getDate()}
       </div>
       <div className="space-y-1">
-        {postsForDay.slice(0, 4).map((p) => (
+        {postsForDay.slice(0, 4).map((p) => {
+          const hasSchedulePerm = canSchedule(p.brandId);
+          const isPast =
+            !!p.scheduledAt && new Date(p.scheduledAt).getTime() < Date.now();
+          const isPublished = p.status === "published";
+          const isDraggable =
+            hasSchedulePerm && !!p.scheduledAt && !isPublished && !isPast;
+          const isBeingDragged = draggedPostId === p.id;
+          return (
           <Link
             key={p.id}
             href={`/brands/${p.brandId}/posts/${p.id}`}
-            draggable
+            draggable={isDraggable}
             onDragStart={(e) => {
+              if (!isDraggable) {
+                e.preventDefault();
+                return;
+              }
               onDragStart(p.id);
               e.dataTransfer.effectAllowed = "move";
+              try {
+                e.dataTransfer.setData("text/plain", p.id);
+              } catch {
+                // some browsers throw if setData unsupported
+              }
             }}
             onDragEnd={() => onDragStart(null)}
-            className={`group block cursor-grab overflow-hidden rounded-md border bg-white px-1.5 py-1 text-[10.5px] ring-1 ring-inset ${STATUS_RING[p.status] ?? "ring-zinc-200"} hover:bg-zinc-50 active:cursor-grabbing`}
+            className={`group block overflow-hidden rounded-md border bg-white px-1.5 py-1 text-[10.5px] ring-1 ring-inset ${STATUS_RING[p.status] ?? "ring-zinc-200"} hover:bg-zinc-50 ${
+              isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+            } ${isBeingDragged ? "opacity-50" : ""}`}
             title={p.caption || `${p.brandName} · ${p.status}`}
           >
             <div className="flex items-center gap-1">
@@ -345,7 +370,8 @@ function CalendarCell({
               </span>
             </div>
           </Link>
-        ))}
+          );
+        })}
         {postsForDay.length > 4 && (
           <p className="px-1 text-[10px] text-zinc-400">
             +{postsForDay.length - 4} más

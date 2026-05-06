@@ -22,10 +22,37 @@ export async function GET(
   const access = await getBrandAccess(user.id, brandId);
   if (!access) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
 
-  const templates = await prisma.postTemplate.findMany({
-    where: { brandId },
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+    select: { agencyId: true },
+  });
+  if (!brand) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+
+  const rows = await prisma.postTemplate.findMany({
+    where: {
+      OR: [
+        { brandId },
+        { sharedAgencyWide: true, brand: { agencyId: brand.agencyId } },
+      ],
+    },
+    include: { brand: { select: { id: true, name: true } } },
     orderBy: { createdAt: "desc" },
   });
+
+  const templates = rows.map((t) => ({
+    id: t.id,
+    name: t.name,
+    caption: t.caption,
+    platform: t.platform,
+    postType: t.postType,
+    sharedAgencyWide: t.sharedAgencyWide,
+    brandId: t.brandId,
+    isShared: t.brandId !== brandId,
+    fromBrandName: t.brandId !== brandId ? t.brand.name : null,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+  }));
+
   return NextResponse.json({ templates });
 }
 

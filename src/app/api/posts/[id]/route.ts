@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostAccess, hasPermission } from "@/lib/permissions";
-import { notifyBrandClients } from "@/lib/notifications";
+import { notifyBrandClients, notifyAgencyForInternalReview } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { invalidateBrandKpis } from "@/lib/kpis";
 import { assertPostNotSuspended } from "@/lib/suspension";
@@ -14,7 +14,7 @@ const schema = z.object({
   caption: z.string().max(10_000).optional(),
   scheduledAt: z.string().nullable().optional(),
   status: z
-    .enum(["draft", "in_review", "changes_requested", "approved", "scheduled", "published"])
+    .enum(["draft", "internal_review", "in_review", "changes_requested", "approved", "scheduled", "published"])
     .optional(),
   assetType: z.enum(ASSET_TYPES).optional(),
   // sourceUrl restringido a http(s) — la URL se guarda en DB y luego se
@@ -63,6 +63,11 @@ export async function PATCH(
       required.add("posts.approve");
     } else if (body.status === "published") {
       required.add("posts.publish");
+    } else if (
+      body.status === "in_review" &&
+      ctx.post.status === "internal_review"
+    ) {
+      required.add("posts.approve_internal");
     } else {
       required.add("posts.schedule");
     }
@@ -118,6 +123,19 @@ export async function PATCH(
       type: "post_in_review",
       body: "Hay un post listo para revisar",
       actorName: user.name ?? user.email,
+    });
+  }
+
+  if (
+    body.status === "internal_review" &&
+    ctx.post.status !== "internal_review" &&
+    !ctx.post.deletedAt
+  ) {
+    await notifyAgencyForInternalReview({
+      brandId: updated.brandId,
+      postId: updated.id,
+      actorName: user.name ?? user.email,
+      excludeUserId: user.id,
     });
   }
 

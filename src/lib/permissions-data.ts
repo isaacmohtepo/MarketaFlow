@@ -46,6 +46,7 @@ export const PERMISSION_GROUPS = [
       { key: "posts.delete", label: "Eliminar posts" },
       { key: "posts.schedule", label: "Programar fecha de publicación" },
       { key: "posts.publish", label: "Publicar a Instagram" },
+      { key: "posts.approve_internal", label: "Aprobar internamente antes de mandar al cliente" },
       { key: "posts.approve", label: "Aprobar o pedir cambios en posts" },
     ],
   },
@@ -148,6 +149,7 @@ const POSTS_FULL = [
   "posts.delete",
   "posts.schedule",
   "posts.publish",
+  "posts.approve_internal",
   "posts.approve",
 ];
 
@@ -198,7 +200,7 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "Crea, edita, programa y publica posts. Maneja inbox, biblioteca, comentarios y links de share.",
     tone: "fuchsia",
     permissions: [
-      ...POSTS_FULL,
+      ...POSTS_FULL.filter((p) => p !== "posts.approve_internal"),
       "comments.write",
       "comments.resolve",
       "library.manage",

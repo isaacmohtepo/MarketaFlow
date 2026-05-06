@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { sendEmail, appUrl } from "./email";
+import { permissionsForRole } from "./permissions";
 import {
   tplPostInReview,
   tplPostApproved,
@@ -163,6 +164,66 @@ export async function notifyMentionedUsers(opts: {
     actorName: opts.actorName,
     body: opts.body,
   }).catch((err) => console.error("dispatchEmails (mention)", err));
+}
+
+/**
+ * Notifica a los miembros de la agencia que pueden hacer aprobación interna
+ * (permiso `posts.approve_internal`) que hay un post esperando su revisión
+ * antes de mandárselo al cliente.
+ */
+export async function notifyAgencyForInternalReview(opts: {
+  brandId: string;
+  postId: string;
+  actorName: string;
+  excludeUserId?: string;
+}) {
+  const brand = await prisma.brand.findUnique({
+    where: { id: opts.brandId },
+    include: { agency: true },
+  });
+  if (!brand) return;
+
+  // Memberships agency-level (brandId null) — los que tienen scope global.
+  const memberships = await prisma.membership.findMany({
+    where: { agencyId: brand.agencyId, brandId: null },
+    select: { userId: true, role: true },
+  });
+
+  const eligible: string[] = [];
+  for (const m of memberships) {
+    if (opts.excludeUserId && m.userId === opts.excludeUserId) continue;
+    const perms = await permissionsForRole(brand.agencyId, m.role);
+    if (perms.includes("posts.approve_internal")) {
+      eligible.push(m.userId);
+    }
+  }
+  if (eligible.length === 0) return;
+
+  const body = "Hay un post listo para tu aprobación interna";
+  await prisma.notification.createMany({
+    data: eligible.map((userId) => ({
+      userId,
+      type: "post_internal_review",
+      body,
+      brandId: opts.brandId,
+      postId: opts.postId,
+      actorName: opts.actorName,
+    })),
+  });
+
+  // Email fire-and-forget — usamos el mismo subject/html base que post_in_review
+  // para no inflar templates; la notif in-app ya transmite la diferencia.
+  const recipients = await prisma.user.findMany({
+    where: { id: { in: eligible }, emailNotifications: true },
+    select: { email: true },
+  });
+  if (recipients.length === 0) return;
+  const postUrl = appUrl(`/brands/${opts.brandId}/posts/${opts.postId}`);
+  const subject = `${brand.name}: post para tu aprobación interna`;
+  const html = `<p>${opts.actorName} dejó un post de <strong>${brand.name}</strong> listo para tu aprobación interna antes de enviarlo al cliente.</p><p><a href="${postUrl}">Abrir post</a></p>`;
+  Promise.all(
+    recipients.map((r) => sendEmail({ to: r.email, subject, html })),
+  ).catch((err) => console.error("dispatchEmails (internal_review)", err));
 }
 
 export async function notifyBrandAgency(opts: {

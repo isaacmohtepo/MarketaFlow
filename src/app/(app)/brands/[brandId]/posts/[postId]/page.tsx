@@ -62,6 +62,7 @@ export default async function PostPage({
     canSchedule,
     canPublish,
     canApprovePost,
+    canApproveInternal,
     canWriteComments,
     canResolveComments,
   ] = await Promise.all([
@@ -72,6 +73,7 @@ export default async function PostPage({
     hasPermission(user.id, access.agencyId, "posts.schedule", brandId),
     hasPermission(user.id, access.agencyId, "posts.publish", brandId),
     hasPermission(user.id, access.agencyId, "posts.approve", brandId),
+    hasPermission(user.id, access.agencyId, "posts.approve_internal", brandId),
     hasPermission(user.id, access.agencyId, "comments.write", brandId),
     hasPermission(user.id, access.agencyId, "comments.resolve", brandId),
   ]);
@@ -259,6 +261,7 @@ export default async function PostPage({
             canSchedule={canSchedule}
             canPublish={canPublish}
             canApprovePost={canApprovePost}
+            canApproveInternal={canApproveInternal}
             canWriteComments={canWriteComments}
             canResolveComments={canResolveComments}
             isAgency={access.role !== "client"}

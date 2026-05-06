@@ -9,6 +9,7 @@ const updateSchema = z.object({
   caption: z.string().max(5000).optional(),
   platform: z.string().max(40).optional(),
   postType: z.string().max(40).optional(),
+  sharedAgencyWide: z.boolean().optional(),
 });
 
 async function getOwnedTemplate(userId: string, id: string) {

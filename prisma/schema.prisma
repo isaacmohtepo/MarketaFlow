@@ -510,11 +510,17 @@ model PostTemplate {
   caption   String   @default("")
   platform  String   @default("instagram")
   postType  String   @default("feed")
+  /// Si true, esta plantilla es visible para TODAS las brands de la
+  /// agency, no solo la suya. Útil cuando una agencia quiere mantener
+  /// una biblioteca común de plantillas reutilizables. El brandId sigue
+  /// señalando la brand "dueña" / autora.
+  sharedAgencyWide Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
+  @@index([brandId, sharedAgencyWide])
 }
 
 model Post {

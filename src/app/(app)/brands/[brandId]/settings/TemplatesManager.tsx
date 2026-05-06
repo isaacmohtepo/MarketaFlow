@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Layout, Pencil, Plus, Trash2, X, Check } from "lucide-react";
+import { Layout, Pencil, Plus, Trash2, X, Check, Share2 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 
 type Template = {
@@ -10,6 +10,10 @@ type Template = {
   caption: string;
   platform: string;
   postType: string;
+  sharedAgencyWide?: boolean;
+  isShared?: boolean;
+  fromBrandName?: string | null;
+  brandId?: string;
 };
 
 export default function TemplatesManager({ brandId }: { brandId: string }) {
@@ -73,6 +77,25 @@ export default function TemplatesManager({ brandId }: { brandId: string }) {
     if (r.ok) {
       setEditId(null);
       load();
+    }
+  }
+
+  async function toggleShare(t: Template) {
+    const next = !t.sharedAgencyWide;
+    // optimistic
+    setItems((curr) =>
+      curr.map((x) => (x.id === t.id ? { ...x, sharedAgencyWide: next } : x)),
+    );
+    const r = await fetch(`/api/templates/${t.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sharedAgencyWide: next }),
+    });
+    if (!r.ok) {
+      // rollback
+      setItems((curr) =>
+        curr.map((x) => (x.id === t.id ? { ...x, sharedAgencyWide: !next } : x)),
+      );
     }
   }
 
@@ -190,30 +213,59 @@ export default function TemplatesManager({ brandId }: { brandId: string }) {
               ) : (
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-zinc-900">{t.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-[13px] font-semibold text-zinc-900">{t.name}</p>
+                      {t.isShared && t.fromBrandName && (
+                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-blue-700">
+                          <Share2 className="h-2.5 w-2.5" />
+                          Desde {t.fromBrandName}
+                        </span>
+                      )}
+                      {!t.isShared && t.sharedAgencyWide && (
+                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-emerald-700">
+                          <Share2 className="h-2.5 w-2.5" />
+                          Compartida
+                        </span>
+                      )}
+                    </div>
                     <p className="line-clamp-2 text-[11.5px] text-zinc-500">
                       {t.caption || "Sin caption"}
                     </p>
                     <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">
                       {t.platform} · {t.postType}
                     </p>
+                    {!t.isShared && (
+                      <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-600">
+                        <input
+                          type="checkbox"
+                          checked={!!t.sharedAgencyWide}
+                          onChange={() => toggleShare(t)}
+                          className="h-3 w-3"
+                        />
+                        Compartir con toda la agencia
+                      </label>
+                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      setEditId(t.id);
-                      setEditName(t.name);
-                      setEditCaption(t.caption);
-                    }}
-                    className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => remove(t.id)}
-                    className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {!t.isShared && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditId(t.id);
+                          setEditName(t.name);
+                          setEditCaption(t.caption);
+                        }}
+                        className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => remove(t.id)}
+                        className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </li>

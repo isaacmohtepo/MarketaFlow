@@ -26,29 +26,46 @@ export default async function OnboardingPage({
   const sp = await searchParams;
   const force = sp.force === "1";
 
-  const [full, brandsCount, agencyMembership] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: user.id },
-      select: { onboardingCompletedAt: true, name: true, email: true },
-    }),
-    prisma.membership.count({
-      where: { userId: user.id, role: { in: ["owner", "editor"] } },
-    }),
-    prisma.membership.findFirst({
-      where: { userId: user.id, role: "owner", brandId: null },
-      include: { agency: { select: { id: true, name: true } } },
-    }),
-  ]);
+  const [full, brandsCount, agencyMembership, anyAgencyMembership, anyBrandMembership] =
+    await Promise.all([
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { onboardingCompletedAt: true, name: true, email: true },
+      }),
+      prisma.membership.count({
+        where: { userId: user.id, role: { in: ["owner", "editor"] } },
+      }),
+      prisma.membership.findFirst({
+        where: { userId: user.id, role: "owner", brandId: null },
+        include: { agency: { select: { id: true, name: true } } },
+      }),
+      prisma.membership.findFirst({
+        where: { userId: user.id, brandId: null },
+        include: { agency: { select: { id: true, name: true } } },
+      }),
+      prisma.membership.findFirst({
+        where: { userId: user.id, brandId: { not: null } },
+        include: { agency: { select: { id: true, name: true } } },
+      }),
+    ]);
 
   // Si ya completó y no se forzó, redirigimos al dashboard.
   if (!force && full?.onboardingCompletedAt) {
     redirect("/dashboard");
   }
 
-  // No es agency owner — no tiene sentido el wizard de "crear marca"
-  if (!agencyMembership) {
+  // Determinamos rol primario:
+  //   1. Owner agency-level (full wizard)
+  //   2. Cualquier otro role agency-level
+  //   3. Brand-level (típicamente "client")
+  //   4. Sin memberships → al dashboard
+  const primary = agencyMembership ?? anyAgencyMembership ?? anyBrandMembership;
+  if (!primary) {
     redirect("/dashboard");
   }
+
+  const role = primary.role;
+  const agencyName = primary.agency?.name ?? "tu agencia";
 
   return (
     <div
@@ -57,9 +74,10 @@ export default async function OnboardingPage({
     >
       <OnboardingWizard
         userName={full?.name ?? user.email.split("@")[0]}
-        agencyId={agencyMembership.agencyId}
-        agencyName={agencyMembership.agency.name}
+        agencyId={primary.agencyId}
+        agencyName={agencyName}
         existingBrandsCount={brandsCount}
+        role={role}
       />
     </div>
   );

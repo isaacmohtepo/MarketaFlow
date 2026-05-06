@@ -29,9 +29,10 @@ export default async function TeamPage() {
     );
   }
 
-  const [canManageRoles, canInvite] = await Promise.all([
+  const [canManageRoles, canInvite, canViewAudit] = await Promise.all([
     hasPermission(user.id, m.agencyId, "roles.manage"),
     hasPermission(user.id, m.agencyId, "team.invite"),
+    hasPermission(user.id, m.agencyId, "audit.view"),
   ]);
 
   return (
@@ -41,7 +42,11 @@ export default async function TeamPage() {
         Personas que colaboran en {agencyName ?? "tu agencia"} y los roles que pueden tener.
       </p>
       <div className="mt-6">
-        <TeamTabs canManageRoles={canManageRoles} canInvite={canInvite} />
+        <TeamTabs
+          canManageRoles={canManageRoles}
+          canInvite={canInvite}
+          canViewAudit={canViewAudit}
+        />
       </div>
     </div>
   );

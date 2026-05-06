@@ -318,9 +318,28 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
 
 /* === Print (reportes) === */
 @media print {
-  body { background: white !important; }
-  /* Quita el AppShell sidebar/topbar si la página de reporte se renderiza por fuera; aquí los reportes no usan AppShell */
-  .print\:hidden { display: none !important; }
+  /* Reset background y forzar colores claros incluso si la página tiene
+     theme-dark aplicado (login/landing). Los reportes son vistas claras. */
+  html, body {
+    background: white !important;
+    color: #111 !important;
+  }
+  body.theme-dark, .theme-dark {
+    background: white !important;
+    color: #111 !important;
+  }
+  /* Ocultar el chrome de la app (sidebar + topbar + banners + overlays). */
+  aside,
+  header,
+  nav[role="navigation"],
+  [data-print-hide],
+  .print\:hidden {
+    display: none !important;
+  }
+  /* El <main> deja de tener padding extra y el flex shell se vuelve flujo normal. */
+  main {
+    padding: 0 !important;
+  }
   .print\:bg-white { background: white !important; }
   .print\:p-0 { padding: 0 !important; }
   .print\:mt-0 { margin-top: 0 !important; }
@@ -331,8 +350,29 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  /* Brand-gradient en impresión = color sólido de fallback (los gradientes
+     impresos suelen quedar mal o invisibles). */
+  .brand-gradient {
+    background: var(--brand-via1, #8a2be2) !important;
+  }
+  /* Botones con fondo gradiente: si por alguna razón se imprimen, igual */
+  .btn-gradient {
+    background: var(--brand-via1, #8a2be2) !important;
+    box-shadow: none !important;
+  }
+  /* Charts (recharts) — mantener tamaño en impresión, evitar shrink. */
+  .recharts-responsive-container {
+    width: 100% !important;
+    min-height: 180px !important;
+    break-inside: avoid;
+  }
+  .recharts-wrapper, .recharts-surface {
+    width: 100% !important;
+  }
   /* Evita cortar imágenes y secciones a la mitad */
   img, section, article { break-inside: avoid; }
+  /* Configura márgenes razonables del papel */
+  @page { margin: 12mm 14mm; }
 }
 
 /* Scrollbar oscura para superficies dark (sidebar) */

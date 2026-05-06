@@ -58,6 +58,7 @@ export default function PostBoard({
   canSchedule,
   canPublish,
   canApprovePost,
+  canApproveInternal,
   canWriteComments,
   canResolveComments,
   currentStatus,
@@ -83,6 +84,7 @@ export default function PostBoard({
   canSchedule: boolean;
   canPublish: boolean;
   canApprovePost: boolean;
+  canApproveInternal: boolean;
   canWriteComments: boolean;
   canResolveComments: boolean;
   currentStatus: string;
@@ -976,14 +978,45 @@ export default function PostBoard({
           />
         )}
 
-        {canSchedule && !isDeleted && currentStatus === "draft" && (
-          <button
-            onClick={() => changeStatus("in_review")}
-            disabled={busy}
-            className="btn-gradient w-full rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60"
-          >
-            Enviar a revisión
-          </button>
+        {canSchedule && !isDeleted && liveStatus === "draft" && (
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => changeStatus("internal_review")}
+              disabled={busy}
+              className="btn-gradient w-full rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60"
+            >
+              Enviar a aprobación interna
+            </button>
+            {canApproveInternal && (
+              <button
+                onClick={() => changeStatus("in_review")}
+                disabled={busy}
+                className="w-full rounded-lg border border-zinc-300 bg-white py-2 text-[12.5px] font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+              >
+                Saltar interna y enviar al cliente
+              </button>
+            )}
+          </div>
+        )}
+
+        {!isDeleted && liveStatus === "internal_review" && (
+          <div className="rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2.5">
+            <p className="text-[12.5px] font-semibold text-violet-900">
+              🔒 Esperando aprobación interna
+            </p>
+            <p className="mt-0.5 text-[11.5px] text-violet-800">
+              Un Manager debe revisar este post antes de mandarlo al cliente.
+            </p>
+            {canApproveInternal && (
+              <button
+                onClick={() => changeStatus("in_review")}
+                disabled={busy}
+                className="btn-gradient mt-2 w-full rounded-md py-2 text-[12.5px] font-semibold disabled:opacity-60"
+              >
+                Aprobar internamente y enviar al cliente
+              </button>
+            )}
+          </div>
         )}
 
         {canUploadMedia && !isDeleted &&
@@ -1547,6 +1580,7 @@ function WidgetContext({ c }: { c: Comment }) {
 
 const STATUS_OPTIONS: { value: string; label: string; dot: string }[] = [
   { value: "draft", label: "Borrador", dot: "#71717a" },
+  { value: "internal_review", label: "Aprobación interna", dot: "#8b5cf6" },
   { value: "in_review", label: "En revisión", dot: "#f59e0b" },
   { value: "changes_requested", label: "Cambios solicitados", dot: "#f43f5e" },
   { value: "approved", label: "Aprobado", dot: "#10b981" },

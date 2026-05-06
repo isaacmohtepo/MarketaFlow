@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Layout } from "lucide-react";
+import { ChevronDown, Layout, Share2 } from "lucide-react";
 
 type Template = {
   id: string;
@@ -9,6 +9,8 @@ type Template = {
   caption: string;
   platform: string;
   postType: string;
+  isShared?: boolean;
+  fromBrandName?: string | null;
 };
 
 export default function TemplatePicker({
@@ -64,7 +66,15 @@ export default function TemplatePicker({
                   }}
                   className="block w-full px-3 py-2 text-left text-[13px] transition hover:bg-zinc-50"
                 >
-                  <p className="truncate font-semibold text-zinc-900">{t.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate font-semibold text-zinc-900">{t.name}</p>
+                    {t.isShared && (
+                      <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-blue-700">
+                        <Share2 className="h-2.5 w-2.5" />
+                        {t.fromBrandName ? `Desde ${t.fromBrandName}` : "Compartida"}
+                      </span>
+                    )}
+                  </div>
                   <p className="line-clamp-2 text-[11px] text-zinc-500">
                     {t.caption || "Sin caption"}
                   </p>
