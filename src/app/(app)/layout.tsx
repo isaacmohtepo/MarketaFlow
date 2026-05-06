@@ -136,26 +136,30 @@ export default async function AppLayout({
       isAdmin={isAdmin}
       isOwner={isOwner}
       planCard={planCard}
+      banners={
+        <>
+          {impersonator && (
+            <ImpersonateBanner
+              adminEmail={impersonator.email}
+              targetEmail={user.email}
+            />
+          )}
+          {suspendedAgency && (
+            <SuspendedBanner
+              agencyName={suspendedAgency.name}
+              reason={suspendedAgency.suspendedReason}
+              isOwner={isOwner}
+            />
+          )}
+          {admin2fa && (
+            <AdminTwoFAReminder
+              daysLeft={admin2fa.daysLeft}
+              expired={admin2fa.expired}
+            />
+          )}
+        </>
+      }
     >
-      {impersonator && (
-        <ImpersonateBanner
-          adminEmail={impersonator.email}
-          targetEmail={user.email}
-        />
-      )}
-      {suspendedAgency && (
-        <SuspendedBanner
-          agencyName={suspendedAgency.name}
-          reason={suspendedAgency.suspendedReason}
-          isOwner={isOwner}
-        />
-      )}
-      {admin2fa && (
-        <AdminTwoFAReminder
-          daysLeft={admin2fa.daysLeft}
-          expired={admin2fa.expired}
-        />
-      )}
       {children}
     </AppShell>
   );

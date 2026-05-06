@@ -8,6 +8,13 @@ import CommandPalette from "./CommandPalette";
 import NotificationToaster from "./NotificationToaster";
 import OnboardingTour from "./OnboardingTour";
 
+/**
+ * AppShell layout: sidebar (left) + topbar + banners + content.
+ *
+ * Los banners (impersonate, suspended, 2FA reminder) van en su propio slot
+ * ARRIBA del main para que ocupen el 100% del ancho del área de contenido,
+ * sin sufrir el padding del main. Sticky-positioned por encima del topbar.
+ */
 export default function AppShell({
   userName,
   avatarUrl,
@@ -16,6 +23,7 @@ export default function AppShell({
   isAdmin = false,
   isOwner = false,
   planCard = null,
+  banners = null,
   children,
 }: {
   userName: string;
@@ -25,6 +33,9 @@ export default function AppShell({
   isAdmin?: boolean;
   isOwner?: boolean;
   planCard?: PlanCardData | null;
+  /// Banners renderizados antes del topbar, full-width edge-to-edge.
+  /// Cada uno se pasa como ReactNode independiente para poder ser sticky.
+  banners?: ReactNode;
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -64,6 +75,9 @@ export default function AppShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Banners full-width — ANTES del topbar para que sean lo primero
+            que ve el user y queden sticky encima de todo */}
+        {banners}
         <TopBar
           userName={userName}
           avatarUrl={avatarUrl}
