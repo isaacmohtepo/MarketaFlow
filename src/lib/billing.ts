@@ -10,6 +10,7 @@
 
 import { prisma } from "./db";
 import { PLANS, type PlanId, TRIAL_DAYS, TRIAL_PLAN } from "./plans";
+import { getSystemSetting } from "./system-settings";
 import type { Prisma } from "@/generated/prisma";
 
 /**
@@ -56,7 +57,9 @@ export async function getOrCreateSubscription(agencyId: string) {
 export async function startTrialForAgency(agencyId: string) {
   const existing = await prisma.subscription.findUnique({ where: { agencyId } });
   if (existing) return existing;
-  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+  // Trial duration: leer de admin settings (DB → env TRIAL_DAYS → default 14)
+  const trialDays = await getSystemSetting("trialDays").catch(() => TRIAL_DAYS);
+  const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
   return prisma.subscription.create({
     data: {
       agencyId,

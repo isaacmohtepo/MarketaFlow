@@ -164,6 +164,7 @@ function buildSections({
             { label: "Integraciones", href: "/admin/integrations", icon: CreditCard, match: (p) => p.startsWith("/admin/integrations") },
             { label: "Webhooks", href: "/admin/webhooks", icon: Webhook, match: (p) => p.startsWith("/admin/webhooks") },
             { label: "Health", href: "/admin/health", icon: HeartPulse, match: (p) => p.startsWith("/admin/health") },
+            { label: "Configuración", href: "/admin/settings", icon: Settings, match: (p) => p.startsWith("/admin/settings") },
             { label: "Setup", href: "/admin/setup", icon: KeyRound, match: (p) => p.startsWith("/admin/setup") },
             { label: "Audit log", href: "/admin/audit-log", icon: ScrollText, match: (p) => p.startsWith("/admin/audit-log") },
           ],

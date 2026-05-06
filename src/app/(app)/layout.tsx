@@ -7,8 +7,7 @@ import AppShell from "@/components/AppShell";
 import ImpersonateBanner from "@/components/ImpersonateBanner";
 import SuspendedBanner from "@/components/SuspendedBanner";
 import AdminTwoFAReminder from "@/components/AdminTwoFAReminder";
-
-const ADMIN_2FA_GRACE_DAYS = 7;
+import { getSystemSetting } from "@/lib/system-settings";
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -64,14 +63,14 @@ export default async function AppLayout({
       ? anyMembership.agency
       : null;
 
-  // 2FA enforcement para admins: si role=admin y NO tiene totp activado,
-  // mostramos un banner urgente. Calculamos días restantes desde createdAt
-  // (ventana de gracia) vs ADMIN_2FA_GRACE_DAYS.
+  // 2FA enforcement para admins: banner amarillo durante el grace period,
+  // rojo cuando expira. El grace lo resuelve getSystemSetting (DB → env → default).
   let admin2fa: { daysLeft: number; expired: boolean } | null = null;
   if (isAdmin && userRow && !userRow.totpEnabledAt) {
+    const graceDays = await getSystemSetting("admin2faGraceDays");
     const elapsed =
       (Date.now() - userRow.createdAt.getTime()) / (24 * 60 * 60 * 1000);
-    const daysLeft = Math.max(0, Math.ceil(ADMIN_2FA_GRACE_DAYS - elapsed));
+    const daysLeft = Math.max(0, Math.ceil(graceDays - elapsed));
     admin2fa = { daysLeft, expired: daysLeft === 0 };
   }
 

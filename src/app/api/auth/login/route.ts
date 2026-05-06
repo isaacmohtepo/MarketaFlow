@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { verifyToken, verifyRecoveryCode } from "@/lib/totp";
+import { getSystemSetting } from "@/lib/system-settings";
 
 const schema = z.object({
   email: z
@@ -62,12 +63,22 @@ export async function POST(req: Request) {
     );
   }
 
-  // Hard-block para admins sin 2FA después del grace period (default 7 días
-  // desde signup). El layout muestra banner amarillo desde el día 1, banner
-  // rojo en day 7. A partir del day 7+ bloqueamos login total para forzar
-  // la activación. Configurable via env ADMIN_2FA_GRACE_DAYS.
+  // Maintenance mode: admins pasan, nadie más entra.
+  const maintenance = await getSystemSetting("maintenanceMode");
+  if (maintenance && user.role !== "admin") {
+    return NextResponse.json(
+      {
+        error:
+          "MarketaFlow está en mantenimiento. Volvé a intentar en unos minutos.",
+        maintenance: true,
+      },
+      { status: 503 },
+    );
+  }
+
+  // Hard-block para admins sin 2FA después del grace period.
   if (user.role === "admin" && !user.totpEnabledAt) {
-    const graceDays = Number(process.env.ADMIN_2FA_GRACE_DAYS ?? "7");
+    const graceDays = await getSystemSetting("admin2faGraceDays");
     const elapsedDays =
       (Date.now() - user.createdAt.getTime()) / (24 * 60 * 60 * 1000);
     if (elapsedDays >= graceDays) {

@@ -34,6 +34,23 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Si el admin apagó signups desde /admin/settings, devolvemos 503.
+  try {
+    const { getSystemSetting } = await import("@/lib/system-settings");
+    const enabled = await getSystemSetting("signupsEnabled");
+    if (!enabled) {
+      return NextResponse.json(
+        {
+          error:
+            "Los registros están temporalmente deshabilitados. Si tenés invitación, usá el link directo.",
+        },
+        { status: 503 },
+      );
+    }
+  } catch {
+    // Fail open si la setting no se puede leer
+  }
+
   // Rate limit: 3 registros por IP por hora — evita scripts que crean miles de cuentas
   const rl = rateLimit(req, { key: "register", limit: 3, windowMs: 60 * 60_000 });
   if (!rl.ok) return rateLimitResponse(rl);
@@ -43,6 +60,21 @@ export async function POST(req: Request) {
     body = schema.parse(await req.json());
   } catch {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  }
+
+  // Password length policy adicional al floor de zod (min 8). Si el admin
+  // configuró un mínimo mayor en /admin/settings, lo aplicamos acá.
+  try {
+    const { getSystemSetting } = await import("@/lib/system-settings");
+    const minLength = await getSystemSetting("passwordMinLength");
+    if (body.password.length < minLength) {
+      return NextResponse.json(
+        { error: `La contraseña debe tener al menos ${minLength} caracteres` },
+        { status: 400 },
+      );
+    }
+  } catch {
+    // Ignoramos si falla la lookup — la validación de zod (min 8) ya pasó.
   }
 
   const existing = await prisma.user.findUnique({ where: { email: body.email } });
