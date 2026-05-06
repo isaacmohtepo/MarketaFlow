@@ -8,8 +8,17 @@ import { recordActivity } from "@/lib/activity";
 import { ASSET_TYPES } from "@/lib/asset-types";
 import { canCreatePost } from "@/lib/billing";
 
+/**
+ * URLs de imágenes deben ser http(s) (R2 público o externas) o paths
+ * locales /uploads/. Bloqueamos javascript:/data:/file: para prevenir
+ * XSS si en algún componente se renderiza con dangerouslySetInnerHTML
+ * o si el browser ejecuta scripts en src de tipos no estándar.
+ */
+const isSafeImagePath = (u: string) =>
+  /^https?:\/\//i.test(u) || u.startsWith("/uploads/");
+
 const fileMetaSchema = z.object({
-  url: z.string().min(1),
+  url: z.string().min(1).refine(isSafeImagePath, "URL no permitida"),
   mime: z.string().nullable().optional(),
   name: z.string().nullable().optional(),
 });
@@ -17,9 +26,16 @@ const fileMetaSchema = z.object({
 const schema = z.object({
   brandId: z.string(),
   caption: z.string().optional().nullable(),
-  imageUrl: z.string().nullable().optional(),
+  imageUrl: z
+    .string()
+    .refine(isSafeImagePath, "URL no permitida")
+    .nullable()
+    .optional(),
   // Acepta tanto la forma vieja (string[]) como la nueva con metadata
-  images: z.union([z.array(z.string()), z.array(fileMetaSchema)]).optional(),
+  images: z.union([
+    z.array(z.string().refine(isSafeImagePath, "URL no permitida")),
+    z.array(fileMetaSchema),
+  ]).optional(),
   platform: z.string().default("instagram"),
   postType: z.string().default("feed"),
   assetType: z.enum(ASSET_TYPES).default("social_post"),

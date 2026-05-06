@@ -7,7 +7,16 @@ import { getBrandAccess } from "@/lib/permissions";
 const schema = z.object({
   name: z.string().min(1).max(80).optional(),
   handle: z.string().nullable().optional(),
-  logoUrl: z.string().nullable().optional(),
+  // logoUrl: solo http(s) externo o /uploads/ local. Bloquea javascript:/data:
+  // que serían XSS si se renderiza con <img>.
+  logoUrl: z
+    .string()
+    .refine(
+      (u) => /^https?:\/\//i.test(u) || u.startsWith("/uploads/"),
+      "URL no permitida",
+    )
+    .nullable()
+    .optional(),
   color: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Color hex inválido (#RRGGBB)")

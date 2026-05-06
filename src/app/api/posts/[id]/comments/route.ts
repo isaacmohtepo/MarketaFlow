@@ -60,11 +60,22 @@ const schema = z.object({
   y: z.number().min(0).max(1).optional(),
   parentId: z.string().optional(),
   internal: z.boolean().optional(),
-  attachmentUrl: z.string().url().nullable().optional(),
+  // attachmentUrl: z.url() permitía javascript: y data: → XSS si se renderiza
+  // en <a href>. Restringimos a http(s) explícito.
+  attachmentUrl: z
+    .string()
+    .url()
+    .refine((u) => /^https?:\/\//i.test(u), "URL debe ser http/https")
+    .nullable()
+    .optional(),
   attachmentName: z.string().max(200).nullable().optional(),
   attachmentMime: z.string().max(100).nullable().optional(),
   // Live mode (sin screenshot — el iframe siempre se ve en vivo)
-  pageUrl: z.string().url().optional(),
+  pageUrl: z
+    .string()
+    .url()
+    .refine((u) => /^https?:\/\//i.test(u), "URL debe ser http/https")
+    .optional(),
   selector: z.string().max(500).optional(),
   viewportW: z.number().int().positive().optional(),
   viewportH: z.number().int().positive().optional(),
