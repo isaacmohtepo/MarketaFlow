@@ -139,19 +139,52 @@ export async function getWompiConfig(
 }
 
 /**
- * Resuelve qué environment de Wompi usar para iniciar checkout: prefiere
- * production si está habilitada (cobro real), sino cae a sandbox (testing).
- * Devuelve null si no hay ninguna configurada.
+ * Modo de cobros explícito elegido por el admin (sandbox vs production).
+ * Persistido en SystemConfig.PAYMENT_MODE. Si no se setteó, devuelve null
+ * y `resolveWompiEnvironment` cae al fallback automático.
+ */
+export async function getPaymentMode(): Promise<IntegrationEnvironment | null> {
+  try {
+    const row = await prisma.systemConfig.findUnique({
+      where: { key: "PAYMENT_MODE" },
+    });
+    if (row?.value === "sandbox" || row?.value === "production") return row.value;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Setea el modo de cobros (solo lo llaman endpoints admin). */
+export async function setPaymentMode(mode: IntegrationEnvironment): Promise<void> {
+  await prisma.systemConfig.upsert({
+    where: { key: "PAYMENT_MODE" },
+    create: { key: "PAYMENT_MODE", value: mode },
+    update: { value: mode },
+  });
+}
+
+/**
+ * Resuelve qué environment de Wompi usar para iniciar checkout.
  *
- * Esto evita que el checkout asuma "sandbox" hardcoded y rompa cuando el
- * admin solo cargó llaves de producción.
+ * Prioridad:
+ * 1. Modo explícito setteado por admin (`PAYMENT_MODE` en SystemConfig).
+ *    Solo se respeta si la config para ese environment está enabled.
+ * 2. Fallback: prefiere production si está habilitada, sino sandbox.
+ *
+ * Devuelve null si no hay ninguna configuración usable.
  */
 export async function resolveWompiEnvironment(): Promise<IntegrationEnvironment | null> {
   const enabled = await prisma.integrationConfig.findMany({
     where: { provider: "wompi", enabled: true },
     select: { environment: true },
   });
-  if (enabled.some((e) => e.environment === "production")) return "production";
-  if (enabled.some((e) => e.environment === "sandbox")) return "sandbox";
+  const enabledSet = new Set(enabled.map((e) => e.environment));
+
+  const explicit = await getPaymentMode();
+  if (explicit && enabledSet.has(explicit)) return explicit;
+
+  if (enabledSet.has("production")) return "production";
+  if (enabledSet.has("sandbox")) return "sandbox";
   return null;
 }

@@ -1,6 +1,7 @@
-import { CreditCard, Mail, Bot } from "lucide-react";
-import { listConfigs } from "@/lib/integrations";
+import { Mail, Bot } from "lucide-react";
+import { listConfigs, getPaymentMode } from "@/lib/integrations";
 import IntegrationsList from "./IntegrationsList";
+import PaymentModeSelector from "./PaymentModeSelector";
 
 /**
  * Admin → Integraciones. Lista todas las integraciones configuradas
@@ -8,7 +9,10 @@ import IntegrationsList from "./IntegrationsList";
  * environment, último update. Permite agregar/editar/eliminar.
  */
 export default async function AdminIntegrations() {
-  const configs = await listConfigs();
+  const [configs, paymentMode] = await Promise.all([
+    listConfigs(),
+    getPaymentMode(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -19,6 +23,9 @@ export default async function AdminIntegrations() {
           llaves se guardan encriptadas con AES-256-GCM. Al menos una
           pasarela debe estar activa para que los usuarios puedan pagar.
         </p>
+        <div className="mt-5">
+          <PaymentModeSelector initialMode={paymentMode} />
+        </div>
         <div className="mt-5">
           <IntegrationsList configs={configs} />
         </div>
