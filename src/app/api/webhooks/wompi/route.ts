@@ -6,6 +6,7 @@ import {
   sendPaymentSuccessEmail,
   sendPaymentFailedEmail,
 } from "@/lib/billing-emails";
+import { nextInvoiceNumber, splitIva } from "@/lib/invoice-number";
 import type { PlanId } from "@/lib/plans";
 
 /**
@@ -170,12 +171,22 @@ async function handleTransactionUpdated(
   }
 
   if (transaction.status === "APPROVED") {
+    // Asignar invoiceNumber + desglosar IVA. Solo asignamos número si todavía
+    // no tiene (idempotencia: re-procesar el mismo evento no genera nuevo
+    // número ni gaps).
+    const invoiceNumber = invoice.invoiceNumber ?? (await nextInvoiceNumber());
+    const breakdown = splitIva(invoice.amount, 0.19);
+
     // Marcar invoice como paid + subscription active + setear payment method
     await prisma.$transaction(async (tx) => {
       await tx.invoice.update({
         where: { id: invoice.id },
         data: {
           status: "paid",
+          invoiceNumber,
+          subtotal: breakdown.subtotal,
+          taxAmount: breakdown.tax,
+          taxRate: breakdown.rate,
           wompiTransactionId: transaction.id,
           paidAt: transaction.finalized_at
             ? new Date(transaction.finalized_at)

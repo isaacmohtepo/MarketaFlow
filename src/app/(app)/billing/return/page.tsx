@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { getTransaction } from "@/lib/wompi";
+import { nextInvoiceNumber, splitIva } from "@/lib/invoice-number";
 import type { PlanId } from "@/lib/plans";
 
 /**
@@ -94,11 +95,18 @@ export default async function BillingReturnPage({
           const periodEnd = invoice.periodEnd ?? new Date();
           const nextChargeAt = new Date(periodEnd);
           nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+          const invoiceNumber =
+            invoice.invoiceNumber ?? (await nextInvoiceNumber());
+          const breakdown = splitIva(invoice.amount, 0.19);
           await prisma.$transaction([
             prisma.invoice.update({
               where: { id: invoice.id },
               data: {
                 status: "paid",
+                invoiceNumber,
+                subtotal: breakdown.subtotal,
+                taxAmount: breakdown.tax,
+                taxRate: breakdown.rate,
                 wompiTransactionId: tx.id,
                 paidAt: tx.finalized_at
                   ? new Date(tx.finalized_at)

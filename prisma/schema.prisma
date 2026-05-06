@@ -250,8 +250,18 @@ model Invoice {
   subscriptionId     String
   subscription       Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
+  /// Número de factura legible para el cliente (formato MF-2026-000001).
+  /// Se asigna AL pasar a paid (no al crear pending) para evitar gaps en
+  /// la numeración por intentos fallidos.
+  invoiceNumber      String?      @unique
+
   /// Monto en CENTAVOS de la moneda (COP × 100). Usamos int para evitar floats.
+  /// `amount` = total final cobrado. `subtotal` y `taxAmount` se llenan al
+  /// confirmar pago (subtotal = amount/1.19 si IVA, taxAmount = amount - subtotal).
   amount             Int
+  subtotal           Int?
+  taxAmount          Int?
+  taxRate            Float?       @default(0) // 0.19 si IVA aplicable
   currency           String       @default("COP")
 
   /// "pending" | "paid" | "failed" | "refunded"

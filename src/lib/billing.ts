@@ -280,6 +280,7 @@ export async function getBillingSummary(agencyId: string) {
     status: sub.status,
     billingCycle: sub.billingCycle,
     trialEndsAt: sub.trialEndsAt,
+    currentPeriodStart: sub.currentPeriodStart,
     currentPeriodEnd: sub.currentPeriodEnd,
     nextChargeAt: sub.nextChargeAt,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
