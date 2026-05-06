@@ -29,6 +29,7 @@ import {
   Lock,
   Activity,
   Receipt,
+  HelpCircle,
 } from "lucide-react";
 
 type NavItem = {
@@ -127,6 +128,12 @@ function buildSections({
             { label: "Actividad", href: "/account?tab=activity", icon: Activity },
             { label: "Privacidad", href: "/account?tab=privacy", icon: Shield },
           ],
+        },
+        {
+          label: "Ayuda",
+          href: "/help",
+          icon: HelpCircle,
+          match: (p: string) => p.startsWith("/help"),
         },
       ],
     },

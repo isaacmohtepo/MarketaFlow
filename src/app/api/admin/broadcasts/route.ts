@@ -19,6 +19,9 @@ const createSchema = z.object({
   subject: z.string().min(1).max(150),
   bodyHtml: z.string().min(1).max(50_000),
   audience: z.enum(["all", "agencies", "clients", "trial_ending", "past_due"]),
+  /// Si se manda scheduledAt, status = "scheduled" y el cron lo despacha.
+  /// Si no, status = "draft" y el admin lo despacha manual desde el detail.
+  scheduledAt: z.string().datetime().optional(),
 });
 
 export async function GET(req: Request) {
@@ -56,13 +59,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
+  const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
   const created = await prisma.emailBroadcast.create({
     data: {
       subject: body.subject,
       bodyHtml: body.bodyHtml,
       audience: body.audience,
       createdById: me.id,
-      status: "draft",
+      status: scheduledAt ? "scheduled" : "draft",
+      scheduledAt,
     },
   });
 

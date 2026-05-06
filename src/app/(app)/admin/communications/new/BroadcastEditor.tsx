@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Users } from "lucide-react";
+import { Save, Loader2, Users, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const AUDIENCES = [
   { id: "all", label: "Todos los usuarios" },
@@ -22,6 +23,8 @@ export default function BroadcastEditor() {
     `<p>Hola {{name}},</p>\n<p></p>\n<p>Saludos,<br/>Equipo MarketaFlow</p>`,
   );
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
+  const [schedule, setSchedule] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
 
   // Cargar count cuando cambia audience
   useEffect(() => {
@@ -37,12 +40,23 @@ export default function BroadcastEditor() {
       toast.error("Subject y cuerpo son obligatorios");
       return;
     }
+    if (schedule && !scheduledAt) {
+      toast.error("Elegí fecha y hora para programar el envío");
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/admin/broadcasts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, bodyHtml, audience }),
+        body: JSON.stringify({
+          subject,
+          bodyHtml,
+          audience,
+          ...(schedule && scheduledAt
+            ? { scheduledAt: new Date(scheduledAt).toISOString() }
+            : {}),
+        }),
       });
       const j = await res.json();
       if (!res.ok) {
@@ -99,19 +113,48 @@ export default function BroadcastEditor() {
             />
           </Field>
 
-          <Field label="Cuerpo (HTML)">
-            <textarea
-              value={bodyHtml}
-              onChange={(e) => setBodyHtml(e.currentTarget.value)}
-              rows={14}
-              className="input-soft w-full rounded-md px-3 py-2 font-mono text-[12px]"
-              placeholder="<p>Hola {{name}},</p>..."
+          <Field label="Cuerpo">
+            <RichTextEditor
+              initialHtml={bodyHtml}
+              onChange={setBodyHtml}
+              variables={["{{name}}"]}
             />
             <p className="mt-1 text-[10.5px] text-zinc-500">
-              Variables disponibles: <code className="rounded bg-zinc-100 px-1">{"{{name}}"}</code>{" "}
-              (cae a "amigo/a" si el user no tiene nombre).
+              Variables disponibles:{" "}
+              <code className="rounded bg-zinc-100 px-1">{"{{name}}"}</code>{" "}
+              (insertala con el botón de la toolbar). Cae a "amigo/a" si el
+              user no tiene nombre.
             </p>
           </Field>
+
+          {/* Schedule */}
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/40 p-3">
+            <label className="flex items-center gap-2 text-[12.5px] font-semibold text-zinc-700">
+              <input
+                type="checkbox"
+                checked={schedule}
+                onChange={(e) => setSchedule(e.currentTarget.checked)}
+                className="rounded"
+              />
+              <Calendar className="h-3.5 w-3.5" />
+              Programar envío
+            </label>
+            {schedule && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.currentTarget.value)}
+                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                  className="input-soft rounded-md px-2 py-1.5 text-[12.5px]"
+                />
+                <span className="text-[11px] text-zinc-500">
+                  El cron despacha cada 10 min — la hora real puede tener
+                  ±10 min de desfase.
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Preview */}
           <div className="rounded-lg border border-zinc-200 bg-zinc-50/40 p-4">

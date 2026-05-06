@@ -56,11 +56,17 @@ model Notification {
   postId    String?
   actorName String?
   read      Boolean  @default(false)
+  /// Si está seteado, la notificación se considera "snoozed" hasta esa
+  /// fecha — UI la oculta del feed principal pero NO la elimina.
+  snoozedUntil DateTime?
+  /// Archivada: el user la cerró/escondió pero no quiere borrarla.
+  archivedAt DateTime?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
   @@index([userId, createdAt])
+  @@index([userId, archivedAt, snoozedUntil])
 }
 
 model Session {
@@ -162,10 +168,16 @@ model WebhookEvent {
   ip          String?
   /// Cuándo lo procesamos (para detectar replays viejos si pasan +24h)
   receivedAt  DateTime @default(now())
+  /// Retry queue: si status="error", el cron de retries va a intentarlo de
+  /// nuevo con backoff exponencial. retryCount incrementa cada intento.
+  /// nextRetryAt indica cuándo se puede reintentar (null = no más retries).
+  retryCount   Int      @default(0)
+  nextRetryAt  DateTime?
 
   @@unique([provider, externalId])
   @@index([receivedAt])
   @@index([provider, status, receivedAt])
+  @@index([status, nextRetryAt])
 }
 
 /// Audit log genérico para acciones sensibles (cambio de role, billing,

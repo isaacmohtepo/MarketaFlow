@@ -114,8 +114,7 @@ export async function POST(req: Request) {
     console.error("Webhook handler tiró excepción", err);
   }
 
-  // Loggear (upsert porque si era una row de "signature_invalid" anterior con
-  // el mismo externalId la sobrescribimos al éxito)
+  // Loggear (upsert). Si error: scheduleamos un retry con backoff exponencial.
   await logWebhookSilent({
     provider: "wompi",
     externalId: externalIdBase,
@@ -124,6 +123,7 @@ export async function POST(req: Request) {
     errorMessage: processError,
     payload,
     ip,
+    nextRetryAt: processError ? new Date(Date.now() + 60_000) : null,
   });
 
   if (processError) {
@@ -144,6 +144,7 @@ async function logWebhookSilent(args: {
   errorMessage: string | null;
   payload: unknown;
   ip: string | null;
+  nextRetryAt?: Date | null;
 }) {
   try {
     await prisma.webhookEvent.upsert({
@@ -161,12 +162,14 @@ async function logWebhookSilent(args: {
         errorMessage: args.errorMessage,
         payload: (args.payload ?? undefined) as object | undefined,
         ip: args.ip,
+        nextRetryAt: args.nextRetryAt ?? null,
       },
       update: {
         eventType: args.eventType,
         status: args.status,
         errorMessage: args.errorMessage,
         payload: (args.payload ?? undefined) as object | undefined,
+        nextRetryAt: args.nextRetryAt ?? null,
       },
     });
   } catch (err) {

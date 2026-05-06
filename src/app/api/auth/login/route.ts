@@ -62,6 +62,26 @@ export async function POST(req: Request) {
     );
   }
 
+  // Hard-block para admins sin 2FA después del grace period (default 7 días
+  // desde signup). El layout muestra banner amarillo desde el día 1, banner
+  // rojo en day 7. A partir del day 7+ bloqueamos login total para forzar
+  // la activación. Configurable via env ADMIN_2FA_GRACE_DAYS.
+  if (user.role === "admin" && !user.totpEnabledAt) {
+    const graceDays = Number(process.env.ADMIN_2FA_GRACE_DAYS ?? "7");
+    const elapsedDays =
+      (Date.now() - user.createdAt.getTime()) / (24 * 60 * 60 * 1000);
+    if (elapsedDays >= graceDays) {
+      return NextResponse.json(
+        {
+          error:
+            "Tu cuenta admin requiere 2FA activado. Contactá a otro admin para resetear esto si perdiste acceso.",
+          requires2faSetup: true,
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   // 2FA enforcement: si el user tiene TOTP activado, exigimos el código.
   if (user.totpEnabledAt && user.totpSecret) {
     if (!body.totpToken) {

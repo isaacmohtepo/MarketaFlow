@@ -59,6 +59,23 @@ export default async function AdminWebhookDetail({
           <div className="mt-4 rounded-md border border-rose-200 bg-rose-50/60 p-3 text-[12px] text-rose-900">
             <p className="font-semibold">Error</p>
             <p className="mt-1">{w.errorMessage}</p>
+            {w.retryCount > 0 && (
+              <p className="mt-2 text-[11px]">
+                Reintentos: <strong>{w.retryCount}</strong>
+                {w.nextRetryAt && (
+                  <>
+                    {" · "}próximo:{" "}
+                    {w.nextRetryAt.toLocaleString("es", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </>
+                )}
+                {!w.nextRetryAt && w.retryCount > 0 && " (give up)"}
+              </p>
+            )}
           </div>
         )}
 
