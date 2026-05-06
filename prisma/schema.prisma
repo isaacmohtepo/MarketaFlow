@@ -70,6 +70,11 @@ model Session {
 model Agency {
   id           String            @id @default(cuid())
   name         String
+  /// Soft-suspend por admin: si está seteado, todas las brands quedan en
+  /// read-only y los members no pueden mutar. Se mantiene la data para
+  /// poder revertir o auditar. Distinto de borrar (delete cascade).
+  suspendedAt      DateTime?
+  suspendedReason  String?
   createdAt    DateTime          @default(now())
   brands       Brand[]
   members      Membership[]

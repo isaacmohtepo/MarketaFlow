@@ -257,6 +257,38 @@ export async function chargeWithToken(args: {
 }
 
 /**
+ * Anula (void/refund) una transacción aprobada. Wompi acepta:
+ *   POST /v1/transactions/{id}/void
+ * Solo se puede dentro de la ventana de void/refund que ofrece el banco
+ * (típicamente 24h para void total, mayor para refund parcial). En sandbox
+ * funciona siempre para testing.
+ */
+export async function voidTransaction(
+  transactionId: string,
+  environment: IntegrationEnvironment = "sandbox",
+): Promise<{ status: string; message?: string }> {
+  const cfg = await getWompiConfig(environment);
+  const url = `${apiBase(environment)}/transactions/${transactionId}/void`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${cfg.privateKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Wompi void falló (${res.status}): ${text}`);
+  }
+  try {
+    const j = JSON.parse(text) as { data?: { status?: string } };
+    return { status: j.data?.status ?? "VOIDED", message: text };
+  } catch {
+    return { status: "VOIDED", message: text };
+  }
+}
+
+/**
  * Genera una reference única para una transacción. Wompi usa esto como
  * idempotency key + para encontrar la subscription/invoice asociada.
  *
