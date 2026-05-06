@@ -79,7 +79,12 @@ function buildSections({
     {
       title: "Producción",
       items: [
-        { label: "Calendario", href: "/calendar", icon: Calendar, soon: true },
+        {
+          label: "Calendario",
+          href: "/calendar",
+          icon: Calendar,
+          match: (p) => p.startsWith("/calendar"),
+        },
         { label: "Plantillas", href: "/templates", icon: Sparkles, soon: true },
         { label: "Métricas", href: "/metrics", icon: BarChart3, soon: true },
       ],

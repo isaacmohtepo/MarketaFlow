@@ -11,12 +11,18 @@ import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   brandId: z.string().max(64),
-  // imageUrls: max 3 + 2048 chars c/u — evita pasar URLs gigantes que terminen
-  // costando tokens al LLM o saturando el filesystem read.
   imageUrls: z.array(z.string().max(2048)).min(1).max(3),
-  // currentCaption se concatena al prompt — un caption gigante = costo ↑↑.
   currentCaption: z.string().max(10_000).optional(),
   platform: z.string().max(40).optional(),
+  /// Tono opcional para sesgar las variantes. Si no se manda, generamos
+  /// 3 tonos distintos (emocional / directo / curioso). Si se especifica,
+  /// las 3 variantes mantienen ese tono pero con ángulos diferentes.
+  tone: z
+    .enum(["emocional", "directo", "curioso", "lujoso", "divertido", "profesional"])
+    .optional(),
+  /// Lista de hashtags personalizada que el user quiere incluir
+  /// (sin el #). Si no, el modelo elige.
+  hashtags: z.array(z.string().max(40)).max(15).optional(),
 });
 
 const SYSTEM_PROMPT = `Eres un copywriter senior especializado en redes sociales para agencias digitales latinoamericanas. Generas captions para Instagram, Facebook y TikTok.
@@ -151,11 +157,20 @@ export async function POST(req: Request) {
       type: "text",
       text: [
         `Marca: ${brand.name}${brand.handle ? ` (${brand.handle})` : ""}`,
+        brand.bio ? `Descripción de la marca: ${brand.bio}` : null,
         `Plataforma: ${body.platform ?? "instagram"}`,
+        body.tone
+          ? `Tono solicitado: ${body.tone}. Las 3 variantes deben mantener este tono pero con ángulos distintos (descriptivo, beneficio, llamada a la acción).`
+          : null,
+        body.hashtags && body.hashtags.length > 0
+          ? `Hashtags REQUERIDOS (incluir SIEMPRE): ${body.hashtags.map((h) => "#" + h.replace(/^#/, "")).join(" ")}. Podés sumar 2-3 adicionales relevantes.`
+          : null,
         body.currentCaption
-          ? `\nEl usuario ya escribió este borrador, mejóralo y propón 3 alternativas en distintos tonos:\n"""${body.currentCaption}"""`
+          ? `\nEl usuario ya escribió este borrador, mejóralo y propón 3 alternativas:\n"""${body.currentCaption}"""`
           : "Genera 3 variantes basándote en la imagen.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     },
   ];
 
