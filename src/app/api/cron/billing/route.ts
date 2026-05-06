@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { chargeWithToken, generateReference } from "@/lib/wompi";
-import {
-  sendTrialEndingEmail,
-  sendTrialEndedEmail,
-} from "@/lib/billing-emails";
+import { sendTrialEndedEmail } from "@/lib/billing-emails";
+import { isCronAuthorized } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/billing
@@ -23,25 +20,12 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  // Auth: si CRON_SECRET está definido, validamos. Vercel Cron lo manda
-  // automático cuando lo configurás en vercel.json.
-  const expected = process.env.CRON_SECRET;
-  if (expected) {
-    const got = req.headers.get("authorization") ?? "";
-    const expectedHeader = `Bearer ${expected}`;
-    // timingSafeEqual evita que un attacker mida cuánto tarda la comparación
-    // para inferir prefijos válidos del secret.
-    const a = Buffer.from(got);
-    const b = Buffer.from(expectedHeader);
-    const ok = a.length === b.length && timingSafeEqual(a, b);
-    if (!ok) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isCronAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
   const stats = {
-    trialsEndingSoonNotified: 0,
     trialsExpired: 0,
     canceledExpired: 0,
     chargedSuccess: 0,
@@ -49,31 +33,8 @@ export async function GET(req: Request) {
     skipped: 0,
   };
 
-  // 0. Notificar trials que terminan en 3 días (email warning).
-  // Mandamos UNA sola vez por trial (window de 24h) para evitar spam si el
-  // cron corre múltiples veces al día.
-  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-  const fourDaysFromNow = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
-  const endingSoon = await prisma.subscription.findMany({
-    where: {
-      status: "trialing",
-      trialEndsAt: { gte: threeDaysFromNow, lt: fourDaysFromNow },
-    },
-    include: { agency: true },
-  });
-  for (const sub of endingSoon) {
-    const daysLeft = Math.max(
-      1,
-      Math.ceil((sub.trialEndsAt!.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
-    );
-    await sendTrialEndingEmail({
-      agencyId: sub.agencyId,
-      agencyName: sub.agency.name,
-      daysLeft,
-      planId: sub.plan as PlanId,
-    }).catch((e) => console.error("trial-ending email failed", e));
-    stats.trialsEndingSoonNotified++;
-  }
+  // Nota: los emails de "trial ending in N days" los maneja /api/cron/trial-emails
+  // que tiene su propio schedule diario. Acá solo nos preocupa cobrar y bajar planes.
 
   // 1. Trials expirados → bajar a free (no tienen tarjeta así que no podemos cobrar)
   const expiredTrials = await prisma.subscription.findMany({

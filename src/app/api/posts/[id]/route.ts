@@ -6,6 +6,7 @@ import { getPostAccess } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { invalidateBrandKpis } from "@/lib/kpis";
+import { assertPostNotSuspended } from "@/lib/suspension";
 
 import { ASSET_TYPES } from "@/lib/asset-types";
 
@@ -39,6 +40,8 @@ export async function PATCH(
   if (!ctx || !ctx.access.canEdit) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const suspendGuard = await assertPostNotSuspended(id);
+  if (!suspendGuard.ok) return suspendGuard.response;
 
   let body;
   try {
@@ -102,6 +105,8 @@ export async function DELETE(
   if (!ctx || !ctx.access.canEdit) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const suspendGuard = await assertPostNotSuspended(id);
+  if (!suspendGuard.ok) return suspendGuard.response;
 
   await prisma.post.update({
     where: { id },

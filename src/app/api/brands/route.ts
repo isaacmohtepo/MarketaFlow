@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canCreateBrand } from "@/lib/billing";
+import { assertAgencyNotSuspended } from "@/lib/suspension";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -26,6 +27,8 @@ export async function POST(req: Request) {
   if (!owner) {
     return NextResponse.json({ error: "Solo agencias pueden crear marcas" }, { status: 403 });
   }
+  const suspendGuard = await assertAgencyNotSuspended(owner.agencyId);
+  if (!suspendGuard.ok) return suspendGuard.response;
 
   // Plan limits enforcement con Serializable transaction para cerrar la
   // race condition (TOCTOU). Sin esto, dos POST paralelos pasarían ambos

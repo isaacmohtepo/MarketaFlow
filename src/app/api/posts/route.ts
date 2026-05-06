@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
+import { assertBrandNotSuspended } from "@/lib/suspension";
 import { ASSET_TYPES } from "@/lib/asset-types";
 import { canCreatePost } from "@/lib/billing";
 
@@ -69,6 +70,9 @@ export async function POST(req: Request) {
   if (!access || !access.canEdit) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  // Suspension guard: si la agency está suspended, bloqueamos creates.
+  const suspendGuard = await assertBrandNotSuspended(body.brandId);
+  if (!suspendGuard.ok) return suspendGuard.response;
 
   // Plan limits enforcement: chequea posts/mes. Lo hacemos ANTES del transaction
   // (lectura sola, no race-sensitive en este punto). El check final + create

@@ -5,6 +5,10 @@ import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import AppShell from "@/components/AppShell";
 import ImpersonateBanner from "@/components/ImpersonateBanner";
+import SuspendedBanner from "@/components/SuspendedBanner";
+import AdminTwoFAReminder from "@/components/AdminTwoFAReminder";
+
+const ADMIN_2FA_GRACE_DAYS = 7;
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -19,21 +23,57 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [agencyName, userRow, ownerMembership] = await Promise.all([
+  const [agencyName, userRow, ownerMembership, anyMembership] = await Promise.all([
     getUserAgencyName(user.id),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { avatarUrl: true, role: true },
+      select: {
+        avatarUrl: true,
+        role: true,
+        totpEnabledAt: true,
+        createdAt: true,
+      },
     }),
-    // Es owner si tiene al menos una membership de role=owner agency-level
     prisma.membership.findFirst({
       where: { userId: user.id, role: "owner", brandId: null },
       select: { id: true },
+    }),
+    // Para detectar si la agency del user está suspended, traemos cualquier
+    // membership con la agency. Si tiene varias agencies y alguna está
+    // suspended, mostramos banner solo si la "primaria" (primera) lo está.
+    prisma.membership.findFirst({
+      where: { userId: user.id },
+      include: {
+        agency: {
+          select: {
+            id: true,
+            name: true,
+            suspendedAt: true,
+            suspendedReason: true,
+          },
+        },
+      },
+      orderBy: { id: "asc" },
     }),
   ]);
 
   const isAdmin = userRow?.role === "admin";
   const isOwner = !!ownerMembership;
+  const suspendedAgency =
+    anyMembership?.agency.suspendedAt
+      ? anyMembership.agency
+      : null;
+
+  // 2FA enforcement para admins: si role=admin y NO tiene totp activado,
+  // mostramos un banner urgente. Calculamos días restantes desde createdAt
+  // (ventana de gracia) vs ADMIN_2FA_GRACE_DAYS.
+  let admin2fa: { daysLeft: number; expired: boolean } | null = null;
+  if (isAdmin && userRow && !userRow.totpEnabledAt) {
+    const elapsed =
+      (Date.now() - userRow.createdAt.getTime()) / (24 * 60 * 60 * 1000);
+    const daysLeft = Math.max(0, Math.ceil(ADMIN_2FA_GRACE_DAYS - elapsed));
+    admin2fa = { daysLeft, expired: daysLeft === 0 };
+  }
 
   // Detectar si la sesión actual es un impersonate. Si hay cookie
   // mf_impersonator, mostramos un banner sticky con info del admin original
@@ -63,6 +103,19 @@ export default async function AppLayout({
         <ImpersonateBanner
           adminEmail={impersonator.email}
           targetEmail={user.email}
+        />
+      )}
+      {suspendedAgency && (
+        <SuspendedBanner
+          agencyName={suspendedAgency.name}
+          reason={suspendedAgency.suspendedReason}
+          isOwner={isOwner}
+        />
+      )}
+      {admin2fa && (
+        <AdminTwoFAReminder
+          daysLeft={admin2fa.daysLeft}
+          expired={admin2fa.expired}
         />
       )}
       {children}

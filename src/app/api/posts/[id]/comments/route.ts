@@ -10,6 +10,7 @@ import {
 } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { invalidateBrandKpis } from "@/lib/kpis";
+import { assertPostNotSuspended } from "@/lib/suspension";
 
 function extractMentions(text: string): string[] {
   // Captura @nombre con espacios (@"Maria Lopez") o @maria
@@ -97,6 +98,8 @@ export async function POST(
 
   const ctx = await getPostAccess(user.id, id);
   if (!ctx) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  const suspendGuard = await assertPostNotSuspended(id);
+  if (!suspendGuard.ok) return suspendGuard.response;
 
   let body;
   try {
