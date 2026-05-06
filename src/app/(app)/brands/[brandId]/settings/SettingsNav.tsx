@@ -12,15 +12,16 @@ import {
   AtSign as Instagram,
 } from "lucide-react";
 import { usePermissions } from "@/components/PermissionsProvider";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 
 const NAV = [
-  { slug: "", label: "General", icon: Settings, desc: "Logo, color, clientes", perm: "brands.edit" },
-  { slug: "sharing", label: "Compartir", icon: Share2, desc: "Link público e invitación", perm: "share.manage" },
-  { slug: "widget", label: "Widget", icon: Code2, desc: "Feedback en sitio", perm: "share.manage" },
-  { slug: "instagram", label: "Instagram", icon: Instagram, desc: "Conectar cuenta para publicar", perm: "instagram.manage" },
-  { slug: "breakpoints", label: "Breakpoints", icon: Smartphone, desc: "Mobile / tablet / desktop", perm: "brands.edit" },
-  { slug: "library", label: "Biblioteca", icon: BookMarked, desc: "Hashtags y plantillas", perm: "library.manage" },
-  { slug: "audit", label: "Audit log", icon: ScrollText, desc: "Actividad reciente", perm: "audit.view" },
+  { slug: "", label: "General", icon: Settings, desc: "Logo, color, clientes", perm: "brands.edit", flag: null },
+  { slug: "sharing", label: "Compartir", icon: Share2, desc: "Link público e invitación", perm: "share.manage", flag: null },
+  { slug: "widget", label: "Widget", icon: Code2, desc: "Feedback en sitio", perm: "share.manage", flag: null },
+  { slug: "instagram", label: "Instagram", icon: Instagram, desc: "Conectar cuenta para publicar", perm: "instagram.manage", flag: "metaOAuthEnabled" as const },
+  { slug: "breakpoints", label: "Breakpoints", icon: Smartphone, desc: "Mobile / tablet / desktop", perm: "brands.edit", flag: null },
+  { slug: "library", label: "Biblioteca", icon: BookMarked, desc: "Hashtags y plantillas", perm: "library.manage", flag: null },
+  { slug: "audit", label: "Audit log", icon: ScrollText, desc: "Actividad reciente", perm: "audit.view", flag: null },
 ] as const;
 
 /**
@@ -31,7 +32,12 @@ export default function SettingsNav({ brandId }: { brandId: string }) {
   const pathname = usePathname();
   const base = `/brands/${brandId}/settings`;
   const { has } = usePermissions();
-  const items = NAV.filter((item) => has(item.perm, brandId));
+  const flags = useFeatureFlags();
+  const items = NAV.filter((item) => {
+    if (!has(item.perm, brandId)) return false;
+    if (item.flag && !flags[item.flag]) return false;
+    return true;
+  });
 
   return (
     <nav className="flex flex-row gap-1 overflow-x-auto pb-2 sm:flex-col sm:overflow-visible sm:pb-0">

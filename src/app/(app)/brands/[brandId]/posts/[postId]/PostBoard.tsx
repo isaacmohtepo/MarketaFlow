@@ -12,6 +12,7 @@ import { useMentionedRoles } from "@/lib/useMentionedRoles";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import CommentAttachment from "@/components/CommentAttachment";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 
 export type PostVersionLite = {
   id: string;
@@ -98,6 +99,9 @@ export default function PostBoard({
   const router = useRouter();
   const params = useParams<{ brandId: string }>();
   const brandIdFromUrl = params?.brandId;
+  // Feature flag: si Meta OAuth no está configurado todavía, escondemos
+  // botones de auto-publicar para no mostrarlos rotos.
+  const { metaOAuthEnabled } = useFeatureFlags();
   const imgWrapRef = useRef<HTMLDivElement>(null);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [comments, setComments] = useState(initialComments);
@@ -993,7 +997,7 @@ export default function PostBoard({
             </button>
           )}
 
-        {canPublish && !isDeleted && (currentStatus === "approved" || currentStatus === "scheduled") && (
+        {canPublish && metaOAuthEnabled && !isDeleted && (currentStatus === "approved" || currentStatus === "scheduled") && (
           <button
             onClick={publishNow}
             disabled={busy}
@@ -1001,6 +1005,16 @@ export default function PostBoard({
           >
             🚀 Publicar ahora
           </button>
+        )}
+        {canPublish && !metaOAuthEnabled && !isDeleted && (currentStatus === "approved" || currentStatus === "scheduled") && (
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-3 text-center">
+            <p className="text-[12px] font-medium text-zinc-600">
+              Auto-publicación próximamente
+            </p>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              Por ahora, copiá el caption y subí el contenido desde Instagram.
+            </p>
+          </div>
         )}
 
         {currentStatus === "published" && publishedUrl && (

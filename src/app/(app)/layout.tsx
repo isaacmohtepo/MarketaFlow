@@ -12,6 +12,8 @@ import { getBillingSummary } from "@/lib/billing";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { permissionsForRole } from "@/lib/permissions";
 import { PermissionsProvider } from "@/components/PermissionsProvider";
+import { getFeatureFlags } from "@/lib/feature-flags";
+import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -155,7 +157,10 @@ export default async function AppLayout({
     }
   }
 
+  const featureFlags = getFeatureFlags();
+
   return (
+    <FeatureFlagsProvider flags={featureFlags}>
     <PermissionsProvider
       agencyPermissions={[...agencyPerms]}
       brandPermissions={brandPerms}
@@ -195,5 +200,6 @@ export default async function AppLayout({
       {children}
     </AppShell>
     </PermissionsProvider>
+    </FeatureFlagsProvider>
   );
 }
