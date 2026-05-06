@@ -8,6 +8,7 @@ import {
   type IntegrationProvider,
   type IntegrationEnvironment,
 } from "@/lib/integrations";
+import { audit } from "@/lib/audit";
 
 const schema = z.object({
   category: z.enum(["payment", "notification", "ai", "storage"]),
@@ -54,6 +55,21 @@ export async function POST(req: Request) {
     config: body.config,
     publicMeta,
     enabled: body.enabled ?? true,
+  });
+
+  // Log inmutable (no incluye llaves, solo provider+env y action)
+  audit({
+    category: "integrations",
+    action: "config.upserted",
+    actorUserId: user.id,
+    actorEmail: user.email,
+    targetId: row.id,
+    metadata: {
+      provider: body.provider,
+      environment: body.environment,
+      enabled: row.enabled,
+    },
+    req,
   });
 
   return NextResponse.json({ id: row.id, enabled: row.enabled });

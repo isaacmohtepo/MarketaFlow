@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 /**
  * POST /api/billing/cancel
@@ -9,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
  * El plan sigue activo hasta `currentPeriodEnd`. Después el cron diario
  * la pasa a `expired` y el effective plan vuelve a free.
  */
-export async function POST() {
+export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -40,6 +41,16 @@ export async function POST() {
       canceledAt: new Date(),
       // No tocamos nextChargeAt — al fin del período el cron downgradea
     },
+  });
+
+  audit({
+    category: "billing",
+    action: "subscription.canceled",
+    actorUserId: user.id,
+    actorEmail: user.email,
+    targetId: sub.id,
+    metadata: { plan: sub.plan, currentPeriodEnd: sub.currentPeriodEnd },
+    req,
   });
 
   return NextResponse.json({ ok: true });

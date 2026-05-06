@@ -79,6 +79,32 @@ model SystemConfig {
   updatedAt DateTime @updatedAt
 }
 
+/// Audit log genérico para acciones sensibles (cambio de role, billing,
+/// integraciones, etc.). Compliance-friendly: cada operación que modifica
+/// permisos o estado de pago debería loggear acá.
+///
+/// `actorUserId` puede ser null si la acción la disparó el sistema (cron, etc).
+model AuditLog {
+  id           String   @id @default(cuid())
+  /// Categoría: "auth" | "billing" | "integrations" | "admin" | "team"
+  category     String
+  /// Acción específica: "role.changed", "subscription.canceled", etc.
+  action       String
+  actorUserId  String?
+  actorEmail   String?
+  /// Identificador del recurso afectado (ej. agencyId, userId, etc).
+  targetId     String?
+  /// JSON con detalles adicionales (antes/después, motivo, etc).
+  metadata     Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([actorUserId])
+  @@index([targetId])
+}
+
 /// Audit log de rotaciones de master key. Cada vez que un admin rota,
 /// guardamos quién + cuándo + cuántas integraciones se re-encriptaron.
 /// Útil para compliance (SOC 2, ISO 27001) y debugging.

@@ -3,16 +3,34 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
 import { startTrialForAgency, canInviteClient } from "@/lib/billing";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+
+/**
+ * Password policy: mínimo 8 caracteres + al menos 1 letra y 1 dígito.
+ * No exigimos símbolos ni mayúsculas para no friccionar onboarding pero el
+ * mínimo de 8 + complejidad básica protege contra rainbow tables y los
+ * passwords más comunes (123456, password, qwerty, etc.).
+ */
+const passwordSchema = z
+  .string()
+  .min(8, "La contraseña debe tener al menos 8 caracteres")
+  .refine((p) => /[A-Za-z]/.test(p) && /\d/.test(p), {
+    message: "La contraseña debe combinar letras y números",
+  });
 
 const schema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordSchema,
   agencyName: z.string().min(1).optional(),
   inviteCode: z.string().optional(),
 });
 
 export async function POST(req: Request) {
+  // Rate limit: 3 registros por IP por hora — evita scripts que crean miles de cuentas
+  const rl = rateLimit(req, { key: "register", limit: 3, windowMs: 60 * 60_000 });
+  if (!rl.ok) return rateLimitResponse(rl);
+
   let body;
   try {
     body = schema.parse(await req.json());

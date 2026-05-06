@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { createSession, hashPassword } from "@/lib/auth";
 import { canInviteClient } from "@/lib/billing";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   name: z.string().min(1).max(80),
@@ -13,6 +14,11 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
+  // Rate limit: 5 accesos guest por IP por hora — un cliente real entra 1-2
+  // veces; más de 5 en una hora desde la misma IP es spam/abuso
+  const rl = rateLimit(req, { key: "share-access", limit: 5, windowMs: 60 * 60_000 });
+  if (!rl.ok) return rateLimitResponse(rl);
+
   const { token } = await params;
 
   const brand = await prisma.brand.findUnique({

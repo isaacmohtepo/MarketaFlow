@@ -7,19 +7,31 @@ import { hashPassword } from "@/lib/auth";
 import { recordActivity } from "@/lib/activity";
 import { notifyBrandAgency } from "@/lib/notifications";
 import { getEffectiveLimits } from "@/lib/billing";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// CORS abierto: el widget se carga desde dominios ajenos.
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+/**
+ * El widget se carga desde el dominio del CLIENTE (no de MarketaFlow), así
+ * que CORS tiene que permitir cross-origin. En vez de "*" abierto, devolvemos
+ * el `Origin` exacto que vino en el request — esto es válido y CORS-compliant
+ * para POST/OPTIONS, y no expone headers a sitios distintos.
+ */
+function corsHeaders(origin: string | null): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": origin ?? "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+}
 
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS });
+export async function OPTIONS(req: Request) {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(req.headers.get("origin")),
+  });
 }
 
 const schema = z.object({
@@ -39,16 +51,34 @@ const schema = z.object({
   screenshotBase64: z.string().min(100),
 });
 
-function jsonCors(data: unknown, status = 200) {
-  return NextResponse.json(data, { status, headers: CORS_HEADERS });
+function jsonCors(req: Request, data: unknown, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: corsHeaders(req.headers.get("origin")),
+  });
 }
 
 export async function POST(req: Request) {
+  // Rate limit: 30 comments/hora por widgetToken+IP. Suficiente para un cliente
+  // real revisando un sitio, frena spam masivo.
+  const rl = rateLimit(req, {
+    key: "widget-feedback",
+    limit: 30,
+    windowMs: 60 * 60_000,
+  });
+  if (!rl.ok) {
+    return jsonCors(
+      req,
+      { error: "Demasiados comentarios. Probá en unos minutos." },
+      429,
+    );
+  }
+
   let body;
   try {
     body = schema.parse(await req.json());
   } catch (err) {
-    return jsonCors({ error: "Datos inválidos", detail: String(err) }, 400);
+    return jsonCors(req, { error: "Datos inválidos", detail: String(err) }, 400);
   }
 
   const brand = await prisma.brand.findUnique({
@@ -56,7 +86,7 @@ export async function POST(req: Request) {
     include: { agency: true },
   });
   if (!brand) {
-    return jsonCors({ error: "Token inválido" }, 401);
+    return jsonCors(req, { error: "Token inválido" }, 401);
   }
 
   // Plan limits enforcement: el widget tiene límite de comments/mes en Free.
@@ -64,6 +94,7 @@ export async function POST(req: Request) {
   const limits = await getEffectiveLimits(brand.agencyId);
   if (!limits.webFeedbackEnabled) {
     return jsonCors(
+      req,
       { error: "El web feedback no está disponible en el plan actual de esta agencia." },
       402,
     );
@@ -79,6 +110,7 @@ export async function POST(req: Request) {
     });
     if (count >= limits.maxWebFeedbackComments) {
       return jsonCors(
+        req,
         {
           error: `Esta marca alcanzó el límite de ${limits.maxWebFeedbackComments} comentarios web del mes en su plan actual.`,
         },
@@ -97,7 +129,7 @@ export async function POST(req: Request) {
     screenshotUrl = up.url;
   } catch (err) {
     console.error("widget screenshot upload failed", err);
-    return jsonCors({ error: "No se pudo procesar la captura" }, 500);
+    return jsonCors(req, { error: "No se pudo procesar la captura" }, 500);
   }
 
   // 2) Resolver "reporter" como User (guest user reusable por nombre+email+brand)
@@ -197,5 +229,5 @@ export async function POST(req: Request) {
     actorName: body.reporterName,
   }).catch(() => {});
 
-  return jsonCors({ ok: true, postId: post.id });
+  return jsonCors(req, { ok: true, postId: post.id });
 }
