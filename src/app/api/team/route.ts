@@ -140,16 +140,26 @@ export async function POST(req: Request) {
   });
 
   const acceptUrl = appUrl(`/team/accept/${inv.token}`);
-  // Email de invitación
+  // Email de invitación. Escapamos los strings user-controlled para evitar
+  // que un nombre con HTML rompa el template o inyecte phishing.
+  const escapeHtml = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  const inviterName = escapeHtml(user.name ?? user.email);
+  const agencyName = escapeHtml(owner.agency.name);
   sendEmail({
     to: body.email,
-    subject: `${user.name ?? user.email} te invita a unirte a ${owner.agency.name}`,
+    subject: `${inviterName} te invita a unirte a ${agencyName}`,
     html: `
       <p style="font-family:system-ui,sans-serif;color:#1d1d1f;line-height:1.5">
         Hola,<br/><br/>
-        <strong>${user.name ?? user.email}</strong> te invitó a unirte como
+        <strong>${inviterName}</strong> te invitó a unirte como
         <strong>${body.role === "owner" ? "owner" : "editor"}</strong> a la agencia
-        <strong>${owner.agency.name}</strong> en MarketaFlow.<br/><br/>
+        <strong>${agencyName}</strong> en MarketaFlow.<br/><br/>
         <a href="${acceptUrl}" style="background:linear-gradient(135deg,#3b5fff,#8a2be2,#ff4d8f,#ff2d55);color:#fff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:9999px;display:inline-block">
           Aceptar invitación
         </a><br/><br/>

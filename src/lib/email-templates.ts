@@ -3,6 +3,25 @@ import { appUrl } from "./email";
 const BRAND_GRADIENT =
   "linear-gradient(135deg, #3b5fff 0%, #8a2be2 35%, #ff4d8f 70%, #ff2d55 100%)";
 
+/**
+ * Escapa caracteres HTML peligrosos. Toda variable user-controlled (nombres,
+ * notas, captions, body) DEBE pasar por esta función antes de inyectarse en
+ * el template. Sin esto, un attacker con un brand.name = "<script>..." podría
+ * inyectar phishing links, scripts (en email clients que los ejecutan), o
+ * elementos HTML que cambien el sentido del email.
+ *
+ * Acepta null/undefined → string vacío para que sea conveniente en templates.
+ */
+function esc(value: unknown): string {
+  if (value == null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function shell({
   preheader,
   title,
@@ -76,16 +95,19 @@ export function tplPostInReview(opts: {
   postUrl: string;
   caption?: string | null;
 }) {
+  const captionTrunc = opts.caption
+    ? opts.caption.slice(0, 140) + (opts.caption.length > 140 ? "…" : "")
+    : "";
   const captionLine = opts.caption
-    ? `<p style="margin:14px 0 0;font-size:13px;color:#6e6e73;font-style:italic;border-left:2px solid #e4e4e7;padding-left:10px;">"${opts.caption.slice(0, 140)}${opts.caption.length > 140 ? "…" : ""}"</p>`
+    ? `<p style="margin:14px 0 0;font-size:13px;color:#6e6e73;font-style:italic;border-left:2px solid #e4e4e7;padding-left:10px;">"${esc(captionTrunc)}"</p>`
     : "";
   return shell({
-    preheader: `${opts.actorName} subió un post de ${opts.brandName} para tu revisión`,
-    title: `Hay un post de ${opts.brandName} para revisar`,
-    intro: `${opts.actorName} acaba de enviarte un post para que apruebes o pidas cambios.${captionLine}`,
+    preheader: `${esc(opts.actorName)} subió un post de ${esc(opts.brandName)} para tu revisión`,
+    title: `Hay un post de ${esc(opts.brandName)} para revisar`,
+    intro: `${esc(opts.actorName)} acaba de enviarte un post para que apruebes o pidas cambios.${captionLine}`,
     ctaLabel: "Ver y aprobar →",
     ctaUrl: opts.postUrl,
-    footer: `Si lo apruebas, MarketaFlow lo programa automáticamente. Si pides cambios, ${opts.agencyName} recibirá tu nota.`,
+    footer: `Si lo apruebas, MarketaFlow lo programa automáticamente. Si pides cambios, ${esc(opts.agencyName)} recibirá tu nota.`,
   });
 }
 
@@ -95,9 +117,9 @@ export function tplPostApproved(opts: {
   postUrl: string;
 }) {
   return shell({
-    preheader: `${opts.clientName} aprobó un post de ${opts.brandName}`,
-    title: `${opts.clientName} aprobó un post 🎉`,
-    intro: `Buenas noticias — el post de <strong>${opts.brandName}</strong> está listo para programarse.`,
+    preheader: `${esc(opts.clientName)} aprobó un post de ${esc(opts.brandName)}`,
+    title: `${esc(opts.clientName)} aprobó un post 🎉`,
+    intro: `Buenas noticias — el post de <strong>${esc(opts.brandName)}</strong> está listo para programarse.`,
     ctaLabel: "Ver post",
     ctaUrl: opts.postUrl,
   });
@@ -110,12 +132,12 @@ export function tplChangesRequested(opts: {
   postUrl: string;
 }) {
   const noteBlock = opts.note
-    ? `<p style="margin:14px 0 0;font-size:13px;color:#1d1d1f;background:#fff5f5;border-left:3px solid #ff4d8f;padding:10px 12px;border-radius:6px;">"${opts.note}"</p>`
+    ? `<p style="margin:14px 0 0;font-size:13px;color:#1d1d1f;background:#fff5f5;border-left:3px solid #ff4d8f;padding:10px 12px;border-radius:6px;">"${esc(opts.note)}"</p>`
     : "";
   return shell({
-    preheader: `${opts.clientName} pidió cambios en un post de ${opts.brandName}`,
-    title: `${opts.clientName} pidió cambios`,
-    intro: `Hay un post de <strong>${opts.brandName}</strong> que necesita correcciones.${noteBlock}`,
+    preheader: `${esc(opts.clientName)} pidió cambios en un post de ${esc(opts.brandName)}`,
+    title: `${esc(opts.clientName)} pidió cambios`,
+    intro: `Hay un post de <strong>${esc(opts.brandName)}</strong> que necesita correcciones.${noteBlock}`,
     ctaLabel: "Ver comentarios",
     ctaUrl: opts.postUrl,
   });
@@ -127,16 +149,20 @@ export function tplCommentMention(opts: {
   body: string;
   postUrl: string;
 }) {
-  // Trunca el comentario para que el email sea liviano y resalta @menciones
-  const safe = opts.body.length > 280 ? `${opts.body.slice(0, 277)}…` : opts.body;
-  const highlighted = safe.replace(
-    /@(?:"[^"]+"|[\w.\-áéíóúñÁÉÍÓÚÑ]+)/g,
+  // Trunca primero, después escapa, después aplica el highlight de menciones.
+  // Importante: el highlight regex debe correr SOBRE EL HTML ESCAPED para que
+  // un body tipo `</span><script>` no rompa nuestro markup. Las menciones
+  // (@nombre) son ASCII y no se ven afectadas por escape de HTML.
+  const trunc = opts.body.length > 280 ? `${opts.body.slice(0, 277)}…` : opts.body;
+  const escapedBody = esc(trunc);
+  const highlighted = escapedBody.replace(
+    /@(?:&quot;[^&]+&quot;|[\w.\-áéíóúñÁÉÍÓÚÑ]+)/g,
     (m) => `<span style="color:#8a2be2;font-weight:600;">${m}</span>`,
   );
   return shell({
-    preheader: `${opts.actorName} te mencionó en ${opts.brandName}`,
-    title: `${opts.actorName} te mencionó`,
-    intro: `En el post de <strong>${opts.brandName}</strong>:<br/><span style="display:inline-block;margin-top:10px;font-size:13px;color:#1d1d1f;background:#faf5ff;border-left:3px solid #8a2be2;padding:10px 12px;border-radius:6px;">"${highlighted}"</span>`,
+    preheader: `${esc(opts.actorName)} te mencionó en ${esc(opts.brandName)}`,
+    title: `${esc(opts.actorName)} te mencionó`,
+    intro: `En el post de <strong>${esc(opts.brandName)}</strong>:<br/><span style="display:inline-block;margin-top:10px;font-size:13px;color:#1d1d1f;background:#faf5ff;border-left:3px solid #8a2be2;padding:10px 12px;border-radius:6px;">"${highlighted}"</span>`,
     ctaLabel: "Ver comentario",
     ctaUrl: opts.postUrl,
   });
@@ -152,11 +178,11 @@ export function tplTrialEnding(opts: {
   planName: string;
 }) {
   return shell({
-    preheader: `Tu trial de ${opts.planName} termina en ${opts.daysLeft} días`,
+    preheader: `Tu trial de ${esc(opts.planName)} termina en ${opts.daysLeft} días`,
     title: `Tu trial termina pronto ⏰`,
     intro: `Faltan <strong>${opts.daysLeft} ${
       opts.daysLeft === 1 ? "día" : "días"
-    }</strong> para que termine tu trial de <strong>${opts.planName}</strong> en ${opts.agencyName}. Si no agregás un método de pago, bajamos automáticamente a Free y vas a perder algunos límites (marcas, posts, equipo).`,
+    }</strong> para que termine tu trial de <strong>${esc(opts.planName)}</strong> en ${esc(opts.agencyName)}. Si no agregás un método de pago, bajamos automáticamente a Free y vas a perder algunos límites (marcas, posts, equipo).`,
     ctaLabel: "Activar suscripción",
     ctaUrl: `${appUrl("/billing")}`,
     footer: "Podés cancelar en cualquier momento.",
@@ -167,7 +193,7 @@ export function tplTrialEnded(opts: { agencyName: string }) {
   return shell({
     preheader: `Tu trial terminó — ahora estás en plan Free`,
     title: `Tu trial terminó`,
-    intro: `Tu trial de <strong>${opts.agencyName}</strong> terminó. Ahora estás en el plan <strong>Free</strong> con sus límites (1 marca, 30 posts/mes, 1 cliente). Las marcas y posts que tenías de más quedan visibles pero en read-only hasta que upgradees.`,
+    intro: `Tu trial de <strong>${esc(opts.agencyName)}</strong> terminó. Ahora estás en el plan <strong>Free</strong> con sus límites (1 marca, 30 posts/mes, 1 cliente). Las marcas y posts que tenías de más quedan visibles pero en read-only hasta que upgradees.`,
     ctaLabel: "Ver planes",
     ctaUrl: `${appUrl("/billing")}`,
   });
@@ -181,9 +207,9 @@ export function tplPaymentSuccess(opts: {
   invoiceUrl?: string;
 }) {
   return shell({
-    preheader: `Recibimos tu pago de ${opts.amount}`,
+    preheader: `Recibimos tu pago de ${esc(opts.amount)}`,
     title: `Pago confirmado 🎉`,
-    intro: `Cobramos <strong>${opts.amount}</strong> por tu plan <strong>${opts.planName}</strong> de ${opts.agencyName}. Tu próxima renovación es el ${opts.periodEnd}.`,
+    intro: `Cobramos <strong>${esc(opts.amount)}</strong> por tu plan <strong>${esc(opts.planName)}</strong> de ${esc(opts.agencyName)}. Tu próxima renovación es el ${esc(opts.periodEnd)}.`,
     ctaLabel: opts.invoiceUrl ? "Ver factura" : "Ir a Facturación",
     ctaUrl: opts.invoiceUrl ?? `${appUrl("/billing")}`,
   });
@@ -195,12 +221,12 @@ export function tplPaymentFailed(opts: {
   reason?: string;
 }) {
   const reasonBlock = opts.reason
-    ? `<p style="margin:14px 0 0;font-size:13px;color:#1d1d1f;background:#fff5f5;border-left:3px solid #ff4d8f;padding:10px 12px;border-radius:6px;">${opts.reason}</p>`
+    ? `<p style="margin:14px 0 0;font-size:13px;color:#1d1d1f;background:#fff5f5;border-left:3px solid #ff4d8f;padding:10px 12px;border-radius:6px;">${esc(opts.reason)}</p>`
     : "";
   return shell({
     preheader: `No pudimos cobrar tu suscripción`,
     title: `El pago falló`,
-    intro: `Intentamos cobrar <strong>${opts.amount}</strong> en ${opts.agencyName} pero el método de pago rechazó el cargo.${reasonBlock} Tenés 3 días de gracia antes de que bajemos al plan Free. Actualizá tu tarjeta para evitar perder acceso.`,
+    intro: `Intentamos cobrar <strong>${esc(opts.amount)}</strong> en ${esc(opts.agencyName)} pero el método de pago rechazó el cargo.${reasonBlock} Tenés 3 días de gracia antes de que bajemos al plan Free. Actualizá tu tarjeta para evitar perder acceso.`,
     ctaLabel: "Actualizar pago",
     ctaUrl: `${appUrl("/billing")}`,
   });
@@ -212,9 +238,9 @@ export function tplSubscriptionCanceled(opts: {
   planName: string;
 }) {
   return shell({
-    preheader: `Cancelaste tu suscripción de ${opts.planName}`,
+    preheader: `Cancelaste tu suscripción de ${esc(opts.planName)}`,
     title: `Suscripción cancelada`,
-    intro: `Cancelaste tu suscripción de <strong>${opts.planName}</strong> en ${opts.agencyName}. Tu plan sigue activo hasta el <strong>${opts.endDate}</strong> — después bajamos a Free. Podés reactivarla en cualquier momento.`,
+    intro: `Cancelaste tu suscripción de <strong>${esc(opts.planName)}</strong> en ${esc(opts.agencyName)}. Tu plan sigue activo hasta el <strong>${esc(opts.endDate)}</strong> — después bajamos a Free. Podés reactivarla en cualquier momento.`,
     ctaLabel: "Ir a Facturación",
     ctaUrl: `${appUrl("/billing")}`,
   });
@@ -225,10 +251,16 @@ export function tplPostPublished(opts: {
   postUrl: string;
   publishedUrl?: string | null;
 }) {
+  // publishedUrl viene de la API de Instagram/Facebook — confiamos en que es
+  // una URL válida pero igual la escapamos como atributo href por seguridad.
+  const publishedLink =
+    opts.publishedUrl && /^https?:\/\//i.test(opts.publishedUrl)
+      ? ` <a href="${esc(opts.publishedUrl)}" style="color:#8a2be2;">Ver en redes ↗</a>`
+      : "";
   return shell({
-    preheader: `Un post de ${opts.brandName} se publicó`,
+    preheader: `Un post de ${esc(opts.brandName)} se publicó`,
     title: `Tu post se publicó ✨`,
-    intro: `El post de <strong>${opts.brandName}</strong> ya está en línea.${opts.publishedUrl ? ` <a href="${opts.publishedUrl}" style="color:#8a2be2;">Ver en redes ↗</a>` : ""}`,
+    intro: `El post de <strong>${esc(opts.brandName)}</strong> ya está en línea.${publishedLink}`,
     ctaLabel: "Ver detalle",
     ctaUrl: opts.postUrl,
   });
