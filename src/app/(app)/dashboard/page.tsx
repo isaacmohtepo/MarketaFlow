@@ -28,6 +28,7 @@ import ExpandableList from "@/components/ExpandableList";
 import NewBrandTile from "./NewBrandTile";
 import NewPostButton from "./NewPostButton";
 import Sparkline from "./Sparkline";
+import AdminQuickAccess from "./AdminQuickAccess";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 import { getKpisForBrands } from "@/lib/kpis";
 import { approvalRateTone } from "@/lib/kpis-utils";
@@ -139,7 +140,7 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [brands, agencyName, ownerMembership, agencyMemberships] = await Promise.all([
+  const [brands, agencyName, ownerMembership, agencyMemberships, userRow] = await Promise.all([
     listUserBrands(user.id),
     getUserAgencyName(user.id),
     prisma.membership.findFirst({
@@ -150,9 +151,14 @@ export default async function DashboardPage() {
       where: { userId: user.id, role: { in: ["owner", "editor"] }, brandId: null },
       select: { agencyId: true },
     }),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    }),
   ]);
   const isAgencySide = agencyMemberships.length > 0;
   const agencyIds = agencyMemberships.map((m) => m.agencyId);
+  const isAdmin = userRow?.role === "admin";
 
   // Empty state — sin marcas todavía
   if (brands.length === 0) {
@@ -167,6 +173,9 @@ export default async function DashboardPage() {
               </h1>
             </div>
           </div>
+
+          {/* Admin shortcut también en empty state */}
+          {isAdmin && <AdminQuickAccess />}
 
           <div className="mt-10 card relative overflow-hidden p-8 text-center">
             <span
@@ -354,6 +363,9 @@ export default async function DashboardPage() {
               }))}
           />
         </div>
+
+        {/* Admin quick access — solo para users con role admin */}
+        {isAdmin && <AdminQuickAccess />}
 
         {/* Stats — barra horizontal */}
         <div className="mt-7 grid grid-cols-2 sm:grid-cols-4 card overflow-hidden">
