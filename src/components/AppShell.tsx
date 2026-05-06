@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import Sidebar from "./Sidebar";
+import Sidebar, { type PlanCardData } from "./Sidebar";
 import TopBar from "./TopBar";
 import ShortcutsOverlay from "./ShortcutsOverlay";
 import CommandPalette from "./CommandPalette";
@@ -15,6 +15,7 @@ export default function AppShell({
   title,
   isAdmin = false,
   isOwner = false,
+  planCard = null,
   children,
 }: {
   userName: string;
@@ -23,6 +24,7 @@ export default function AppShell({
   title?: string;
   isAdmin?: boolean;
   isOwner?: boolean;
+  planCard?: PlanCardData | null;
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,7 +35,12 @@ export default function AppShell({
       style={{ background: "var(--bg-app)" }}
     >
       {/* Sidebar fijo en desktop */}
-      <Sidebar agencyName={agencyName} isAdmin={isAdmin} isOwner={isOwner} />
+      <Sidebar
+        agencyName={agencyName}
+        isAdmin={isAdmin}
+        isOwner={isOwner}
+        planCard={planCard}
+      />
 
       {/* Drawer mobile */}
       {mobileOpen && (
@@ -49,6 +56,7 @@ export default function AppShell({
               isMobile
               isAdmin={isAdmin}
               isOwner={isOwner}
+              planCard={planCard}
               onNavigate={() => setMobileOpen(false)}
             />
           </div>

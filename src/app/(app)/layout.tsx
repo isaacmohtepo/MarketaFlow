@@ -8,6 +8,8 @@ import ImpersonateBanner from "@/components/ImpersonateBanner";
 import SuspendedBanner from "@/components/SuspendedBanner";
 import AdminTwoFAReminder from "@/components/AdminTwoFAReminder";
 import { getSystemSetting } from "@/lib/system-settings";
+import { getBillingSummary } from "@/lib/billing";
+import { PLANS, type PlanId } from "@/lib/plans";
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -35,7 +37,7 @@ export default async function AppLayout({
     }),
     prisma.membership.findFirst({
       where: { userId: user.id, role: "owner", brandId: null },
-      select: { id: true },
+      select: { id: true, agencyId: true },
     }),
     // Para detectar si la agency del user está suspended, traemos cualquier
     // membership con la agency. Si tiene varias agencies y alguna está
@@ -62,6 +64,42 @@ export default async function AppLayout({
     anyMembership?.agency.suspendedAt
       ? anyMembership.agency
       : null;
+
+  // Billing summary para mostrar plan real en el sidebar (solo owners ven
+  // este card — clients/editors no tienen acceso a billing).
+  let planCard: {
+    planId: PlanId;
+    planName: string;
+    status: string;
+    cancelAtPeriodEnd: boolean;
+    trialEndsAt: string | null;
+    currentPeriodEnd: string | null;
+    nextChargeAt: string | null;
+    priceMonthlyCents: number;
+    billingCycle: string;
+  } | null = null;
+  if (isOwner && ownerMembership) {
+    try {
+      const summary = await getBillingSummary(ownerMembership.agencyId);
+      const plan = PLANS[summary.planId];
+      planCard = {
+        planId: summary.planId,
+        planName: plan.name,
+        status: summary.status,
+        cancelAtPeriodEnd: summary.cancelAtPeriodEnd,
+        trialEndsAt: summary.trialEndsAt?.toISOString() ?? null,
+        currentPeriodEnd: summary.currentPeriodEnd?.toISOString() ?? null,
+        nextChargeAt: summary.nextChargeAt?.toISOString() ?? null,
+        priceMonthlyCents:
+          summary.billingCycle === "yearly"
+            ? Math.round(plan.priceCopYearly / 12)
+            : plan.priceCopMonthly,
+        billingCycle: summary.billingCycle,
+      };
+    } catch {
+      // Si falla, dejamos planCard en null y el sidebar muestra el genérico
+    }
+  }
 
   // 2FA enforcement para admins: banner amarillo durante el grace period,
   // rojo cuando expira. El grace lo resuelve getSystemSetting (DB → env → default).
@@ -97,6 +135,7 @@ export default async function AppLayout({
       agencyName={agencyName}
       isAdmin={isAdmin}
       isOwner={isOwner}
+      planCard={planCard}
     >
       {impersonator && (
         <ImpersonateBanner

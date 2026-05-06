@@ -189,12 +189,14 @@ export default function Sidebar({
   onNavigate,
   isAdmin = false,
   isOwner = false,
+  planCard = null,
 }: {
   agencyName: string | null;
   isMobile?: boolean;
   onNavigate?: () => void;
   isAdmin?: boolean;
   isOwner?: boolean;
+  planCard?: PlanCardData | null;
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [inboxCount, setInboxCount] = useState<number>(0);
@@ -305,27 +307,172 @@ export default function Sidebar({
         ))}
       </nav>
 
-      <div className="p-3">
-        <Link
-          href="/pricing"
-          className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
-          style={{ border: DARK_LINE }}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Plan Free
-            </p>
-            <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-fuchsia-400" />
-          </div>
-          <p className="mt-1 text-[12px] font-semibold brand-gradient-text">
-            Sube a Pro
-          </p>
-          <p className="mt-0.5 text-[11px] text-zinc-500">
-            Marcas y posts ilimitados
-          </p>
-        </Link>
-      </div>
+      {/* Plan card — solo se muestra a owners. Clients/editors no tienen
+          acceso a billing. Si no hay planCard data, no mostramos nada. */}
+      {isOwner && planCard && (
+        <div className="p-3">
+          <PlanCard data={planCard} />
+        </div>
+      )}
     </aside>
+  );
+}
+
+// ============================================================================
+// Plan card en el footer del sidebar
+// ============================================================================
+
+export type PlanCardData = {
+  planId: "free" | "pro" | "agency";
+  planName: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+  nextChargeAt: string | null;
+  priceMonthlyCents: number;
+  billingCycle: string;
+};
+
+function formatCop(cents: number): string {
+  const pesos = Math.round(cents / 100);
+  return "$" + pesos.toLocaleString("es-CO");
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("es", { day: "numeric", month: "short" });
+}
+
+function PlanCard({ data }: { data: PlanCardData }) {
+  // Caso 1: Free → CTA "Sube a Pro"
+  if (data.planId === "free") {
+    return (
+      <Link
+        href="/billing"
+        className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
+        style={{ border: DARK_LINE }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+            Plan Free
+          </p>
+          <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-fuchsia-400" />
+        </div>
+        <p className="mt-1 text-[12px] font-semibold brand-gradient-text">
+          Subí a Pro
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Marcas y posts ilimitados
+        </p>
+      </Link>
+    );
+  }
+
+  // Caso 2: Trialing
+  if (data.status === "trialing" && data.trialEndsAt) {
+    const daysLeft = Math.max(
+      0,
+      Math.ceil(
+        (new Date(data.trialEndsAt).getTime() - Date.now()) /
+          (24 * 60 * 60 * 1000),
+      ),
+    );
+    return (
+      <Link
+        href="/billing"
+        className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
+        style={{ border: DARK_LINE }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
+            Trial {data.planName}
+          </p>
+          <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-amber-400" />
+        </div>
+        <p className="mt-1 text-[12px] font-semibold text-white">
+          {daysLeft} {daysLeft === 1 ? "día restante" : "días restantes"}
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Activá tu suscripción para no perder features
+        </p>
+      </Link>
+    );
+  }
+
+  // Caso 3: Past due (pago vencido)
+  if (data.status === "past_due") {
+    return (
+      <Link
+        href="/billing"
+        className="group block overflow-hidden rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs transition hover:bg-rose-500/20"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-rose-300">
+            Pago vencido
+          </p>
+          <ArrowUpRight className="h-3.5 w-3.5 text-rose-300" />
+        </div>
+        <p className="mt-1 text-[12px] font-semibold text-white">
+          Actualizá tu tarjeta
+        </p>
+        <p className="mt-0.5 text-[11px] text-rose-200/80">
+          3 días de gracia antes de bajar a Free
+        </p>
+      </Link>
+    );
+  }
+
+  // Caso 4: Cancelará al final del período
+  if (data.cancelAtPeriodEnd && data.currentPeriodEnd) {
+    return (
+      <Link
+        href="/billing"
+        className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
+        style={{ border: DARK_LINE }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
+            Plan {data.planName}
+          </p>
+          <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-amber-400" />
+        </div>
+        <p className="mt-1 text-[12px] font-semibold text-white">
+          Cancela el {formatDate(data.currentPeriodEnd)}
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Tocá para reactivar
+        </p>
+      </Link>
+    );
+  }
+
+  // Caso 5: Plan activo paid (Pro / Agency normal)
+  return (
+    <Link
+      href="/billing"
+      className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
+      style={{ border: DARK_LINE }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-wider brand-gradient-text">
+          Plan {data.planName}
+        </p>
+        <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-fuchsia-400" />
+      </div>
+      <p className="mt-1 text-[12px] font-semibold text-white tabular-nums">
+        {formatCop(data.priceMonthlyCents)}
+        <span className="text-[10px] font-normal text-zinc-500"> /mes</span>
+      </p>
+      <p className="mt-0.5 text-[11px] text-zinc-500">
+        {data.nextChargeAt
+          ? `Renovás ${formatDate(data.nextChargeAt)}`
+          : data.billingCycle === "yearly"
+            ? "Facturado anual"
+            : "Activa"}
+      </p>
+    </Link>
   );
 }
 
