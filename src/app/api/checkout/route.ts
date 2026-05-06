@@ -149,7 +149,13 @@ export async function POST(req: Request) {
       reference,
     });
   } catch (err) {
-    console.error("Wompi checkout error", err);
+    console.error("Wompi checkout error", {
+      err,
+      redirectUrl,
+      appUrl,
+      environment,
+      reference,
+    });
     // Marcamos el invoice como failed para no dejar pendings huérfanos
     await prisma.invoice.updateMany({
       where: { wompiReference: reference },
