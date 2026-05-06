@@ -34,9 +34,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Falta firma" }, { status: 401 });
   }
 
+  // Detectar environment del payload. Wompi manda `environment: "test"|"prod"`
+  // en el evento. Si usábamos sandbox hardcoded, en producción la firma se
+  // verificaría con secret de sandbox → todos los webhooks reales rechazados.
+  let envFromPayload: "sandbox" | "production" = "production";
+  try {
+    const peek = JSON.parse(rawBody) as { environment?: string };
+    if (peek.environment === "test" || peek.environment === "sandbox") {
+      envFromPayload = "sandbox";
+    }
+  } catch {
+    // Si el body no parsea, dejamos production y dejamos que la firma falle
+  }
+
   let cfg;
   try {
-    cfg = await getWompiConfig("sandbox"); // TODO: detectar env desde el evento
+    cfg = await getWompiConfig(envFromPayload);
   } catch (err) {
     console.error("Webhook: no hay config Wompi activa", err);
     return NextResponse.json(
@@ -57,30 +70,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  // Idempotency: cada evento Wompi tiene un `id` (en Wompi se llama
-  // `signature.checksum` o `data.transaction.id` dependiendo del tipo).
-  // Para `transaction.updated` usamos transaction.id como dedup key.
-  // Si ya lo procesamos, devolvemos 200 sin re-ejecutar (Wompi acepta el
-  // ack y no reintenta).
+  // Idempotency: si YA procesamos este evento antes, devolvemos OK y no
+  // re-ejecutamos. Pero solo grabamos el WebhookEvent DESPUÉS de procesar
+  // exitosamente — si la grabábamos antes y el handler tiraba excepción
+  // (DB transient, email service down, etc.), Wompi reintentaba y nosotros
+  // dropeábamos silenciosamente el retry → invoice nunca quedaba paid.
   const externalId =
     payload.data?.transaction?.id ??
     `${payload.event}:${payload.timestamp ?? ""}`;
   if (externalId) {
-    try {
-      await prisma.webhookEvent.create({
-        data: {
-          provider: "wompi",
-          externalId,
-          eventType: payload.event,
-        },
-      });
-    } catch (err) {
-      // Unique constraint violation = ya procesado. Devolvemos OK silently.
-      const e = err as { code?: string };
-      if (e.code === "P2002") {
-        return NextResponse.json({ ok: true, deduped: true });
-      }
-      throw err;
+    const existing = await prisma.webhookEvent.findUnique({
+      where: { provider_externalId: { provider: "wompi", externalId } },
+    });
+    if (existing) {
+      return NextResponse.json({ ok: true, deduped: true });
     }
   }
 
@@ -91,6 +94,26 @@ export async function POST(req: Request) {
     // Nequi tokenization callback — no lo manejamos por ahora
   } else {
     console.log("Webhook event no manejado:", payload.event);
+  }
+
+  // Procesado OK — recién ahora marcamos el evento como visto. Si esto falla
+  // (improbable), Wompi reintentará y nosotros re-procesaremos, pero los
+  // handlers son idempotentes (chequean status/transactionId en cada update).
+  if (externalId) {
+    try {
+      await prisma.webhookEvent.create({
+        data: {
+          provider: "wompi",
+          externalId,
+          eventType: payload.event,
+        },
+      });
+    } catch (err) {
+      // Si justo entre el findUnique y el create entró otro retry, P2002
+      // es esperable y benigno.
+      const e = err as { code?: string };
+      if (e.code !== "P2002") throw err;
+    }
   }
 
   return NextResponse.json({ ok: true });

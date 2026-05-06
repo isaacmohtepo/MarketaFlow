@@ -70,7 +70,7 @@ export default async function PostPage({
     prisma.approval.findFirst({
       where: { postId },
       orderBy: { createdAt: "desc" },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, email: true } } },
     }),
     getUserAgencyName(user.id),
     prisma.brand.findUnique({ where: { id: brandId } }),
@@ -194,7 +194,7 @@ export default async function PostPage({
               brandId={brandId}
               imageUrl={post.imageUrl}
               sourceUrl={post.sourceUrl}
-              widgetToken={brand?.widgetToken ?? null}
+              widgetToken={result.access.role !== "client" ? brand?.widgetToken ?? null : null}
               brandBreakpoints={brand?.breakpoints ?? null}
               currentUserId={user.id}
               canComment={!post.deletedAt && (access.canEdit || access.canApprove)}

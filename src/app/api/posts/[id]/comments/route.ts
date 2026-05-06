@@ -149,7 +149,7 @@ export async function POST(
       viewportH: !isReply ? body.viewportH ?? null : null,
       scrollY: !isReply ? body.scrollY ?? null : null,
     },
-    include: { user: true },
+    include: { user: { select: { id: true, name: true, email: true } } },
   });
 
   // Procesar @menciones (fire-and-forget, no debe bloquear la respuesta)

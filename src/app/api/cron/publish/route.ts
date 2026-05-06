@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { publishPost } from "@/lib/publishers";
 import { notifyBrandClients, notifyBrandAgency } from "@/lib/notifications";
+
+export const runtime = "nodejs";
 
 async function runScheduler() {
   const now = new Date();
@@ -78,12 +81,19 @@ async function runScheduler() {
  * GLOBAL que recorre posts de TODOS los tenants — IDOR + abuse vector.
  * Ahora requerimos siempre el cron secret.
  */
+function constantTimeEq(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  const bearer = req.headers.get("authorization");
-  if (bearer === `Bearer ${secret}`) return true;
-  return req.headers.get("x-cron-secret") === secret;
+  const bearer = req.headers.get("authorization") ?? "";
+  if (constantTimeEq(bearer, `Bearer ${secret}`)) return true;
+  return constantTimeEq(req.headers.get("x-cron-secret") ?? "", secret);
 }
 
 export async function POST(req: Request) {

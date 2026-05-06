@@ -4,6 +4,7 @@ import { Clock, AlertCircle, CheckCircle2, CalendarClock, Inbox as InboxIcon } f
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma";
 import InboxNotifications from "./InboxNotifications";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 
@@ -30,10 +31,18 @@ export default async function InboxPage() {
   });
   const isAgency = !!agencyMembership;
 
-  const accessFilter = {
+  // Scoping correcto: agency-level (brandId: null) ve toda la agencia, pero
+  // un client brand-scoped solo debe ver SU brand. Sin esto, un client de
+  // brand X de la agency A veía el inbox de TODAS las brands de A.
+  const accessFilter: Prisma.PostWhereInput = {
     deletedAt: null,
-    brand: { agency: { members: { some: { userId: user.id } } } },
-  } as const;
+    brand: {
+      OR: [
+        { agency: { members: { some: { userId: user.id, brandId: null } } } },
+        { memberships: { some: { userId: user.id } } },
+      ],
+    },
+  };
 
   const now = new Date();
   const in7d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -59,7 +68,7 @@ export default async function InboxPage() {
         where: { ...accessFilter, status: "changes_requested" },
         orderBy: { updatedAt: "desc" },
         take: 10,
-        include: { brand: true, approvals: { orderBy: { createdAt: "desc" }, take: 1, include: { user: true } } },
+        include: { brand: true, approvals: { orderBy: { createdAt: "desc" }, take: 1, include: { user: { select: { id: true, name: true, email: true } } } } },
       }),
       // Listos para publicar (approved/scheduled con fecha pasada o sin fecha)
       prisma.post.findMany({

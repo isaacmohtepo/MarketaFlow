@@ -24,7 +24,7 @@ export default async function BrandSettingsGeneral({
     prisma.brand.findUnique({ where: { id: brandId } }),
     prisma.membership.findMany({
       where: { brandId, role: "client" },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, email: true, createdAt: true } } },
     }),
   ]);
   if (!brand) notFound();

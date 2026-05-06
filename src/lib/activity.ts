@@ -52,11 +52,11 @@ export async function getPostTimeline(
   const [activities, approvals, comments] = await Promise.all([
     prisma.activity.findMany({
       where: { postId },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, email: true } } },
     }),
     prisma.approval.findMany({
       where: { postId },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, email: true } } },
     }),
     prisma.comment.findMany({
       where: {
@@ -64,7 +64,7 @@ export async function getPostTimeline(
         parentId: null,
         ...(opts?.excludeInternal ? { internal: false } : {}),
       },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, email: true } } },
     }),
   ]);
 

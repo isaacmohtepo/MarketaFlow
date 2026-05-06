@@ -34,7 +34,8 @@ export async function GET() {
   const [members, invitations] = await Promise.all([
     prisma.membership.findMany({
       where: { agencyId: owner.agencyId, brandId: null, role: { in: ["owner", "editor"] } },
-      include: { user: true },
+      // Select explícito: nunca incluir passwordHash en la respuesta JSON.
+      include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { id: "asc" },
     }),
     prisma.teamInvitation.findMany({

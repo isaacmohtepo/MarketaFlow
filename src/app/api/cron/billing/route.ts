@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { chargeWithToken, generateReference } from "@/lib/wompi";
@@ -26,8 +27,14 @@ export async function GET(req: Request) {
   // automático cuando lo configurás en vercel.json.
   const expected = process.env.CRON_SECRET;
   if (expected) {
-    const got = req.headers.get("authorization");
-    if (got !== `Bearer ${expected}`) {
+    const got = req.headers.get("authorization") ?? "";
+    const expectedHeader = `Bearer ${expected}`;
+    // timingSafeEqual evita que un attacker mida cuánto tarda la comparación
+    // para inferir prefijos válidos del secret.
+    const a = Buffer.from(got);
+    const b = Buffer.from(expectedHeader);
+    const ok = a.length === b.length && timingSafeEqual(a, b);
+    if (!ok) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
@@ -147,7 +154,7 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     where: { id: subscriptionId },
     include: {
       paymentMethods: { where: { isDefault: true }, take: 1 },
-      agency: { include: { members: { where: { role: "owner", brandId: null }, include: { user: true }, take: 1 } } },
+      agency: { include: { members: { where: { role: "owner", brandId: null }, include: { user: { select: { id: true, name: true, email: true } } }, take: 1 } } },
     },
   });
   if (!sub) return false;

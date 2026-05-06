@@ -24,6 +24,34 @@ export default async function BillingReturnPage({
     where: { wompiReference: ref },
     include: { subscription: { include: { agency: true } } },
   });
+
+  // Cross-tenant guard: el usuario debe pertenecer a la agency dueña del
+  // invoice. Sin esto, cualquier user logueado podía leer status, plan,
+  // periodEnd y failedReason de OTRA agency probando wompiReferences.
+  if (invoice) {
+    const membership = await prisma.membership.findFirst({
+      where: { userId: user.id, agencyId: invoice.subscription.agencyId },
+      select: { id: true },
+    });
+    if (!membership) {
+      // Tratamos como "no encontrado" para no filtrar la existencia del invoice.
+      return (
+        <div className="mx-auto max-w-md py-20 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-amber-500" />
+          <h1 className="mt-4 text-2xl font-bold text-zinc-900">
+            No encontramos tu pago
+          </h1>
+          <Link
+            href="/dashboard"
+            className="btn-gradient mt-6 inline-block rounded-full px-6 py-2.5 text-[13px] font-semibold"
+          >
+            Volver al dashboard
+          </Link>
+        </div>
+      );
+    }
+  }
+
   if (!invoice) {
     return (
       <div className="mx-auto max-w-md py-20 text-center">

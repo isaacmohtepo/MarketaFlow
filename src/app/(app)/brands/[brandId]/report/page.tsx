@@ -90,7 +90,7 @@ export default async function BrandReportPage({
     }),
     prisma.approval.findMany({
       where: { post: { brandId }, createdAt: dateRange },
-      include: { user: true },
+      include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.comment.count({
