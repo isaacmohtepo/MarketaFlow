@@ -144,10 +144,19 @@ export async function POST(req: Request) {
       paymentMethods: ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"],
       environment,
     });
-    return NextResponse.json({
-      checkoutUrl: link.data.public_url,
-      reference,
-    });
+    // Wompi devuelve la URL en `permalink` (current API). `public_url` es
+    // el nombre viejo de docs antiguas — preferimos permalink, fallback a
+    // public_url, y si por algún motivo no viene ninguno fallamos explícito
+    // en lugar de devolver {checkoutUrl: undefined} (que el front no entiende).
+    const checkoutUrl = link.data.permalink ?? link.data.public_url;
+    if (!checkoutUrl) {
+      console.error("Wompi response sin permalink/public_url", link);
+      return NextResponse.json(
+        { error: "Wompi no devolvió la URL de checkout. Intentá de nuevo." },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json({ checkoutUrl, reference });
   } catch (err) {
     console.error("Wompi checkout error", {
       err,

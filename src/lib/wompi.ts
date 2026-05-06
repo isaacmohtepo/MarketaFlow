@@ -47,7 +47,10 @@ export type WompiTransaction = {
 export type WompiPaymentLinkResponse = {
   data: {
     id: string; // Wompi payment link id
-    public_url: string; // URL hosted que redirige al checkout
+    // Wompi devuelve la URL hosted en `permalink`. En docs viejos aparece
+    // como `public_url`; mantenemos ambos opcionales para compatibilidad.
+    permalink?: string;
+    public_url?: string;
   };
 };
 
