@@ -144,13 +144,20 @@ export async function POST(req: Request) {
       paymentMethods: ["CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"],
       environment,
     });
-    // Wompi devuelve la URL en `permalink` (current API). `public_url` es
-    // el nombre viejo de docs antiguas — preferimos permalink, fallback a
-    // public_url, y si por algún motivo no viene ninguno fallamos explícito
-    // en lugar de devolver {checkoutUrl: undefined} (que el front no entiende).
-    const checkoutUrl = link.data.permalink ?? link.data.public_url;
+    // Wompi NO devuelve la URL hosted del checkout en la respuesta — solo el
+    // `id` del payment link. La URL se construye con el patrón:
+    //   https://checkout.wompi.co/l/{id}
+    // Es el mismo dominio para sandbox y production; el `id` viene con prefix
+    // "test_" en sandbox y sin prefix en producción, y Wompi rutea internamente.
+    // Permalink/public_url son campos viejos de docs antiguas — los dejamos
+    // como fallback por si Wompi los reintroduce.
+    const linkId = link.data.id;
+    const checkoutUrl =
+      link.data.permalink ??
+      link.data.public_url ??
+      (linkId ? `https://checkout.wompi.co/l/${linkId}` : undefined);
     if (!checkoutUrl) {
-      console.error("Wompi response sin permalink/public_url", link);
+      console.error("Wompi response sin id ni URL", link);
       return NextResponse.json(
         { error: "Wompi no devolvió la URL de checkout. Intentá de nuevo." },
         { status: 502 },
