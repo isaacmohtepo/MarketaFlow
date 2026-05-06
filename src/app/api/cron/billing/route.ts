@@ -99,7 +99,51 @@ export async function GET(req: Request) {
     else stats.chargedFailed++;
   }
 
-  return NextResponse.json({ ok: true, stats, ranAt: now.toISOString() });
+  // En Hobby plan de Vercel solo se permite 1 cron daily, así que este
+  // endpoint ejecuta TODO el trabajo periódico en una sola corrida:
+  // billing (arriba) + trial-emails + broadcasts due + webhook retries +
+  // scheduled posts publish. Si pasamos a Pro, podemos volver a separar
+  // los crons para granularidad.
+  const childResults: Record<string, unknown> = {};
+  try {
+    const { runTrialEmails } = await import("./jobs/trial-emails");
+    childResults.trialEmails = await runTrialEmails();
+  } catch (err) {
+    childResults.trialEmails = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+  try {
+    const { runDueBroadcasts } = await import("./jobs/broadcasts");
+    childResults.broadcasts = await runDueBroadcasts();
+  } catch (err) {
+    childResults.broadcasts = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+  try {
+    const { runWebhookRetries } = await import("./jobs/webhook-retries");
+    childResults.webhookRetries = await runWebhookRetries();
+  } catch (err) {
+    childResults.webhookRetries = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+  try {
+    const { runScheduledPublishes } = await import("./jobs/publish");
+    childResults.publishes = await runScheduledPublishes();
+  } catch (err) {
+    childResults.publishes = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  return NextResponse.json({
+    ok: true,
+    stats,
+    children: childResults,
+    ranAt: now.toISOString(),
+  });
 }
 
 /**

@@ -1,107 +1,22 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
-import { prisma } from "@/lib/db";
-import { publishPost } from "@/lib/publishers";
-import { notifyBrandClients, notifyBrandAgency } from "@/lib/notifications";
-
-export const runtime = "nodejs";
-
-async function runScheduler() {
-  const now = new Date();
-  const due = await prisma.post.findMany({
-    where: {
-      deletedAt: null,
-      status: { in: ["scheduled", "approved"] },
-      scheduledAt: { lte: now },
-      publishedAt: null,
-    },
-    include: { images: { orderBy: { position: "asc" } } },
-    take: 20,
-  });
-
-  const processed: { id: string; status: string; url?: string; error?: string }[] = [];
-
-  for (const post of due) {
-    const imageUrls = post.images.map((i) => i.url);
-    if (post.imageUrl && imageUrls.length === 0) imageUrls.push(post.imageUrl);
-
-    const result = await publishPost(post, imageUrls);
-
-    if (result.ok) {
-      await prisma.post.update({
-        where: { id: post.id },
-        data: {
-          status: "published",
-          publishedAt: new Date(),
-          publishedUrl: result.url,
-          publishError: null,
-        },
-      });
-      await notifyBrandClients({
-        brandId: post.brandId,
-        postId: post.id,
-        type: "post_published",
-        body: "Un post se publicó exitosamente",
-        actorName: "Sistema",
-      });
-      await notifyBrandAgency({
-        brandId: post.brandId,
-        postId: post.id,
-        type: "post_published",
-        body: "Un post se publicó exitosamente",
-        actorName: "Sistema",
-      });
-      processed.push({ id: post.id, status: "published", url: result.url });
-    } else {
-      await prisma.post.update({
-        where: { id: post.id },
-        data: { publishError: result.error },
-      });
-      await notifyBrandAgency({
-        brandId: post.brandId,
-        postId: post.id,
-        type: "post_publish_failed",
-        body: `Error al publicar: ${result.error}`,
-        actorName: "Sistema",
-      });
-      processed.push({ id: post.id, status: "error", error: result.error });
-    }
-  }
-
-  return processed;
-}
+import { isCronAuthorized } from "@/lib/cron-auth";
+import { runScheduledPublishes } from "@/app/api/cron/billing/jobs/publish";
 
 /**
- * Acepta dos formas de autenticación:
- * - Vercel Cron (Authorization: Bearer ${CRON_SECRET})
- * - Header legacy X-Cron-Secret (también con CRON_SECRET)
- *
- * Antes aceptábamos cualquier user logueado para "auto-trigger desde el
- * cliente". Eso permitía que un client (low-priv) disparara el scheduler
- * GLOBAL que recorre posts de TODOS los tenants — IDOR + abuse vector.
- * Ahora requerimos siempre el cron secret.
+ * Endpoint manual / cron externo para publicar posts scheduled.
+ * En Vercel Hobby el job corre dentro del cron unificado /api/cron/billing.
+ * Este endpoint sigue callable para invocaciones manuales o desde un
+ * cron-job.org externo si se necesita más frecuencia.
  */
-function constantTimeEq(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
-}
-
-function authorized(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const bearer = req.headers.get("authorization") ?? "";
-  if (constantTimeEq(bearer, `Bearer ${secret}`)) return true;
-  return constantTimeEq(req.headers.get("x-cron-secret") ?? "", secret);
-}
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
-  if (!authorized(req)) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!isCronAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const processed = await runScheduler();
-  return NextResponse.json({ processed });
+  const result = await runScheduledPublishes();
+  return NextResponse.json({ ok: true, ...result });
 }
 
 export async function GET(req: Request) {

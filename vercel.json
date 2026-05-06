@@ -3,22 +3,6 @@
     {
       "path": "/api/cron/billing",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/trial-emails",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/broadcasts",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron/webhook-retries",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/publish",
-      "schedule": "* * * * *"
     }
   ]
 }
