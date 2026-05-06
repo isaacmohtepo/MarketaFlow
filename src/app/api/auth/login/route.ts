@@ -35,7 +35,14 @@ export async function POST(req: Request) {
   }
 
   const user = await prisma.user.findUnique({ where: { email: body.email } });
-  if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
+  // Hash dummy con el mismo cost que un user real — corremos bcrypt SIEMPRE
+  // para evitar timing attack que revele si un email está registrado.
+  // (bcrypt.compare con un hash inválido tarda ~100ms igual, en vez de skip
+  // y devolver inmediato cuando user es null).
+  const DUMMY_HASH = "$2a$10$CwTycUXWue0Thq9StjUM0uJ8mKqNk1QeI6V8Qw0Ny0nnY7p8wJZqW";
+  const validHash = user?.passwordHash ?? DUMMY_HASH;
+  const passwordOk = await verifyPassword(body.password, validHash);
+  if (!user || !passwordOk) {
     return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
   }
   await createSession(user.id, {

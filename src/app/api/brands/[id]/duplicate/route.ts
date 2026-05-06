@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
+import { canCreateBrand } from "@/lib/billing";
 
 /**
  * POST /api/brands/[id]/duplicate
@@ -33,6 +34,21 @@ export async function POST(
     },
   });
   if (!source) return NextResponse.json({ error: "Marca no encontrada" }, { status: 404 });
+
+  // Duplicar crea una marca nueva → cuenta para el límite del plan
+  // (sino sería un bypass del check de POST /api/brands).
+  const check = await canCreateBrand(source.agencyId);
+  if (!check.ok) {
+    return NextResponse.json(
+      {
+        error: check.reason,
+        currentCount: check.currentCount,
+        limit: check.limit,
+        suggestedPlan: check.suggestedPlan,
+      },
+      { status: 402 },
+    );
+  }
 
   const newBrand = await prisma.$transaction(async (tx) => {
     const created = await tx.brand.create({

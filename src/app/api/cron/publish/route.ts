@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
 import { publishPost } from "@/lib/publishers";
 import { notifyBrandClients, notifyBrandAgency } from "@/lib/notifications";
 
@@ -69,18 +68,28 @@ async function runScheduler() {
   return processed;
 }
 
+/**
+ * Acepta dos formas de autenticación:
+ * - Vercel Cron (Authorization: Bearer ${CRON_SECRET})
+ * - Header legacy X-Cron-Secret (también con CRON_SECRET)
+ *
+ * Antes aceptábamos cualquier user logueado para "auto-trigger desde el
+ * cliente". Eso permitía que un client (low-priv) disparara el scheduler
+ * GLOBAL que recorre posts de TODOS los tenants — IDOR + abuse vector.
+ * Ahora requerimos siempre el cron secret.
+ */
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  const header = req.headers.get("x-cron-secret");
-  return header === secret;
+  const bearer = req.headers.get("authorization");
+  if (bearer === `Bearer ${secret}`) return true;
+  return req.headers.get("x-cron-secret") === secret;
 }
 
 export async function POST(req: Request) {
-  // Aceptamos: (a) cron con secret header, (b) usuario logueado (auto-trigger desde el cliente).
-  const ok = authorized(req) || (await getCurrentUser()) !== null;
-  if (!ok) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-
+  if (!authorized(req)) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
   const processed = await runScheduler();
   return NextResponse.json({ processed });
 }
