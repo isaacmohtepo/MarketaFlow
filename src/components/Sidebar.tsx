@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { usePermissions } from "./PermissionsProvider";
 import {
   LayoutDashboard,
   Layers,
@@ -46,11 +47,11 @@ type NavItem = {
 type Section = { title: string; items: NavItem[] };
 
 function buildSections({
-  isOwner,
   isAdmin,
+  canViewBilling,
 }: {
-  isOwner: boolean;
   isAdmin: boolean;
+  canViewBilling: boolean;
 }): Section[] {
   const sections: Section[] = [
     {
@@ -103,7 +104,7 @@ function buildSections({
           icon: Users,
           match: (p) => p.startsWith("/team"),
         },
-        ...(isOwner
+        ...(canViewBilling
           ? [
               {
                 label: "Facturación",
@@ -200,7 +201,14 @@ export default function Sidebar({
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [inboxCount, setInboxCount] = useState<number>(0);
-  const SECTIONS = useMemo(() => buildSections({ isOwner, isAdmin }), [isOwner, isAdmin]);
+  const { has } = usePermissions();
+  // Billing solo visible si el user tiene billing.view (owner + manager por
+  // default; cualquier custom role que tenga ese perm). Antes era owner-only.
+  const canViewBilling = isOwner || has("billing.view");
+  const SECTIONS = useMemo(
+    () => buildSections({ isAdmin, canViewBilling }),
+    [isAdmin, canViewBilling],
+  );
 
   // Expanded state per item. Default: expandido si algún hijo matchea el path.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});

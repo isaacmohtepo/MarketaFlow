@@ -50,6 +50,13 @@ export default function PostBoard({
   images,
   canApprove,
   canEdit,
+  canEditCaption,
+  canUploadMedia,
+  canCreatePost,
+  canDelete,
+  canSchedule,
+  canPublish,
+  canApprovePost,
   currentStatus,
   publishedUrl,
   publishError,
@@ -66,6 +73,13 @@ export default function PostBoard({
   images: string[];
   canApprove: boolean;
   canEdit: boolean;
+  canEditCaption: boolean;
+  canUploadMedia: boolean;
+  canCreatePost: boolean;
+  canDelete: boolean;
+  canSchedule: boolean;
+  canPublish: boolean;
+  canApprovePost: boolean;
   currentStatus: string;
   publishedUrl: string | null;
   publishError: string | null;
@@ -176,7 +190,7 @@ export default function PostBoard({
 
   // ========== Keyboard shortcuts ==========
   const canUseApprove =
-    canApprove &&
+    canApprovePost &&
     !isDeleted &&
     (liveStatus === "in_review" || liveStatus === "changes_requested");
 
@@ -208,7 +222,7 @@ export default function PostBoard({
     () => {
       if (!isDeleted) setVersionModalOpen(true);
     },
-    { enabled: canEdit && !isDeleted },
+    { enabled: canUploadMedia && !isDeleted },
   );
 
   // V — comparar con la versión anterior más reciente
@@ -890,7 +904,7 @@ export default function PostBoard({
                           }`}
                         />
                       </button>
-                      {canEdit && !isDeleted && cover && (
+                      {canUploadMedia && !isDeleted && cover && (
                         <button
                           type="button"
                           onClick={() => restoreVersion(v.id, v.version)}
@@ -911,7 +925,7 @@ export default function PostBoard({
       </div>
 
       <div className="flex flex-col gap-4 lg:aspect-square lg:overflow-hidden">
-        {isDeleted && canEdit && (
+        {isDeleted && canDelete && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-600" />
@@ -945,7 +959,7 @@ export default function PostBoard({
           </div>
         )}
 
-        {canEdit && !isDeleted && (
+        {(canSchedule || canPublish || canApprovePost) && !isDeleted && (
           <StatusSelector
             current={liveStatus}
             disabled={busy}
@@ -953,7 +967,7 @@ export default function PostBoard({
           />
         )}
 
-        {canEdit && !isDeleted && currentStatus === "draft" && (
+        {canSchedule && !isDeleted && currentStatus === "draft" && (
           <button
             onClick={() => changeStatus("in_review")}
             disabled={busy}
@@ -963,7 +977,7 @@ export default function PostBoard({
           </button>
         )}
 
-        {canEdit && !isDeleted &&
+        {canUploadMedia && !isDeleted &&
           (currentStatus === "changes_requested" || currentStatus === "in_review") && (
             <button
               onClick={() => setVersionModalOpen(true)}
@@ -974,7 +988,7 @@ export default function PostBoard({
             </button>
           )}
 
-        {canEdit && !isDeleted && (currentStatus === "approved" || currentStatus === "scheduled") && (
+        {canPublish && !isDeleted && (currentStatus === "approved" || currentStatus === "scheduled") && (
           <button
             onClick={publishNow}
             disabled={busy}
@@ -1001,7 +1015,7 @@ export default function PostBoard({
           </div>
         )}
 
-        {!isDeleted && canApprove &&
+        {!isDeleted && canApprovePost &&
           (liveStatus === "in_review" || liveStatus === "changes_requested") && (
             <div className="rounded-xl border divider bg-white px-3.5 py-2.5">
               {!confirmingApprove ? (
@@ -1307,7 +1321,7 @@ export default function PostBoard({
               </div>
             )}
           </form>
-          {canApprove && liveStatus === "in_review" ? (
+          {canApprovePost && liveStatus === "in_review" ? (
             <p className="mt-1.5 text-[10.5px] text-zinc-500">
               Si comentás, el post pasa automáticamente a <span className="font-semibold text-rose-600">Cambios solicitados</span> y se notifica a la agencia.
             </p>
@@ -1318,7 +1332,7 @@ export default function PostBoard({
           )}
         </div>
 
-        {canEdit && !isDeleted && (
+        {canDelete && !isDeleted && (
           <button
             onClick={moveToTrash}
             disabled={busy}

@@ -10,6 +10,8 @@ import AdminTwoFAReminder from "@/components/AdminTwoFAReminder";
 import { getSystemSetting } from "@/lib/system-settings";
 import { getBillingSummary } from "@/lib/billing";
 import { PLANS, type PlanId } from "@/lib/plans";
+import { permissionsForRole } from "@/lib/permissions";
+import { PermissionsProvider } from "@/components/PermissionsProvider";
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -64,6 +66,31 @@ export default async function AppLayout({
     anyMembership?.agency.suspendedAt
       ? anyMembership.agency
       : null;
+
+  // Computar permisos del user en su agency (agency-wide + brand-scoped).
+  // Sirven para que la UI esconda lo que el user no puede hacer. Se computa
+  // una sola vez por request y se pasa al cliente vía PermissionsProvider.
+  const agencyId = anyMembership?.agencyId;
+  const agencyPerms = new Set<string>();
+  const brandPerms: Record<string, string[]> = {};
+  const userRoles = new Set<string>();
+  if (agencyId) {
+    const memberships = await prisma.membership.findMany({
+      where: { userId: user.id, agencyId },
+      select: { role: true, brandId: true },
+    });
+    for (const m of memberships) {
+      userRoles.add(m.role);
+      const perms = await permissionsForRole(agencyId, m.role);
+      if (m.brandId === null) {
+        perms.forEach((p) => agencyPerms.add(p));
+      } else {
+        const arr = brandPerms[m.brandId] ?? [];
+        for (const p of perms) if (!arr.includes(p)) arr.push(p);
+        brandPerms[m.brandId] = arr;
+      }
+    }
+  }
 
   // Billing summary para mostrar plan real en el sidebar (solo owners ven
   // este card — clients/editors no tienen acceso a billing).
@@ -129,6 +156,11 @@ export default async function AppLayout({
   }
 
   return (
+    <PermissionsProvider
+      agencyPermissions={[...agencyPerms]}
+      brandPermissions={brandPerms}
+      roles={[...userRoles]}
+    >
     <AppShell
       userName={user.name ?? user.email}
       avatarUrl={userRow?.avatarUrl ?? null}
@@ -162,5 +194,6 @@ export default async function AppLayout({
     >
       {children}
     </AppShell>
+    </PermissionsProvider>
   );
 }

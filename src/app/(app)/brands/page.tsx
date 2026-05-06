@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Layers } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
-import { listUserBrands } from "@/lib/permissions";
+import { listUserBrands, hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import NewBrandTile from "@/app/(app)/dashboard/NewBrandTile";
 import { getKpisForBrands } from "@/lib/kpis";
@@ -12,15 +12,17 @@ export default async function BrandsIndexPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [brands, agencyName, ownerMembership] = await Promise.all([
+  const [brands, agencyName, agencyM] = await Promise.all([
     listUserBrands(user.id),
     getUserAgencyName(user.id),
     prisma.membership.findFirst({
-      where: { userId: user.id, role: "owner" },
-      select: { id: true },
+      where: { userId: user.id, brandId: null },
+      select: { agencyId: true },
     }),
   ]);
-  const canCreate = !!ownerMembership;
+  const canCreate = agencyM
+    ? await hasPermission(user.id, agencyM.agencyId, "brands.create")
+    : false;
 
   const brandIds = brands.map((b) => b.id);
 

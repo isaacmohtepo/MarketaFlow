@@ -11,15 +11,16 @@ import {
   Smartphone,
   AtSign as Instagram,
 } from "lucide-react";
+import { usePermissions } from "@/components/PermissionsProvider";
 
 const NAV = [
-  { slug: "", label: "General", icon: Settings, desc: "Logo, color, clientes" },
-  { slug: "sharing", label: "Compartir", icon: Share2, desc: "Link público e invitación" },
-  { slug: "widget", label: "Widget", icon: Code2, desc: "Feedback en sitio" },
-  { slug: "instagram", label: "Instagram", icon: Instagram, desc: "Conectar cuenta para publicar" },
-  { slug: "breakpoints", label: "Breakpoints", icon: Smartphone, desc: "Mobile / tablet / desktop" },
-  { slug: "library", label: "Biblioteca", icon: BookMarked, desc: "Hashtags y plantillas" },
-  { slug: "audit", label: "Audit log", icon: ScrollText, desc: "Actividad reciente" },
+  { slug: "", label: "General", icon: Settings, desc: "Logo, color, clientes", perm: "brands.edit" },
+  { slug: "sharing", label: "Compartir", icon: Share2, desc: "Link público e invitación", perm: "share.manage" },
+  { slug: "widget", label: "Widget", icon: Code2, desc: "Feedback en sitio", perm: "share.manage" },
+  { slug: "instagram", label: "Instagram", icon: Instagram, desc: "Conectar cuenta para publicar", perm: "instagram.manage" },
+  { slug: "breakpoints", label: "Breakpoints", icon: Smartphone, desc: "Mobile / tablet / desktop", perm: "brands.edit" },
+  { slug: "library", label: "Biblioteca", icon: BookMarked, desc: "Hashtags y plantillas", perm: "library.manage" },
+  { slug: "audit", label: "Audit log", icon: ScrollText, desc: "Actividad reciente", perm: "audit.view" },
 ] as const;
 
 /**
@@ -29,10 +30,12 @@ const NAV = [
 export default function SettingsNav({ brandId }: { brandId: string }) {
   const pathname = usePathname();
   const base = `/brands/${brandId}/settings`;
+  const { has } = usePermissions();
+  const items = NAV.filter((item) => has(item.perm, brandId));
 
   return (
     <nav className="flex flex-row gap-1 overflow-x-auto pb-2 sm:flex-col sm:overflow-visible sm:pb-0">
-      {NAV.map((item) => {
+      {items.map((item) => {
         const href = item.slug ? `${base}/${item.slug}` : base;
         const isActive =
           item.slug === ""

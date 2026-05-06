@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Sparkline from "@/app/(app)/dashboard/Sparkline";
 import { approvalRateTone, formatHours, type BrandKpis } from "@/lib/kpis-utils";
+import { usePermissions } from "@/components/PermissionsProvider";
 
 const TONE_COLOR: Record<"good" | "warn" | "bad" | "neutral", string> = {
   good: "text-emerald-600",
@@ -147,6 +148,8 @@ export default function BrandsList({
 function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback: string }) {
   const bg = b.color ?? colorFallback;
   const tone = approvalRateTone(b.kpis.approvalRate);
+  const { has } = usePermissions();
+  const canEditBrand = has("brands.edit", b.id);
 
   return (
     <div className="card group relative overflow-hidden p-4 transition hover:border-zinc-300">
@@ -183,7 +186,7 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
           >
             <FileText className="h-3.5 w-3.5" />
           </Link>
-          {(b.role === "owner" || b.role === "editor") && (
+          {canEditBrand && (
             <Link
               href={`/brands/${b.id}/settings`}
               className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ExternalLink, Globe } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess } from "@/lib/permissions";
+import { getPostAccess, hasPermission } from "@/lib/permissions";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
@@ -53,6 +53,24 @@ export default async function PostPage({
   const nextId = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1].id : null;
 
   if (access.role === "client" && post.status === "draft") notFound();
+
+  const [
+    canEditCaption,
+    canUploadMedia,
+    canCreatePost,
+    canDelete,
+    canSchedule,
+    canPublish,
+    canApprovePost,
+  ] = await Promise.all([
+    hasPermission(user.id, access.agencyId, "posts.edit_caption", brandId),
+    hasPermission(user.id, access.agencyId, "posts.upload_media", brandId),
+    hasPermission(user.id, access.agencyId, "posts.create", brandId),
+    hasPermission(user.id, access.agencyId, "posts.delete", brandId),
+    hasPermission(user.id, access.agencyId, "posts.schedule", brandId),
+    hasPermission(user.id, access.agencyId, "posts.publish", brandId),
+    hasPermission(user.id, access.agencyId, "posts.approve", brandId),
+  ]);
 
   const [comments, lastApproval, agencyName, brand] = await Promise.all([
     prisma.comment.findMany({
@@ -230,6 +248,13 @@ export default async function PostPage({
             images={images.map((i) => i.url)}
             canApprove={access.canApprove && access.role === "client"}
             canEdit={access.canEdit}
+            canEditCaption={canEditCaption}
+            canUploadMedia={canUploadMedia}
+            canCreatePost={canCreatePost}
+            canDelete={canDelete}
+            canSchedule={canSchedule}
+            canPublish={canPublish}
+            canApprovePost={canApprovePost}
             isAgency={access.role !== "client"}
             currentStatus={post.status}
             publishedUrl={post.publishedUrl}
