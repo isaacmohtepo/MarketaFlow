@@ -163,6 +163,17 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
+
+    // Guardamos el payment_link_id para que el webhook + return page puedan
+    // matchear la transacción Wompi → invoice. Sin esto, el webhook recibe
+    // transaction.reference (auto-generada por Wompi, distinta de la nuestra)
+    // y no encontraría el invoice.
+    if (linkId) {
+      await prisma.invoice.update({
+        where: { wompiReference: reference },
+        data: { wompiPaymentLinkId: linkId },
+      });
+    }
     return NextResponse.json({ checkoutUrl, reference });
   } catch (err) {
     console.error("Wompi checkout error", {

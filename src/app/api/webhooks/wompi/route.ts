@@ -131,6 +131,7 @@ type WompiEvent = {
       customer_email?: string;
       payment_method_type?: string;
       payment_source_id?: number;
+      payment_link_id?: string | null;
       status_message?: string | null;
       finalized_at?: string;
     };
@@ -146,13 +147,27 @@ async function handleTransactionUpdated(
 ) {
   if (!transaction) return;
 
-  // Buscar invoice por reference (la creamos en /api/checkout)
-  const invoice = await prisma.invoice.findUnique({
-    where: { wompiReference: transaction.reference },
-    include: { subscription: { include: { agency: true } } },
-  });
+  // Mapear transaction → invoice. Wompi auto-genera transaction.reference
+  // (distinta de la que nosotros pusimos en wompiReference), así que
+  // priorizamos el payment_link_id que SÍ guardamos al crear el link.
+  // Fallback a reference por si Wompi cambia el shape o un flujo legacy.
+  let invoice = null;
+  if (transaction.payment_link_id) {
+    invoice = await prisma.invoice.findUnique({
+      where: { wompiPaymentLinkId: transaction.payment_link_id },
+      include: { subscription: { include: { agency: true } } },
+    });
+  }
   if (!invoice) {
-    console.warn(`Webhook: no invoice para ref ${transaction.reference}`);
+    invoice = await prisma.invoice.findUnique({
+      where: { wompiReference: transaction.reference },
+      include: { subscription: { include: { agency: true } } },
+    });
+  }
+  if (!invoice) {
+    console.warn(
+      `Webhook: no invoice para payment_link_id=${transaction.payment_link_id} ref=${transaction.reference}`,
+    );
     return;
   }
 

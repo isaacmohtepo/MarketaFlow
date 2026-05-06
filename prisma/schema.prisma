@@ -258,6 +258,15 @@ model Invoice {
   status             String       @default("pending")
 
   /// IDs de Wompi para tracear el cobro.
+  /// - wompiPaymentLinkId: el `data.id` que Wompi devuelve al crear el link
+  ///   (ej. "test_0OMpbr"). El webhook trae este id en transaction.payment_link_id
+  ///   y lo usamos para mapear → invoice (más confiable que la reference, que
+  ///   Wompi auto-genera para cada transacción y no podemos predecir).
+  /// - wompiTransactionId: el id de la transacción real (lo seteamos en el
+  ///   webhook al confirmar pago).
+  /// - wompiReference: nuestra referencia interna (mf_<sub>_<ts>_<rand>),
+  ///   sirve para que el user vuelva a /billing/return con su pago.
+  wompiPaymentLinkId String?      @unique
   wompiTransactionId String?      @unique
   wompiReference     String?      @unique
 

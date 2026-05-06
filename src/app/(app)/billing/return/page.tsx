@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { resolveWompiEnvironment } from "@/lib/integrations";
+import { getTransaction } from "@/lib/wompi";
+import type { PlanId } from "@/lib/plans";
 
 /**
  * Página a la que Wompi redirige después del checkout. El webhook se
@@ -17,10 +20,15 @@ export default async function BillingReturnPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { ref } = await searchParams;
+  const params = await searchParams;
+  const ref = params.ref;
+  // Wompi appendea ?id=<transactionId> al redirect_url. Lo usamos como
+  // fallback cuando el webhook todavía no llegó (común en sandbox sin
+  // webhook configurado, o si el firma falló).
+  const wompiTransactionId = params.id;
   if (!ref) redirect("/dashboard");
 
-  const invoice = await prisma.invoice.findUnique({
+  let invoice = await prisma.invoice.findUnique({
     where: { wompiReference: ref },
     include: { subscription: { include: { agency: true } } },
   });
@@ -71,6 +79,77 @@ export default async function BillingReturnPage({
         </Link>
       </div>
     );
+  }
+
+  // Fallback: si el invoice está pending y tenemos el transaction id en la
+  // URL, consultamos a Wompi directo. Esto evita que el user se quede en
+  // "Procesando..." infinito si el webhook falla (firma inválida, env
+  // mismatch, o simplemente no configurado en Wompi sandbox).
+  if (invoice.status === "pending" && wompiTransactionId) {
+    try {
+      const env = await resolveWompiEnvironment();
+      if (env) {
+        const tx = await getTransaction(wompiTransactionId, env);
+        if (tx?.status === "APPROVED") {
+          const periodEnd = invoice.periodEnd ?? new Date();
+          const nextChargeAt = new Date(periodEnd);
+          nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+          await prisma.$transaction([
+            prisma.invoice.update({
+              where: { id: invoice.id },
+              data: {
+                status: "paid",
+                wompiTransactionId: tx.id,
+                paidAt: tx.finalized_at
+                  ? new Date(tx.finalized_at)
+                  : new Date(),
+              },
+            }),
+            prisma.subscription.update({
+              where: { id: invoice.subscriptionId },
+              data: {
+                status: "active",
+                currentPeriodStart: invoice.periodStart ?? new Date(),
+                currentPeriodEnd: periodEnd,
+                nextChargeAt,
+                trialEndsAt: null,
+                plan: invoice.subscription.plan as PlanId,
+              },
+            }),
+          ]);
+          // Re-fetch para reflejar el nuevo status en la UI
+          invoice = await prisma.invoice.findUnique({
+            where: { id: invoice.id },
+            include: { subscription: { include: { agency: true } } },
+          });
+        } else if (
+          tx?.status === "DECLINED" ||
+          tx?.status === "ERROR" ||
+          tx?.status === "VOIDED"
+        ) {
+          await prisma.invoice.update({
+            where: { id: invoice.id },
+            data: {
+              status: "failed",
+              wompiTransactionId: tx.id,
+              failedAt: new Date(),
+              failedReason:
+                tx.status_message ?? `Wompi devolvió ${tx.status}`,
+            },
+          });
+          invoice = await prisma.invoice.findUnique({
+            where: { id: invoice.id },
+            include: { subscription: { include: { agency: true } } },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("billing/return: fallback Wompi getTransaction falló", err);
+      // No rompemos la UI — quedamos con status pending y el user puede refrescar
+    }
+  }
+  if (!invoice) {
+    redirect("/dashboard");
   }
 
   return (
