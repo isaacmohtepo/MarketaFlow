@@ -18,6 +18,9 @@ import { voidTransaction } from "@/lib/wompi";
 
 const schema = z.object({
   invoiceId: z.string().min(1),
+  /// Monto a reembolsar en centavos. Si se omite o es igual al amount del
+  /// invoice, hacemos void total (más simple). Si es menor, refund parcial.
+  amountCents: z.number().int().positive().optional(),
 });
 
 export async function POST(
@@ -72,15 +75,31 @@ export async function POST(
     );
   }
 
+  // Validar amount: si se pasó, debe ser ≤ amount del invoice y > 0.
+  const refundAmount = body.amountCents ?? invoice.amount;
+  if (refundAmount > invoice.amount) {
+    return NextResponse.json(
+      { error: `El monto a reembolsar (${refundAmount}) no puede ser mayor al pagado (${invoice.amount})` },
+      { status: 400 },
+    );
+  }
+  const isPartial = refundAmount < invoice.amount;
+
   let voidResult;
   try {
-    voidResult = await voidTransaction(invoice.wompiTransactionId, env);
+    voidResult = await voidTransaction(
+      invoice.wompiTransactionId,
+      env,
+      isPartial ? refundAmount : undefined,
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error";
     return NextResponse.json(
       {
         error:
-          "Wompi rechazó el void. Probable: ventana de void/refund cerrada (>24h) o ya estaba reversada.",
+          isPartial
+            ? "Wompi rechazó el refund parcial. Probable: el adquirente no permite refunds parciales para este método de pago."
+            : "Wompi rechazó el void. Probable: ventana de void/refund cerrada o ya estaba reversada.",
         detail: msg,
       },
       { status: 502 },
@@ -91,24 +110,33 @@ export async function POST(
     where: { id: invoice.id },
     data: {
       status: "refunded",
-      failedReason: `Reembolsado por admin (${me.email}). Wompi: ${voidResult.status}`,
+      failedReason: isPartial
+        ? `Refund parcial por admin (${me.email}): ${refundAmount}/${invoice.amount} centavos. Wompi: ${voidResult.status}`
+        : `Reembolsado por admin (${me.email}). Wompi: ${voidResult.status}`,
     },
   });
 
   audit({
     category: "admin",
-    action: "invoice.refunded",
+    action: isPartial ? "invoice.partial_refund" : "invoice.refunded",
     actorUserId: me.id,
     actorEmail: me.email,
     targetId: invoice.id,
     metadata: {
       agencyId,
       amount: invoice.amount,
+      refundedAmount: refundAmount,
+      partial: isPartial,
       wompiTxId: invoice.wompiTransactionId,
       wompiStatus: voidResult.status,
     },
     req,
   });
 
-  return NextResponse.json({ invoice: updated, wompiStatus: voidResult.status });
+  return NextResponse.json({
+    invoice: updated,
+    wompiStatus: voidResult.status,
+    refundedAmount: refundAmount,
+    partial: isPartial,
+  });
 }

@@ -228,9 +228,33 @@ export default function AgencyActions({
   }
 
   async function refundInvoice(inv: Invoice) {
+    // Pedir monto: prompt con default = total. El user puede dejar el total
+    // (= void completo) o poner un valor menor (= refund parcial).
+    const totalPesos = (inv.amount / 100).toFixed(0);
+    const input = window.prompt(
+      `Monto a reembolsar (en pesos COP).\nDejá vacío o pone ${totalPesos} para refund TOTAL.\nPone un valor menor para refund PARCIAL.\nMáximo: ${totalPesos}`,
+      totalPesos,
+    );
+    if (input === null) return; // user canceled
+    const pesos = parseInt(input.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(pesos) || pesos <= 0) {
+      toast.error("Monto inválido");
+      return;
+    }
+    const amountCents = pesos * 100;
+    if (amountCents > inv.amount) {
+      toast.error("El monto excede el original");
+      return;
+    }
+    const isPartial = amountCents < inv.amount;
+
     const ok = await confirm({
-      title: `¿Reembolsar ${formatCop(inv.amount)}?`,
-      description: `Vamos a llamar a Wompi para void/refund de la transacción ${inv.wompiTransactionId}. Solo funciona dentro de la ventana del banco (típicamente 24h para void total).`,
+      title: isPartial
+        ? `¿Refund parcial de ${formatCop(amountCents)} (de ${formatCop(inv.amount)})?`
+        : `¿Reembolsar ${formatCop(inv.amount)}?`,
+      description: isPartial
+        ? "Refund parcial — Wompi puede rechazarlo según el método de pago. Si funciona, devolvemos solo este monto."
+        : `Vamos a hacer void total de la transacción. Solo funciona dentro de la ventana del banco (típicamente 24h).`,
       confirmLabel: "Reembolsar",
       cancelLabel: "Cancelar",
       variant: "warning",
@@ -241,7 +265,10 @@ export default function AgencyActions({
       const res = await fetch(`/api/admin/agencies/${agencyId}/refund`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: inv.id }),
+        body: JSON.stringify({
+          invoiceId: inv.id,
+          ...(isPartial ? { amountCents } : {}),
+        }),
       });
       const j = await res.json();
       if (!res.ok) {
@@ -250,7 +277,9 @@ export default function AgencyActions({
         });
         return;
       }
-      toast.success(`Refund OK — Wompi: ${j.wompiStatus}`);
+      toast.success(
+        `Refund OK — ${formatCop(j.refundedAmount ?? amountCents)} (${j.wompiStatus})`,
+      );
       router.refresh();
     } catch {
       toast.error("Error de red");

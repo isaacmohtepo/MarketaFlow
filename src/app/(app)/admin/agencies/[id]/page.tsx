@@ -11,6 +11,7 @@ import {
 import { prisma } from "@/lib/db";
 import { PLANS, formatCop, type PlanId } from "@/lib/plans";
 import AgencyActions from "./AgencyActions";
+import FeatureFlagsPanel from "./FeatureFlagsPanel";
 
 export default async function AdminAgencyDetailPage({
   params,
@@ -180,6 +181,9 @@ export default async function AdminAgencyDetailPage({
           wompiTransactionId: i.wompiTransactionId,
         }))}
       />
+
+      {/* Feature flags */}
+      <FeatureFlagsPanel agencyId={agency.id} />
 
       {/* Brands */}
       <section className="card p-6">

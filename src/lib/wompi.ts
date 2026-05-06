@@ -257,28 +257,42 @@ export async function chargeWithToken(args: {
 }
 
 /**
- * Anula (void/refund) una transacción aprobada. Wompi acepta:
- *   POST /v1/transactions/{id}/void
- * Solo se puede dentro de la ventana de void/refund que ofrece el banco
- * (típicamente 24h para void total, mayor para refund parcial). En sandbox
- * funciona siempre para testing.
+ * Anula (void) o reembolsa parcialmente una transacción aprobada de Wompi.
+ *
+ * Endpoint: POST /v1/transactions/{id}/void
+ *   - Sin body → void total (anula la transacción completa)
+ *   - Con body { amount_in_cents } → refund parcial
+ *
+ * Restricciones:
+ *   - Void total funciona dentro de la ventana del banco (típicamente 24h
+ *     antes del settlement)
+ *   - Refunds parciales pueden requerir aprobación del adquirente
+ *   - En sandbox funciona siempre para testing
+ *
+ * Si la API rechaza, el caller recibe un Error con el detail de Wompi para
+ * mostrarle al admin (típicamente "ventana cerrada" o "monto inválido").
  */
 export async function voidTransaction(
   transactionId: string,
   environment: IntegrationEnvironment = "sandbox",
+  amountInCents?: number,
 ): Promise<{ status: string; message?: string }> {
   const cfg = await getWompiConfig(environment);
   const url = `${apiBase(environment)}/transactions/${transactionId}/void`;
-  const res = await fetch(url, {
+  const init: RequestInit = {
     method: "POST",
     headers: {
       Authorization: `Bearer ${cfg.privateKey}`,
       "Content-Type": "application/json",
     },
-  });
+  };
+  if (typeof amountInCents === "number" && amountInCents > 0) {
+    init.body = JSON.stringify({ amount_in_cents: amountInCents });
+  }
+  const res = await fetch(url, init);
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Wompi void falló (${res.status}): ${text}`);
+    throw new Error(`Wompi void/refund falló (${res.status}): ${text}`);
   }
   try {
     const j = JSON.parse(text) as { data?: { status?: string } };

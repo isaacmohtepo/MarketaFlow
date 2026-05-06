@@ -33,6 +33,10 @@ model User {
   totpSecret         String?
   totpEnabledAt      DateTime?
   recoveryCodesHash  Json?
+  /// Onboarding wizard: cuando el user completa el flujo guiado
+  /// post-signup. null = no completó / saltó. Sirve para no volver a
+  /// mostrar el wizard a users existentes y para tracking.
+  onboardingCompletedAt DateTime?
   createdAt          DateTime       @default(now())
   memberships   Membership[]
   comments      Comment[] @relation("CommentAuthor")

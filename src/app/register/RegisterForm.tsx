@@ -29,7 +29,10 @@ export default function RegisterForm() {
       setError(j.error ?? "No se pudo registrar");
       return;
     }
-    router.push("/dashboard");
+    const j = await res.json().catch(() => ({}));
+    // Si registró como agency, va al onboarding wizard. Si registró con
+    // inviteCode (cliente entrando a una marca), va directo al dashboard.
+    router.push(j.brandId ? "/dashboard" : "/onboarding");
     router.refresh();
   }
 
