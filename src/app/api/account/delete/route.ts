@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
-import { getCurrentUser, verifyPassword } from "@/lib/auth";
+import { getCurrentUser, verifyPassword, destroySession } from "@/lib/auth";
 
 const schema = z.object({
   password: z.string().min(1),
@@ -69,9 +68,10 @@ export async function POST(req: Request) {
     prisma.user.delete({ where: { id: user.id } }),
   ]);
 
-  // Limpia la cookie de sesión
-  const jar = await cookies();
-  jar.delete("mf_session");
+  // Limpia la cookie de sesión usando el nombre correcto según env
+  // (mf_session en dev, __Host-mf_session en prod). destroySession ya
+  // intenta borrar el token del DB pero ese ya se borró por cascade.
+  await destroySession();
 
   return NextResponse.json({ ok: true });
 }

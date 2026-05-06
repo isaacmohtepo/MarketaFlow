@@ -12,12 +12,40 @@ export type EmailPayload = {
   text?: string;
 };
 
+/**
+ * Sanitiza el subject para evitar CRLF injection. Aunque Resend SDK ya
+ * escapa internamente, hacer defense-in-depth strip-eando \r/\n/Tab evita
+ * sorpresas si en algún momento construimos headers manualmente o
+ * cambiamos de provider.
+ *
+ * También trunca a 200 chars para que no exploten clientes de email
+ * lentos/raros.
+ */
+function sanitizeSubject(subject: string): string {
+  return subject.replace(/[\r\n\t]+/g, " ").trim().slice(0, 200);
+}
+
+/** Valida que el "to" sea un email simple — sin múltiples destinatarios
+ *  separados por coma (que también podrían usarse para inyección si el
+ *  caller los construye desde input de usuario). */
+function isValidSingleEmail(addr: string): boolean {
+  if (addr.includes(",") || addr.includes(";") || /[\r\n]/.test(addr)) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr);
+}
+
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   // Saltar emails para invitados con email auto-generado
   if (payload.to.endsWith("@guest.local")) return;
 
+  if (!isValidSingleEmail(payload.to)) {
+    console.error("Email rechazado por to inválido:", payload.to);
+    return;
+  }
+
+  const subject = sanitizeSubject(payload.subject);
+
   if (!resend) {
-    console.log("📧 [email-stub] →", payload.to, "·", payload.subject);
+    console.log("📧 [email-stub] →", payload.to, "·", subject);
     console.log(payload.text ?? payload.html.replace(/<[^>]+>/g, " ").slice(0, 200));
     return;
   }
@@ -26,7 +54,7 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
     await resend.emails.send({
       from: FROM,
       to: payload.to,
-      subject: payload.subject,
+      subject,
       html: payload.html,
       text: payload.text,
     });
