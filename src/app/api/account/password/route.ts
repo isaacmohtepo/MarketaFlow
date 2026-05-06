@@ -69,7 +69,7 @@ export async function POST(req: Request) {
   const [, sessionsDeleted] = await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: newHash },
+      data: { passwordHash: newHash, passwordChangedAt: new Date() },
     }),
     prisma.session.deleteMany({
       where: {

@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import AppShell from "@/components/AppShell";
+import ImpersonateBanner from "@/components/ImpersonateBanner";
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -33,6 +35,22 @@ export default async function AppLayout({
   const isAdmin = userRow?.role === "admin";
   const isOwner = !!ownerMembership;
 
+  // Detectar si la sesión actual es un impersonate. Si hay cookie
+  // mf_impersonator, mostramos un banner sticky con info del admin original
+  // y un botón para volver.
+  const jar = await cookies();
+  const impersonatorToken = jar.get("mf_impersonator")?.value;
+  let impersonator: { email: string } | null = null;
+  if (impersonatorToken) {
+    const adminSession = await prisma.session.findUnique({
+      where: { token: impersonatorToken },
+      include: { user: { select: { email: true } } },
+    });
+    if (adminSession && adminSession.expiresAt > new Date()) {
+      impersonator = { email: adminSession.user.email };
+    }
+  }
+
   return (
     <AppShell
       userName={user.name ?? user.email}
@@ -41,6 +59,12 @@ export default async function AppLayout({
       isAdmin={isAdmin}
       isOwner={isOwner}
     >
+      {impersonator && (
+        <ImpersonateBanner
+          adminEmail={impersonator.email}
+          targetEmail={user.email}
+        />
+      )}
       {children}
     </AppShell>
   );

@@ -49,6 +49,14 @@ export async function POST(req: Request) {
   if (!user || !passwordOk) {
     return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
   }
+  // Bloqueo por admin: deshabilitamos login (mismo mensaje genérico que
+  // credenciales para no filtrar el estado de la cuenta a un attacker).
+  if (user.disabledAt) {
+    return NextResponse.json(
+      { error: "Esta cuenta fue deshabilitada. Contactá soporte." },
+      { status: 403 },
+    );
+  }
   await createSession(user.id, {
     userAgent: req.headers.get("user-agent"),
     ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,

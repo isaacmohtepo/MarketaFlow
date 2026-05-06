@@ -85,6 +85,10 @@ export async function getCurrentUser() {
     include: { user: true },
   });
   if (!session || session.expiresAt < new Date()) return null;
+  // User disabled por admin → tratamos como no autenticado (igual que sesión
+  // expirada). Las sesiones también deberían haberse limpiado al deshabilitar
+  // pero esto es defense in depth.
+  if (session.user.disabledAt) return null;
   return session.user;
 }
 
@@ -110,6 +114,7 @@ export async function getCurrentUserWithMemberships() {
     },
   });
   if (!session || session.expiresAt < new Date()) return null;
+  if (session.user.disabledAt) return null;
   return session.user;
 }
 

@@ -13,8 +13,20 @@ model User {
   name               String?
   avatarUrl          String?
   passwordHash       String
+  /// Cuándo se cambió el password por última vez (null = nunca cambiado, usa createdAt como proxy).
+  /// Se setea al hashear un password nuevo en /api/account/password.
+  passwordChangedAt  DateTime?
   role               String         @default("agency")
   emailNotifications Boolean        @default(true)
+  /// Timezone IANA (ej. "America/Bogota"). Usado para formatear fechas en
+  /// emails y en la UI cuando importa la zona horaria del user.
+  timezone           String?
+  /// Soft-disable: si está seteado, el user no puede loguearse y se invalidan
+  /// todas sus sesiones. Mantenemos la row para auditoría — distinto de borrar.
+  /// Los handlers de auth chequean esto al crear/validar sesión.
+  disabledAt         DateTime?
+  /// Razón del disable (opcional, visible solo a admins). Ej. "fraud", "TOS".
+  disabledReason     String?
   createdAt          DateTime       @default(now())
   memberships   Membership[]
   comments      Comment[] @relation("CommentAuthor")

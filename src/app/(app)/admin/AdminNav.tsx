@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Users, BarChart3, LayoutGrid, KeyRound, ScrollText } from "lucide-react";
+import { CreditCard, Users, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2 } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "Resumen", icon: LayoutGrid, desc: "Stats globales" },
   {
-    slug: "setup",
-    label: "Setup",
-    icon: KeyRound,
-    desc: "Master key de encriptación",
+    slug: "users",
+    label: "Usuarios",
+    icon: UserCog,
+    desc: "Crear, editar, suspender, impersonar",
   },
+  { slug: "agencies", label: "Agencias", icon: Building2, desc: "Tenants y suscripciones" },
+  { slug: "metrics", label: "Métricas", icon: BarChart3, desc: "MRR, churn, etc." },
   {
     slug: "integrations",
     label: "Integraciones",
@@ -19,13 +21,17 @@ const NAV = [
     desc: "Pasarelas y APIs externas",
   },
   {
+    slug: "setup",
+    label: "Setup",
+    icon: KeyRound,
+    desc: "Master key de encriptación",
+  },
+  {
     slug: "audit-log",
     label: "Audit log",
     icon: ScrollText,
     desc: "Eventos sensibles",
   },
-  { slug: "agencies", label: "Agencias", icon: Users, desc: "Tenants y suscripciones" },
-  { slug: "metrics", label: "Métricas", icon: BarChart3, desc: "MRR, churn, etc." },
 ] as const;
 
 export default function AdminNav() {
