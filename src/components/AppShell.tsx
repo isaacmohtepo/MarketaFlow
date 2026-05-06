@@ -13,12 +13,16 @@ export default function AppShell({
   avatarUrl,
   agencyName,
   title,
+  isAdmin = false,
+  isOwner = false,
   children,
 }: {
   userName: string;
   avatarUrl?: string | null;
   agencyName: string | null;
   title?: string;
+  isAdmin?: boolean;
+  isOwner?: boolean;
   children: ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -29,7 +33,7 @@ export default function AppShell({
       style={{ background: "var(--bg-app)" }}
     >
       {/* Sidebar fijo en desktop */}
-      <Sidebar agencyName={agencyName} />
+      <Sidebar agencyName={agencyName} isAdmin={isAdmin} isOwner={isOwner} />
 
       {/* Drawer mobile */}
       {mobileOpen && (
@@ -43,6 +47,8 @@ export default function AppShell({
             <Sidebar
               agencyName={agencyName}
               isMobile
+              isAdmin={isAdmin}
+              isOwner={isOwner}
               onNavigate={() => setMobileOpen(false)}
             />
           </div>

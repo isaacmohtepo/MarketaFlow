@@ -142,6 +142,84 @@ export function tplCommentMention(opts: {
   });
 }
 
+// ============================================================================
+// Templates de billing
+// ============================================================================
+
+export function tplTrialEnding(opts: {
+  agencyName: string;
+  daysLeft: number;
+  planName: string;
+}) {
+  return shell({
+    preheader: `Tu trial de ${opts.planName} termina en ${opts.daysLeft} días`,
+    title: `Tu trial termina pronto ⏰`,
+    intro: `Faltan <strong>${opts.daysLeft} ${
+      opts.daysLeft === 1 ? "día" : "días"
+    }</strong> para que termine tu trial de <strong>${opts.planName}</strong> en ${opts.agencyName}. Si no agregás un método de pago, bajamos automáticamente a Free y vas a perder algunos límites (marcas, posts, equipo).`,
+    ctaLabel: "Activar suscripción",
+    ctaUrl: `${appUrl("/billing")}`,
+    footer: "Podés cancelar en cualquier momento.",
+  });
+}
+
+export function tplTrialEnded(opts: { agencyName: string }) {
+  return shell({
+    preheader: `Tu trial terminó — ahora estás en plan Free`,
+    title: `Tu trial terminó`,
+    intro: `Tu trial de <strong>${opts.agencyName}</strong> terminó. Ahora estás en el plan <strong>Free</strong> con sus límites (1 marca, 30 posts/mes, 1 cliente). Las marcas y posts que tenías de más quedan visibles pero en read-only hasta que upgradees.`,
+    ctaLabel: "Ver planes",
+    ctaUrl: `${appUrl("/billing")}`,
+  });
+}
+
+export function tplPaymentSuccess(opts: {
+  agencyName: string;
+  amount: string;
+  planName: string;
+  periodEnd: string;
+  invoiceUrl?: string;
+}) {
+  return shell({
+    preheader: `Recibimos tu pago de ${opts.amount}`,
+    title: `Pago confirmado 🎉`,
+    intro: `Cobramos <strong>${opts.amount}</strong> por tu plan <strong>${opts.planName}</strong> de ${opts.agencyName}. Tu próxima renovación es el ${opts.periodEnd}.`,
+    ctaLabel: opts.invoiceUrl ? "Ver factura" : "Ir a Facturación",
+    ctaUrl: opts.invoiceUrl ?? `${appUrl("/billing")}`,
+  });
+}
+
+export function tplPaymentFailed(opts: {
+  agencyName: string;
+  amount: string;
+  reason?: string;
+}) {
+  const reasonBlock = opts.reason
+    ? `<p style="margin:14px 0 0;font-size:13px;color:#1d1d1f;background:#fff5f5;border-left:3px solid #ff4d8f;padding:10px 12px;border-radius:6px;">${opts.reason}</p>`
+    : "";
+  return shell({
+    preheader: `No pudimos cobrar tu suscripción`,
+    title: `El pago falló`,
+    intro: `Intentamos cobrar <strong>${opts.amount}</strong> en ${opts.agencyName} pero el método de pago rechazó el cargo.${reasonBlock} Tenés 3 días de gracia antes de que bajemos al plan Free. Actualizá tu tarjeta para evitar perder acceso.`,
+    ctaLabel: "Actualizar pago",
+    ctaUrl: `${appUrl("/billing")}`,
+  });
+}
+
+export function tplSubscriptionCanceled(opts: {
+  agencyName: string;
+  endDate: string;
+  planName: string;
+}) {
+  return shell({
+    preheader: `Cancelaste tu suscripción de ${opts.planName}`,
+    title: `Suscripción cancelada`,
+    intro: `Cancelaste tu suscripción de <strong>${opts.planName}</strong> en ${opts.agencyName}. Tu plan sigue activo hasta el <strong>${opts.endDate}</strong> — después bajamos a Free. Podés reactivarla en cualquier momento.`,
+    ctaLabel: "Ir a Facturación",
+    ctaUrl: `${appUrl("/billing")}`,
+  });
+}
+
 export function tplPostPublished(opts: {
   brandName: string;
   postUrl: string;

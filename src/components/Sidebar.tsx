@@ -14,6 +14,8 @@ import {
   Settings,
   Zap,
   ArrowUpRight,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 
 type NavItem = {
@@ -24,31 +26,69 @@ type NavItem = {
   soon?: boolean;
 };
 
-const SECTIONS: { title: string; items: NavItem[] }[] = [
-  {
-    title: "Workspace",
-    items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
-      { label: "Marcas", href: "/brands", icon: Layers, match: (p) => p.startsWith("/brands") },
-      { label: "Inbox", href: "/inbox", icon: Inbox, match: (p) => p.startsWith("/inbox") },
-    ],
-  },
-  {
-    title: "Producción",
-    items: [
-      { label: "Calendario", href: "/calendar", icon: Calendar, soon: true },
-      { label: "Plantillas", href: "/templates", icon: Sparkles, soon: true },
-      { label: "Métricas", href: "/metrics", icon: BarChart3, soon: true },
-    ],
-  },
-  {
-    title: "Cuenta",
-    items: [
-      { label: "Equipo", href: "/team", icon: Users },
-      { label: "Cuenta", href: "/account", icon: Settings },
-    ],
-  },
-];
+type Section = { title: string; items: NavItem[] };
+
+function buildSections({
+  isOwner,
+  isAdmin,
+}: {
+  isOwner: boolean;
+  isAdmin: boolean;
+}): Section[] {
+  const sections: Section[] = [
+    {
+      title: "Workspace",
+      items: [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
+        { label: "Marcas", href: "/brands", icon: Layers, match: (p) => p.startsWith("/brands") },
+        { label: "Inbox", href: "/inbox", icon: Inbox, match: (p) => p.startsWith("/inbox") },
+      ],
+    },
+    {
+      title: "Producción",
+      items: [
+        { label: "Calendario", href: "/calendar", icon: Calendar, soon: true },
+        { label: "Plantillas", href: "/templates", icon: Sparkles, soon: true },
+        { label: "Métricas", href: "/metrics", icon: BarChart3, soon: true },
+      ],
+    },
+    {
+      title: "Cuenta",
+      items: [
+        { label: "Equipo", href: "/team", icon: Users },
+        ...(isOwner
+          ? [
+              {
+                label: "Facturación",
+                href: "/billing",
+                icon: CreditCard,
+                match: (p: string) => p.startsWith("/billing"),
+              } as NavItem,
+            ]
+          : []),
+        { label: "Cuenta", href: "/account", icon: Settings },
+      ],
+    },
+  ];
+
+  // Sección de Admin solo para users con role "admin" (panel global de la
+  // plataforma, distinto del owner-de-agencia).
+  if (isAdmin) {
+    sections.push({
+      title: "Admin",
+      items: [
+        {
+          label: "Panel admin",
+          href: "/admin",
+          icon: Shield,
+          match: (p) => p.startsWith("/admin"),
+        },
+      ],
+    });
+  }
+
+  return sections;
+}
 
 const DARK_LINE = "1px solid rgba(255, 255, 255, 0.07)";
 
@@ -56,13 +96,20 @@ export default function Sidebar({
   agencyName,
   isMobile = false,
   onNavigate,
+  isAdmin = false,
+  isOwner = false,
 }: {
   agencyName: string | null;
   isMobile?: boolean;
   onNavigate?: () => void;
+  /** User es admin global de MarketaFlow → muestra sección "Admin". */
+  isAdmin?: boolean;
+  /** User es owner de su agency → muestra "Facturación". */
+  isOwner?: boolean;
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [inboxCount, setInboxCount] = useState<number>(0);
+  const SECTIONS = buildSections({ isOwner, isAdmin });
 
   useEffect(() => {
     let alive = true;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canCreateBrand } from "@/lib/billing";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -24,6 +25,22 @@ export async function POST(req: Request) {
   });
   if (!owner) {
     return NextResponse.json({ error: "Solo agencias pueden crear marcas" }, { status: 403 });
+  }
+
+  // Plan limits enforcement: chequea si la agency puede crear otra marca.
+  // Devuelve 402 (Payment Required) con la razón legible para que el cliente
+  // muestre el modal de upgrade.
+  const check = await canCreateBrand(owner.agencyId);
+  if (!check.ok) {
+    return NextResponse.json(
+      {
+        error: check.reason,
+        currentCount: check.currentCount,
+        limit: check.limit,
+        suggestedPlan: check.suggestedPlan,
+      },
+      { status: 402 },
+    );
   }
 
   const brand = await prisma.brand.create({

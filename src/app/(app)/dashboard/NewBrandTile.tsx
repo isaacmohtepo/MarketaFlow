@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { useApiFetch } from "@/lib/api-client";
 
 export default function NewBrandTile() {
   const router = useRouter();
+  const apiFetch = useApiFetch();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,12 +17,15 @@ export default function NewBrandTile() {
     setLoading(true);
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const res = await fetch("/api/brands", {
+    // apiFetch intercepta 402 y abre el modal de upgrade automáticamente,
+    // devolviendo null para señalizar al caller que pare.
+    const res = await apiFetch("/api/brands", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: fd.get("name"), handle: fd.get("handle") }),
     });
     setLoading(false);
+    if (!res) return; // 402 → modal upgrade
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       setError(j.error ?? "Error");

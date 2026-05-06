@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
+import { startTrialForAgency, canInviteClient } from "@/lib/billing";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -30,6 +31,15 @@ export async function POST(req: Request) {
     const brand = await prisma.brand.findUnique({ where: { inviteCode: body.inviteCode } });
     if (!brand) {
       return NextResponse.json({ error: "Invitación inválida" }, { status: 400 });
+    }
+    // Plan limits enforcement: la agency dueña de la marca debe tener
+    // espacio para sumar otro cliente.
+    const check = await canInviteClient(brand.id);
+    if (!check.ok) {
+      return NextResponse.json(
+        { error: check.reason, suggestedPlan: check.suggestedPlan },
+        { status: 402 },
+      );
     }
     const user = await prisma.user.create({
       data: {
@@ -70,7 +80,19 @@ export async function POST(req: Request) {
         },
       },
     },
+    include: {
+      memberships: { where: { role: "owner", brandId: null }, take: 1 },
+    },
   });
+
+  // Onboarding: arrancamos un trial de 14 días en plan Pro automático.
+  // El user no necesita pagar para empezar; al fin del trial, si no agregó
+  // tarjeta, baja a Free (lo hace el cron diario).
+  const ownership = user.memberships[0];
+  if (ownership) {
+    await startTrialForAgency(ownership.agencyId);
+  }
+
   await createSession(user.id);
   return NextResponse.json({ ok: true });
 }

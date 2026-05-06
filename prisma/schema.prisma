@@ -56,12 +56,151 @@ model Session {
 }
 
 model Agency {
-  id          String            @id @default(cuid())
-  name        String
-  createdAt   DateTime          @default(now())
-  brands      Brand[]
-  members     Membership[]
-  invitations TeamInvitation[]
+  id           String            @id @default(cuid())
+  name         String
+  createdAt    DateTime          @default(now())
+  brands       Brand[]
+  members      Membership[]
+  invitations  TeamInvitation[]
+  subscription Subscription?
+}
+
+/// Suscripción 1:1 con Agency. Define qué plan tiene activo, su estado de
+/// facturación y add-ons. Lazy-created como "free / active" la primera vez
+/// que se consulta para un agency que no tiene fila todavía.
+/// Configuración de integraciones externas (pasarelas de pago, providers de
+/// email, AI, etc.) gestionadas desde el admin panel. Las llaves privadas
+/// se guardan ENCRIPTADAS con AES-256-GCM (master key en env). El campo
+/// publicMeta es JSON con info no-secreta para mostrar en UI (ej. últimos
+/// 4 dígitos de la public key, cuándo fue actualizado, etc.).
+model IntegrationConfig {
+  id              String   @id @default(cuid())
+  /// Categoría: "payment" | "notification" | "ai" | "storage" | etc.
+  category        String
+  /// Provider específico: "wompi" | "stripe" | "paddle" | "slack" | etc.
+  provider        String
+  /// "sandbox" | "production"
+  environment     String   @default("sandbox")
+  /// JSON encriptado con las llaves privadas y secretos. Nunca leer raw.
+  /// Decrypt vía lib/encryption.ts.
+  encryptedConfig String   @db.Text
+  /// JSON con info pública mostrable: nombres de cuenta, prefijos de keys,
+  /// último uso, etc. Para que el admin vea estado sin exponer secretos.
+  publicMeta      Json?
+  /// Si está habilitado para uso. Inactivo = la app ignora esta config y
+  /// usa otra activa (o falla con "no payment provider configured").
+  enabled         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  /// Solo una config activa por provider+environment a la vez.
+  @@unique([provider, environment])
+  @@index([category, enabled])
+}
+
+model Subscription {
+  id                 String          @id @default(cuid())
+  agencyId           String          @unique
+  agency             Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  /// "free" | "pro" | "agency"
+  plan               String          @default("free")
+  /// "trialing" | "active" | "past_due" | "canceled" | "expired"
+  status             String          @default("active")
+  /// "monthly" | "yearly"
+  billingCycle       String          @default("monthly")
+
+  /// Fin del trial (si está en trialing). Pasado este momento, el cron
+  /// downgradea a free si no se cargó tarjeta.
+  trialEndsAt        DateTime?
+
+  /// Período actual del cobro pagado.
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  /// Cuándo le toca el próximo cobro (usado por el cron diario).
+  nextChargeAt       DateTime?
+
+  /// Cancelación: si cancelAtPeriodEnd=true, mantenemos plan hasta currentPeriodEnd.
+  canceledAt         DateTime?
+  cancelAtPeriodEnd  Boolean         @default(false)
+
+  /// Add-ons que suman a los límites del plan base.
+  extraBrands        Int             @default(0)
+  extraSeats         Int             @default(0)
+  whiteLabelAddon    Boolean         @default(false)
+
+  /// Customer ID en Wompi (para reusar entre cobros). Opcional porque
+  /// algunos plans (free/trialing) nunca crean customer.
+  wompiCustomerId    String?
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  paymentMethods     PaymentMethod[]
+  invoices           Invoice[]
+
+  @@index([nextChargeAt, status])
+  @@index([trialEndsAt, status])
+}
+
+/// Token de tarjeta vault de Wompi. Guardamos el sourceId (no la tarjeta
+/// real) y metadata para mostrar al usuario "Visa terminada en 4242".
+model PaymentMethod {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// Token de payment_source en Wompi.
+  wompiSourceId  String       @unique
+  /// Tipo: "CARD" | "PSE" | "NEQUI" | etc. Solo CARD y NEQUI soportan recurrente.
+  type           String       @default("CARD")
+
+  /// Display info (4 últimos dígitos, marca, vencimiento).
+  brand          String?
+  last4          String?
+  expMonth       Int?
+  expYear        Int?
+  holderName     String?
+
+  isDefault      Boolean      @default(true)
+
+  createdAt      DateTime     @default(now())
+
+  @@index([subscriptionId])
+}
+
+/// Cada cobro intentado/exitoso/fallido. Permite ver historial de facturación
+/// y saber qué cobros fallaron para reintentar.
+model Invoice {
+  id                 String       @id @default(cuid())
+  subscriptionId     String
+  subscription       Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// Monto en CENTAVOS de la moneda (COP × 100). Usamos int para evitar floats.
+  amount             Int
+  currency           String       @default("COP")
+
+  /// "pending" | "paid" | "failed" | "refunded"
+  status             String       @default("pending")
+
+  /// IDs de Wompi para tracear el cobro.
+  wompiTransactionId String?      @unique
+  wompiReference     String?      @unique
+
+  /// Período que cubre este cobro (mensual o anual).
+  periodStart        DateTime?
+  periodEnd          DateTime?
+
+  description        String?
+
+  paidAt             DateTime?
+  failedAt           DateTime?
+  failedReason       String?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([subscriptionId, createdAt])
 }
 
 model TeamInvitation {

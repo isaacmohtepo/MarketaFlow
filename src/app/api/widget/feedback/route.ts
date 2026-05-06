@@ -6,6 +6,7 @@ import { uploadFile } from "@/lib/storage";
 import { hashPassword } from "@/lib/auth";
 import { recordActivity } from "@/lib/activity";
 import { notifyBrandAgency } from "@/lib/notifications";
+import { getEffectiveLimits } from "@/lib/billing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,34 @@ export async function POST(req: Request) {
   });
   if (!brand) {
     return jsonCors({ error: "Token inválido" }, 401);
+  }
+
+  // Plan limits enforcement: el widget tiene límite de comments/mes en Free.
+  // Contamos comments via widget en el mes actual (los que tienen pageUrl).
+  const limits = await getEffectiveLimits(brand.agencyId);
+  if (!limits.webFeedbackEnabled) {
+    return jsonCors(
+      { error: "El web feedback no está disponible en el plan actual de esta agencia." },
+      402,
+    );
+  }
+  if (limits.maxWebFeedbackComments !== -1) {
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const count = await prisma.comment.count({
+      where: {
+        post: { brandId: brand.id },
+        pageUrl: { not: null },
+        createdAt: { gte: monthStart },
+      },
+    });
+    if (count >= limits.maxWebFeedbackComments) {
+      return jsonCors(
+        {
+          error: `Esta marca alcanzó el límite de ${limits.maxWebFeedbackComments} comentarios web del mes en su plan actual.`,
+        },
+        402,
+      );
+    }
   }
 
   // 1) Subir screenshot a R2

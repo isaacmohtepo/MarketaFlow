@@ -6,6 +6,7 @@ import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import { canUseAi } from "@/lib/billing";
 
 const schema = z.object({
   brandId: z.string(),
@@ -78,6 +79,21 @@ export async function POST(req: Request) {
   const access = await getBrandAccess(user.id, body.brandId);
   if (!access || !access.canEdit) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+
+  // Plan limits enforcement: AI Caption Assist está limitado por plan
+  const brandRow = await prisma.brand.findUnique({
+    where: { id: body.brandId },
+    select: { agencyId: true },
+  });
+  if (brandRow) {
+    const aiCheck = await canUseAi(brandRow.agencyId);
+    if (!aiCheck.ok) {
+      return NextResponse.json(
+        { error: aiCheck.reason, suggestedPlan: aiCheck.suggestedPlan },
+        { status: 402 },
+      );
+    }
   }
 
   const brand = await prisma.brand.findUnique({ where: { id: body.brandId } });

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UploadCloud, X, Loader2, ImagePlus, RotateCcw, FileIcon } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useApiFetch } from "@/lib/api-client";
 import CaptionAssist from "./CaptionAssist";
 import HashtagPicker from "./HashtagPicker";
 import TemplatePicker from "./TemplatePicker";
@@ -76,6 +77,7 @@ export default function NewPostForm({
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
   const { confirm: confirmDialog } = useConfirm();
+  const apiFetch = useApiFetch();
   const hydratedRef = useRef(false);
 
   // Cargar draft al montar
@@ -238,7 +240,7 @@ export default function NewPostForm({
     }
     setLoading(true);
     const fd = new FormData(form);
-    const res = await fetch("/api/posts", {
+    const res = await apiFetch("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -259,6 +261,7 @@ export default function NewPostForm({
       }),
     });
     setLoading(false);
+    if (!res) return; // 402 → modal upgrade abierto
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       setError(j.error ?? "Error");

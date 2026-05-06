@@ -17,19 +17,29 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [agencyName, userRow] = await Promise.all([
+  const [agencyName, userRow, ownerMembership] = await Promise.all([
     getUserAgencyName(user.id),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { avatarUrl: true },
+      select: { avatarUrl: true, role: true },
+    }),
+    // Es owner si tiene al menos una membership de role=owner agency-level
+    prisma.membership.findFirst({
+      where: { userId: user.id, role: "owner", brandId: null },
+      select: { id: true },
     }),
   ]);
+
+  const isAdmin = userRow?.role === "admin";
+  const isOwner = !!ownerMembership;
 
   return (
     <AppShell
       userName={user.name ?? user.email}
       avatarUrl={userRow?.avatarUrl ?? null}
       agencyName={agencyName}
+      isAdmin={isAdmin}
+      isOwner={isOwner}
     >
       {children}
     </AppShell>

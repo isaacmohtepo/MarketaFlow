@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import ConfirmProvider from "@/components/ConfirmDialog";
+import UpgradeProvider from "@/components/UpgradeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,16 +32,18 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <ConfirmProvider>
-          {children}
-          <Toaster
-            position="bottom-right"
-            theme="light"
-            richColors
-            closeButton
-            toastOptions={{
-              className: "!font-sans",
-            }}
-          />
+          <UpgradeProvider>
+            {children}
+            <Toaster
+              position="bottom-right"
+              theme="light"
+              richColors
+              closeButton
+              toastOptions={{
+                className: "!font-sans",
+              }}
+            />
+          </UpgradeProvider>
         </ConfirmProvider>
       </body>
     </html>

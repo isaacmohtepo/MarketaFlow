@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { createSession, hashPassword } from "@/lib/auth";
+import { canInviteClient } from "@/lib/billing";
 
 const schema = z.object({
   name: z.string().min(1).max(80),
@@ -27,6 +28,19 @@ export async function POST(
     body = schema.parse(await req.json());
   } catch {
     return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
+  }
+
+  // Plan limits enforcement: el plan free permite 1 cliente por marca.
+  // Cada acceso por share link cuenta como un cliente.
+  const check = await canInviteClient(brand.id);
+  if (!check.ok) {
+    return NextResponse.json(
+      {
+        error:
+          "Esta marca no acepta más clientes en su plan actual. Contactá a la agencia.",
+      },
+      { status: 402 },
+    );
   }
 
   const guestId = randomBytes(8).toString("hex");

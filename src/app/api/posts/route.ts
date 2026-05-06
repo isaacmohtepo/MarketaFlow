@@ -6,6 +6,7 @@ import { getBrandAccess } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { ASSET_TYPES } from "@/lib/asset-types";
+import { canCreatePost } from "@/lib/billing";
 
 const fileMetaSchema = z.object({
   url: z.string().min(1),
@@ -48,6 +49,26 @@ export async function POST(req: Request) {
   const access = await getBrandAccess(user.id, body.brandId);
   if (!access || !access.canEdit) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+
+  // Plan limits enforcement: chequea posts/mes del plan free
+  const brandRow = await prisma.brand.findUnique({
+    where: { id: body.brandId },
+    select: { agencyId: true },
+  });
+  if (brandRow) {
+    const check = await canCreatePost(brandRow.agencyId);
+    if (!check.ok) {
+      return NextResponse.json(
+        {
+          error: check.reason,
+          currentCount: check.currentCount,
+          limit: check.limit,
+          suggestedPlan: check.suggestedPlan,
+        },
+        { status: 402 },
+      );
+    }
   }
 
   // Gate: web_design solo se permite si la URL del sitio coincide con un origen

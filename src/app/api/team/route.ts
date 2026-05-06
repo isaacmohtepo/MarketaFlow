@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, appUrl } from "@/lib/email";
+import { canInviteTeamMember } from "@/lib/billing";
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -67,6 +68,20 @@ export async function POST(req: Request) {
     body = inviteSchema.parse(await req.json());
   } catch {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  }
+
+  // Plan limits enforcement: chequea si la agency puede sumar otro miembro
+  const check = await canInviteTeamMember(owner.agencyId);
+  if (!check.ok) {
+    return NextResponse.json(
+      {
+        error: check.reason,
+        currentCount: check.currentCount,
+        limit: check.limit,
+        suggestedPlan: check.suggestedPlan,
+      },
+      { status: 402 },
+    );
   }
 
   // ¿Ya está en el equipo?
