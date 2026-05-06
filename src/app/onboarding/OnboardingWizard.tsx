@@ -14,6 +14,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Step = 0 | 1 | 2 | 3;
 
@@ -29,6 +30,7 @@ export default function OnboardingWizard({
   existingBrandsCount: number;
 }) {
   const router = useRouter();
+  const { confirm } = useConfirm();
   // Si ya tiene una marca creada, salteamos el paso 1
   const [step, setStep] = useState<Step>(existingBrandsCount > 0 ? 2 : 0);
   const [busy, setBusy] = useState(false);
@@ -123,7 +125,14 @@ export default function OnboardingWizard({
   }
 
   async function skipAll() {
-    if (!confirm("¿Saltar el onboarding? Podés volver con /onboarding?force=1")) return;
+    const ok = await confirm({
+      title: "¿Saltar el onboarding?",
+      description: "Podés volver más tarde abriendo /onboarding?force=1.",
+      confirmLabel: "Saltar",
+      cancelLabel: "Volver",
+      variant: "default",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await fetch("/api/account/onboarding", {

@@ -53,7 +53,7 @@ export default function AgencyActions({
   invoices: Invoice[];
 }) {
   const router = useRouter();
-  const { confirm } = useConfirm();
+  const { confirm, prompt } = useConfirm();
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState(agencyName);
   const [planForm, setPlanForm] = useState({
@@ -182,9 +182,20 @@ export default function AgencyActions({
         variant: "warning",
       });
       if (!ok) return;
-      const reason = window.prompt("Motivo (opcional):");
+      const reason = await prompt({
+        title: "Motivo de la suspensión",
+        description:
+          "Visible solo a admins (audit log + detalle de la agency). Opcional.",
+        placeholder: "Ej: pago vencido, fraude, reporte TOS…",
+        confirmLabel: "Suspender",
+        cancelLabel: "Cancelar sin motivo",
+        variant: "warning",
+      });
+      // null = canceló completamente. "" = aceptó sin motivo.
+      // En ambos casos avanzamos con suspend (cancelar la suspensión completa
+      // ya pasó por el confirm anterior).
       await patchAgency(
-        { suspended: true, suspendedReason: reason || null },
+        { suspended: true, suspendedReason: reason && reason.trim() ? reason.trim() : null },
         "suspend",
       );
     } else {
@@ -201,11 +212,18 @@ export default function AgencyActions({
   }
 
   async function deleteAgency() {
-    const confirmText = window.prompt(
-      `Vas a borrar PERMANENTEMENTE "${agencyName}" y TODO lo que contiene (brands, posts, members, invoices, etc.). Para confirmar, escribí el nombre exacto:`,
-    );
+    const confirmText = await prompt({
+      title: "Borrar agencia permanentemente",
+      description: `Vas a borrar "${agencyName}" y TODO su contenido: brands, posts, members, invoices, etc. Para confirmar, escribí el nombre exacto.`,
+      placeholder: agencyName,
+      required: true,
+      confirmLabel: "Borrar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (confirmText === null) return;
     if (confirmText !== agencyName) {
-      if (confirmText !== null) toast.error("El nombre no coincidió, cancelado");
+      toast.error("El nombre no coincidió, cancelado");
       return;
     }
     setBusy("delete");
@@ -231,11 +249,18 @@ export default function AgencyActions({
     // Pedir monto: prompt con default = total. El user puede dejar el total
     // (= void completo) o poner un valor menor (= refund parcial).
     const totalPesos = (inv.amount / 100).toFixed(0);
-    const input = window.prompt(
-      `Monto a reembolsar (en pesos COP).\nDejá vacío o pone ${totalPesos} para refund TOTAL.\nPone un valor menor para refund PARCIAL.\nMáximo: ${totalPesos}`,
-      totalPesos,
-    );
-    if (input === null) return; // user canceled
+    const input = await prompt({
+      title: "Reembolsar invoice",
+      description: `Monto a reembolsar (en pesos COP). Pone ${totalPesos} para refund TOTAL, o un valor menor para refund PARCIAL.`,
+      defaultValue: totalPesos,
+      placeholder: totalPesos,
+      inputType: "number",
+      required: true,
+      confirmLabel: "Continuar",
+      cancelLabel: "Cancelar",
+      variant: "warning",
+    });
+    if (input === null) return;
     const pesos = parseInt(input.replace(/\D/g, ""), 10);
     if (!Number.isFinite(pesos) || pesos <= 0) {
       toast.error("Monto inválido");

@@ -30,7 +30,7 @@ type Props = {
 
 export default function UserActions(props: Props) {
   const router = useRouter();
-  const { confirm } = useConfirm();
+  const { confirm, prompt } = useConfirm();
   const [busy, setBusy] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -98,9 +98,19 @@ export default function UserActions(props: Props) {
         variant: "warning",
       });
       if (!ok) return;
-      const reason = window.prompt("Motivo (opcional, visible solo a admins):");
+      const reason = await prompt({
+        title: "Motivo de la deshabilitación",
+        description: "Visible solo a admins (audit log + detalle del user). Opcional.",
+        placeholder: "Ej: fraude, abuso, request del user…",
+        confirmLabel: "Deshabilitar",
+        cancelLabel: "Sin motivo",
+        variant: "warning",
+      });
       await patch(
-        { disabled: true, disabledReason: reason || null },
+        {
+          disabled: true,
+          disabledReason: reason && reason.trim() ? reason.trim() : null,
+        },
         "deshabilitar",
       );
     } else {

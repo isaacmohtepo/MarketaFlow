@@ -3,6 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
+import { useConfirm } from "@/components/ConfirmDialog";
 import {
   Bold,
   Italic,
@@ -34,6 +35,7 @@ export default function RichTextEditor({
   onChange: (html: string) => void;
   variables?: string[];
 }) {
+  const { prompt } = useConfirm();
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -70,8 +72,16 @@ export default function RichTextEditor({
 
   if (!editor) return null;
 
-  function setLink() {
-    const url = window.prompt("URL del link (https://…):");
+  async function setLink() {
+    const url = await prompt({
+      title: "Insertar link",
+      description: "URL del enlace (con https://). Va a aplicarse al texto seleccionado.",
+      placeholder: "https://ejemplo.com",
+      inputType: "text",
+      required: true,
+      confirmLabel: "Insertar",
+      cancelLabel: "Cancelar",
+    });
     if (!url) return;
     editor!
       .chain()

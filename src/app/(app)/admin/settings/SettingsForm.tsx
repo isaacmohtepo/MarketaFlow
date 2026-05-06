@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { SettingDescriptor } from "@/lib/system-settings";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const GROUP_LABELS: Record<SettingDescriptor["group"], string> = {
   auth: "Autenticación",
@@ -43,6 +44,7 @@ export default function SettingsForm({
   initial: SettingDescriptor[];
 }) {
   const router = useRouter();
+  const { confirm } = useConfirm();
   // Estado local: { key → valor pending }. Si == valor original, no hay diff.
   const [pendingValues, setPendingValues] = useState<Record<string, unknown>>(
     {},
@@ -69,9 +71,13 @@ export default function SettingsForm({
     if (newValue === item.value) return; // no diff
 
     if (item.warning) {
-      const ok = window.confirm(
-        `${item.warning}\n\n¿Confirmás el cambio?`,
-      );
+      const ok = await confirm({
+        title: "Confirmar cambio",
+        description: `${item.warning}\n\n¿Confirmás aplicar este cambio?`,
+        confirmLabel: "Sí, aplicar",
+        cancelLabel: "Cancelar",
+        variant: "warning",
+      });
       if (!ok) return;
     }
 

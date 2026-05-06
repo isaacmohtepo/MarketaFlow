@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export default function SendButton({
   broadcastId,
@@ -15,15 +16,18 @@ export default function SendButton({
   audience: string;
 }) {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [busy, setBusy] = useState(false);
 
   async function send() {
-    if (
-      !confirm(
-        `Vas a enviar "${subject}" a la audiencia "${audience}".\n\nEsto puede tardar un par de minutos. ¿Confirmás?`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Enviar broadcast",
+      description: `Vas a enviar "${subject}" a la audiencia "${audience}". Esto puede tardar un par de minutos.`,
+      confirmLabel: "Enviar ahora",
+      cancelLabel: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/broadcasts/${broadcastId}/send`, {

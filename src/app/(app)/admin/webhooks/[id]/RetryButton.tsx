@@ -4,13 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export default function RetryButton({ webhookId }: { webhookId: string }) {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [busy, setBusy] = useState(false);
 
   async function retry() {
-    if (!confirm("Re-procesar este webhook? Si era un transaction.updated, va a re-aplicar el resultado al invoice.")) return;
+    const ok = await confirm({
+      title: "Re-procesar webhook",
+      description:
+        "Si era un transaction.updated, va a re-aplicar el resultado al invoice.",
+      confirmLabel: "Re-procesar",
+      cancelLabel: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/webhooks/${webhookId}/retry`, {
