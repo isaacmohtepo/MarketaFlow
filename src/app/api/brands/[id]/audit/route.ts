@@ -36,7 +36,11 @@ export async function GET(
   if (!user) return new Response("Unauthorized", { status: 401 });
 
   const access = await getBrandAccess(user.id, brandId);
-  if (!access) return new Response("Forbidden", { status: 403 });
+  // El audit log incluye comentarios internos del equipo. Los clients NO
+  // deberían poder descargarlo. Restringimos a canEdit (owner/editor).
+  if (!access || !access.canEdit) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const url = new URL(req.url);
   const fromParam = url.searchParams.get("from");

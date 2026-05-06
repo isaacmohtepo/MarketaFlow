@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canInviteClient } from "@/lib/billing";
 import GuestForm from "./GuestForm";
 
 export default async function SharePage({
@@ -17,20 +18,46 @@ export default async function SharePage({
 
   const user = await getCurrentUser();
   if (user) {
-    // Si ya está logueado, asegurarnos de que tenga acceso a la marca
-    const membership = await prisma.membership.findFirst({
+    // Ya tiene membership a esta brand (cualquier rol) → pasa derecho
+    const existingBrandMember = await prisma.membership.findFirst({
       where: { userId: user.id, brandId: brand.id },
     });
-    if (!membership) {
-      await prisma.membership.create({
-        data: {
-          userId: user.id,
-          agencyId: brand.agencyId,
-          brandId: brand.id,
-          role: "client",
-        },
-      });
+    if (existingBrandMember) {
+      redirect(`/brands/${brand.id}`);
     }
+    // ¿Es miembro AGENCY-level de la misma agencia? → ya tiene acceso por
+    // default (owner/editor). No creamos client membership extra.
+    const agencyMember = await prisma.membership.findFirst({
+      where: { userId: user.id, agencyId: brand.agencyId, brandId: null },
+    });
+    if (agencyMember) {
+      redirect(`/brands/${brand.id}`);
+    }
+    // Crear membership client — sujeto a plan limit (igual que vía API).
+    const check = await canInviteClient(brand.id);
+    if (!check.ok) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-6">
+          <div className="card max-w-md p-7 text-center">
+            <p className="text-base font-semibold text-zinc-900">
+              No podemos darte acceso ahora
+            </p>
+            <p className="mt-2 text-[13px] text-zinc-500">
+              Esta marca alcanzó el límite de clientes en su plan actual.
+              Contactá a la agencia para que te invite directamente.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    await prisma.membership.create({
+      data: {
+        userId: user.id,
+        agencyId: brand.agencyId,
+        brandId: brand.id,
+        role: "client",
+      },
+    });
     redirect(`/brands/${brand.id}`);
   }
 

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canInviteTeamMember } from "@/lib/billing";
 import AcceptForm from "./AcceptForm";
 
 export default async function AcceptInvitationPage({
@@ -24,6 +25,25 @@ export default async function AcceptInvitationPage({
       where: { userId: user.id, agencyId: inv.agencyId, brandId: null },
     });
     if (!existingM) {
+      // Re-check plan limit: la agency pudo haber downgradeado entre la
+      // invitación y el accept. Si ya no hay cupo, mostramos error en vez
+      // de crear silenciosamente un membership que excede el plan.
+      const check = await canInviteTeamMember(inv.agencyId);
+      if (!check.ok) {
+        return (
+          <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-6">
+            <div className="card max-w-md p-7 text-center">
+              <p className="text-base font-semibold text-zinc-900">
+                La agencia ya no tiene espacio en su plan
+              </p>
+              <p className="mt-2 text-[13px] text-zinc-500">
+                {inv.agency.name} llegó al límite de miembros. Contactá al
+                owner para que upgradee o libere un espacio.
+              </p>
+            </div>
+          </div>
+        );
+      }
       await prisma.membership.create({
         data: {
           userId: user.id,

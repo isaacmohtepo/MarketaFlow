@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canInviteClient } from "@/lib/billing";
 import PublicHeader from "@/components/PublicHeader";
 import InviteForm from "./InviteForm";
 
@@ -18,19 +19,44 @@ export default async function InvitePage({
 
   const user = await getCurrentUser();
   if (user) {
+    // Ya tiene acceso a esta brand (cualquier rol)
     const existing = await prisma.membership.findFirst({
       where: { userId: user.id, brandId: brand.id },
     });
-    if (!existing) {
-      await prisma.membership.create({
-        data: {
-          userId: user.id,
-          agencyId: brand.agencyId,
-          brandId: brand.id,
-          role: "client",
-        },
-      });
+    if (existing) {
+      redirect(`/brands/${brand.id}`);
     }
+    // Es miembro de la agency (owner/editor) → ya tiene acceso, no sumamos
+    const agencyMember = await prisma.membership.findFirst({
+      where: { userId: user.id, agencyId: brand.agencyId, brandId: null },
+    });
+    if (agencyMember) {
+      redirect(`/brands/${brand.id}`);
+    }
+    // Crear como client respetando plan limits
+    const check = await canInviteClient(brand.id);
+    if (!check.ok) {
+      return (
+        <div className="theme-dark flex min-h-screen items-center justify-center bg-black p-6">
+          <div className="card max-w-md p-7 text-center">
+            <p className="text-base font-semibold text-white">
+              No podemos darte acceso ahora
+            </p>
+            <p className="mt-2 text-[13px] text-zinc-400">
+              Esta marca alcanzó el límite de clientes. Contactá a la agencia.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    await prisma.membership.create({
+      data: {
+        userId: user.id,
+        agencyId: brand.agencyId,
+        brandId: brand.id,
+        role: "client",
+      },
+    });
     redirect(`/brands/${brand.id}`);
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { canInviteTeamMember } from "@/lib/billing";
 
 export async function POST(
   _req: Request,
@@ -26,6 +27,18 @@ export async function POST(
     where: { userId: user.id, agencyId: inv.agencyId, brandId: null },
   });
   if (!existing) {
+    // Re-check plan limit: la invitación se creó cuando había espacio,
+    // pero la agency pudo haber downgradeado entre invite y accept.
+    const check = await canInviteTeamMember(inv.agencyId);
+    if (!check.ok) {
+      return NextResponse.json(
+        {
+          error:
+            "La agencia ya no tiene espacio en su plan para sumarte. Contactá al owner.",
+        },
+        { status: 402 },
+      );
+    }
     await prisma.membership.create({
       data: { userId: user.id, agencyId: inv.agencyId, role: inv.role },
     });
