@@ -24,7 +24,7 @@ const FAQ = [
 
 export default function PricingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-black">
+    <div className="theme-dark flex min-h-screen flex-col bg-black">
       <PublicHeader />
       <section className="relative overflow-hidden">
         <Particles count={20} />
