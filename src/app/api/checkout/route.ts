@@ -92,7 +92,24 @@ export async function POST(req: Request) {
     data: { billingCycle: body.cycle, plan: body.planId },
   });
 
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  // Resolución del base URL para el redirect, en orden de preferencia:
+  // 1. APP_URL explícita (deploy custom)
+  // 2. NEXT_PUBLIC_APP_URL (común en setups de Next)
+  // 3. Origin del request (lo que el browser usó para llegar acá — funciona
+  //    siempre que la request vino del mismo dominio del checkout)
+  // 4. VERCEL_URL (Vercel la inyecta automático en runtime, sin protocolo)
+  // 5. Fallback localhost (solo dev local; Wompi rechaza en prod porque
+  //    exige HTTPS público).
+  function resolveBaseUrl(): string {
+    if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, "");
+    if (process.env.NEXT_PUBLIC_APP_URL)
+      return process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "");
+    const origin = req.headers.get("origin");
+    if (origin) return origin.replace(/\/+$/, "");
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+    return "http://localhost:3000";
+  }
+  const appUrl = resolveBaseUrl();
   const redirectUrl = `${appUrl}/billing/return?ref=${reference}`;
 
   // Resolver el environment desde admin: prefiere production si está habilitado,
