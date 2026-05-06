@@ -70,25 +70,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
 
-  // Plan limits enforcement: chequea posts/mes del plan free
+  // Plan limits enforcement: chequea posts/mes. Lo hacemos ANTES del transaction
+  // (lectura sola, no race-sensitive en este punto). El check final + create
+  // van en una Serializable transaction abajo para cerrar TOCTOU.
   const brandRow = await prisma.brand.findUnique({
     where: { id: body.brandId },
     select: { agencyId: true },
   });
-  if (brandRow) {
-    const check = await canCreatePost(brandRow.agencyId);
-    if (!check.ok) {
-      return NextResponse.json(
-        {
-          error: check.reason,
-          currentCount: check.currentCount,
-          limit: check.limit,
-          suggestedPlan: check.suggestedPlan,
-        },
-        { status: 402 },
-      );
-    }
-  }
 
   // Gate: web_design solo se permite si la URL del sitio coincide con un origen
   // donde detectamos el widget pingeando. Si está en draft (no envío a review)
@@ -136,28 +124,54 @@ export async function POST(req: Request) {
   const firstImage = files.find((f) => (f.mime ?? "image/").startsWith("image/"));
   const cover = firstImage?.url ?? files[0]?.url ?? null;
 
-  const post = await prisma.post.create({
-    data: {
-      brandId: body.brandId,
-      authorId: user.id,
-      caption: body.caption ?? "",
-      imageUrl: cover,
-      platform: body.platform,
-      postType: body.postType,
-      assetType: body.assetType,
-      sourceUrl: body.sourceUrl ?? null,
-      scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
-      status: body.status,
-      images: {
-        create: files.map((f, i) => ({
-          url: f.url,
-          position: i,
-          mime: f.mime ?? null,
-          name: f.name ?? null,
-        })),
-      },
+  // Serializable transaction: re-check del límite + create atómico para cerrar
+  // race condition. Si dos requests pasan simultaneo el primer check de arriba,
+  // Postgres detecta el conflicto en Serializable y aborta una con error.
+  const txResult = await prisma.$transaction(
+    async (tx) => {
+      if (brandRow) {
+        const check = await canCreatePost(brandRow.agencyId, tx);
+        if (!check.ok) return { ok: false as const, check };
+      }
+      const created = await tx.post.create({
+        data: {
+          brandId: body.brandId,
+          authorId: user.id,
+          caption: body.caption ?? "",
+          imageUrl: cover,
+          platform: body.platform,
+          postType: body.postType,
+          assetType: body.assetType,
+          sourceUrl: body.sourceUrl ?? null,
+          scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
+          status: body.status,
+          images: {
+            create: files.map((f, i) => ({
+              url: f.url,
+              position: i,
+              mime: f.mime ?? null,
+              name: f.name ?? null,
+            })),
+          },
+        },
+      });
+      return { ok: true as const, post: created };
     },
-  });
+    { isolationLevel: "Serializable" },
+  );
+
+  if (!txResult.ok) {
+    return NextResponse.json(
+      {
+        error: txResult.check.reason,
+        currentCount: txResult.check.currentCount,
+        limit: txResult.check.limit,
+        suggestedPlan: txResult.check.suggestedPlan,
+      },
+      { status: 402 },
+    );
+  }
+  const post = txResult.post;
   await recordActivity({
     postId: post.id,
     userId: user.id,

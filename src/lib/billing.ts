@@ -10,6 +10,18 @@
 
 import { prisma } from "./db";
 import { PLANS, type PlanId, TRIAL_DAYS, TRIAL_PLAN } from "./plans";
+import type { Prisma } from "@/generated/prisma";
+
+/**
+ * Tipo del cliente Prisma que aceptan las check functions: el cliente normal
+ * o el TransactionClient (cuando lo invocamos dentro de $transaction).
+ *
+ * Esto permite que un endpoint envuelva check + create en una transacción
+ * Serializable para cerrar la race condition (TOCTOU): sin esto, dos POST
+ * paralelos pasan ambos el `count < limit` y crean ambos, dejando la agency
+ * por encima del límite.
+ */
+export type DbClient = typeof prisma | Prisma.TransactionClient;
 
 export type LimitCheck = {
   ok: boolean;
@@ -118,11 +130,14 @@ export async function getEffectiveLimits(agencyId: string) {
 // human-readable cuando falla, lista para mostrar en modal de upgrade.
 // ============================================================================
 
-export async function canCreateBrand(agencyId: string): Promise<LimitCheck> {
+export async function canCreateBrand(
+  agencyId: string,
+  db: DbClient = prisma,
+): Promise<LimitCheck> {
   const limits = await getEffectiveLimits(agencyId);
   if (limits.maxBrands === -1) return { ok: true };
 
-  const count = await prisma.brand.count({ where: { agencyId } });
+  const count = await db.brand.count({ where: { agencyId } });
   if (count >= limits.maxBrands) {
     const suggested = limits.planId === "free" ? "pro" : "agency";
     return {
@@ -138,14 +153,17 @@ export async function canCreateBrand(agencyId: string): Promise<LimitCheck> {
   return { ok: true, currentCount: count, limit: limits.maxBrands };
 }
 
-export async function canCreatePost(agencyId: string): Promise<LimitCheck> {
+export async function canCreatePost(
+  agencyId: string,
+  db: DbClient = prisma,
+): Promise<LimitCheck> {
   const limits = await getEffectiveLimits(agencyId);
   if (limits.maxPostsPerMonth === -1) return { ok: true };
 
   // Cuenta posts creados en el mes calendario actual (UTC para simplicidad).
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const count = await prisma.post.count({
+  const count = await db.post.count({
     where: {
       brand: { agencyId },
       createdAt: { gte: monthStart },
@@ -164,8 +182,11 @@ export async function canCreatePost(agencyId: string): Promise<LimitCheck> {
   return { ok: true, currentCount: count, limit: limits.maxPostsPerMonth };
 }
 
-export async function canInviteClient(brandId: string): Promise<LimitCheck> {
-  const brand = await prisma.brand.findUnique({
+export async function canInviteClient(
+  brandId: string,
+  db: DbClient = prisma,
+): Promise<LimitCheck> {
+  const brand = await db.brand.findUnique({
     where: { id: brandId },
     select: { agencyId: true },
   });
@@ -174,7 +195,7 @@ export async function canInviteClient(brandId: string): Promise<LimitCheck> {
   const limits = await getEffectiveLimits(brand.agencyId);
   if (limits.maxClientsPerBrand === -1) return { ok: true };
 
-  const count = await prisma.membership.count({
+  const count = await db.membership.count({
     where: { brandId, role: "client" },
   });
   if (count >= limits.maxClientsPerBrand) {
@@ -191,12 +212,15 @@ export async function canInviteClient(brandId: string): Promise<LimitCheck> {
   return { ok: true, currentCount: count, limit: limits.maxClientsPerBrand };
 }
 
-export async function canInviteTeamMember(agencyId: string): Promise<LimitCheck> {
+export async function canInviteTeamMember(
+  agencyId: string,
+  db: DbClient = prisma,
+): Promise<LimitCheck> {
   const limits = await getEffectiveLimits(agencyId);
   if (limits.maxTeamMembers === -1) return { ok: true };
 
   // Miembros = owner + editors agency-level (brandId: null), no cuenta clients
-  const count = await prisma.membership.count({
+  const count = await db.membership.count({
     where: {
       agencyId,
       brandId: null,

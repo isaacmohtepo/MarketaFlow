@@ -23,30 +23,38 @@ export async function POST(
     );
   }
 
-  const existing = await prisma.membership.findFirst({
-    where: { userId: user.id, agencyId: inv.agencyId, brandId: null },
-  });
-  if (!existing) {
-    // Re-check plan limit: la invitación se creó cuando había espacio,
-    // pero la agency pudo haber downgradeado entre invite y accept.
-    const check = await canInviteTeamMember(inv.agencyId);
-    if (!check.ok) {
-      return NextResponse.json(
-        {
-          error:
-            "La agencia ya no tiene espacio en su plan para sumarte. Contactá al owner.",
-        },
-        { status: 402 },
-      );
-    }
-    await prisma.membership.create({
-      data: { userId: user.id, agencyId: inv.agencyId, role: inv.role },
-    });
-  }
-  await prisma.teamInvitation.update({
-    where: { id: inv.id },
-    data: { acceptedAt: new Date() },
-  });
+  // Serializable transaction: re-check del límite + create de membership +
+  // mark invitation accepted, todo atómico. Cierra la TOCTOU donde dos
+  // invitations aceptadas en paralelo podrían pasar ambas el check.
+  const result = await prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.membership.findFirst({
+        where: { userId: user.id, agencyId: inv.agencyId, brandId: null },
+      });
+      if (!existing) {
+        const check = await canInviteTeamMember(inv.agencyId, tx);
+        if (!check.ok) return { ok: false as const };
+        await tx.membership.create({
+          data: { userId: user.id, agencyId: inv.agencyId, role: inv.role },
+        });
+      }
+      await tx.teamInvitation.update({
+        where: { id: inv.id },
+        data: { acceptedAt: new Date() },
+      });
+      return { ok: true as const };
+    },
+    { isolationLevel: "Serializable" },
+  );
 
+  if (!result.ok) {
+    return NextResponse.json(
+      {
+        error:
+          "La agencia ya no tiene espacio en su plan para sumarte. Contactá al owner.",
+      },
+      { status: 402 },
+    );
+  }
   return NextResponse.json({ ok: true });
 }

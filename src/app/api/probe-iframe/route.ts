@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lookup as dnsLookup } from "node:dns/promises";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
@@ -12,33 +13,75 @@ export const dynamic = "force-dynamic";
  * - Redes privadas RFC1918: 10/8, 172.16/12, 192.168/16
  * - IPv6 loopback / link-local
  * - .local (mDNS), .internal (común para hosts internos)
- *
- * Esta validación se hace ANTES de hacer fetch — atajamos por host string,
- * suficiente para los vectores comunes. (Para protección completa contra DNS
- * rebinding necesitaríamos resolver DNS y validar la IP; deuda futura.)
  */
 function isBlockedHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   if (h === "localhost" || h === "0.0.0.0" || h === "::" || h === "::1") return true;
   if (h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".localhost")) return true;
-  // IPv4 ranges privados
-  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (v4) {
-    const a = parseInt(v4[1], 10);
-    const b = parseInt(v4[2], 10);
-    if (a === 10) return true; // 10.0.0.0/8
-    if (a === 127) return true; // loopback
-    if (a === 169 && b === 254) return true; // link-local (AWS metadata)
-    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
-    if (a === 192 && b === 168) return true; // 192.168.0.0/16
-    if (a === 0) return true; // 0.0.0.0/8
-    if (a >= 224) return true; // multicast / reserved
-  }
+  if (isBlockedIp(h)) return true;
   // IPv6 link-local fe80::/10
   if (h.startsWith("fe80:") || h.startsWith("[fe80:")) return true;
   // IPv6 loopback / unique local
   if (h === "[::1]" || h.startsWith("[fc") || h.startsWith("[fd")) return true;
   return false;
+}
+
+/**
+ * Chequeo aplicable a una IP literal (resuelta de DNS o pasada directamente).
+ * Separado de isBlockedHost para usar después del DNS resolve y cerrar
+ * vector de DNS rebinding (un attacker registra evil.com → resuelve a
+ * 169.254.169.254; el chequeo de hostname pasaba pero la IP es interna).
+ */
+function isBlockedIp(ip: string): boolean {
+  const v4 = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const a = parseInt(v4[1], 10);
+    const b = parseInt(v4[2], 10);
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 0) return true;
+    if (a >= 224) return true;
+    return false;
+  }
+  // IPv6: simplificado — bloqueamos loopback, link-local, ULA
+  const v6 = ip.toLowerCase();
+  if (v6 === "::1") return true;
+  if (v6.startsWith("fe80:") || v6.startsWith("fc") || v6.startsWith("fd")) return true;
+  // IPv4-mapped IPv6: ::ffff:a.b.c.d
+  const mapped = v6.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (mapped) return isBlockedIp(mapped[1]);
+  return false;
+}
+
+/**
+ * Resuelve DNS y devuelve true si TODAS las IPs resueltas son seguras.
+ * Cierra el vector DNS rebinding: el hostname literal puede ser público,
+ * pero si su A record apunta a 10.0.0.1 / 169.254.169.254, lo bloqueamos.
+ *
+ * Limitación: existe una ventana TOCTOU entre el resolve y el fetch (la
+ * resolución del browser/Node podría refrescarse al hacer el fetch). Para
+ * eliminarla del todo habría que fetchear por IP con header Host, lo cual
+ * rompe SNI / certificados HTTPS. La ventana es de milisegundos y los
+ * resolvers cachean, así que el riesgo residual es bajo.
+ */
+async function resolvedIpsAreSafe(hostname: string): Promise<boolean> {
+  // Si ya es una IP literal, no hace falta DNS — ya validamos en isBlockedHost.
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return !isBlockedIp(hostname);
+  if (hostname.includes(":")) return !isBlockedIp(hostname); // IPv6 literal
+
+  try {
+    // all: true devuelve todas las IPs resueltas (A + AAAA). Si CUALQUIERA es
+    // privada, fallamos cerrado.
+    const records = await dnsLookup(hostname, { all: true, verbatim: true });
+    if (records.length === 0) return false;
+    return records.every((r) => !isBlockedIp(r.address));
+  } catch {
+    // DNS falla → tratamos como inseguro (no podemos confirmar que sea público)
+    return false;
+  }
 }
 
 // Probe a una URL para saber si se puede embeber en un <iframe>.
@@ -67,7 +110,7 @@ export async function GET(req: Request) {
     if (target.protocol !== "http:" && target.protocol !== "https:") {
       return NextResponse.json({ error: "protocolo inválido" }, { status: 400 });
     }
-    // SSRF guard: nada de redes privadas / metadata / loopback
+    // SSRF guard L1: chequeo por hostname string (rápido, atajos comunes)
     if (isBlockedHost(target.hostname)) {
       return NextResponse.json(
         { error: "Host no permitido" },
@@ -76,6 +119,16 @@ export async function GET(req: Request) {
     }
   } catch {
     return NextResponse.json({ error: "url inválida" }, { status: 400 });
+  }
+
+  // SSRF guard L2: resolver DNS y validar que las IPs sean públicas. Cierra
+  // DNS rebinding donde un dominio público resuelve a IP interna.
+  const dnsSafe = await resolvedIpsAreSafe(target.hostname);
+  if (!dnsSafe) {
+    return NextResponse.json(
+      { error: "Host resuelve a IP no permitida" },
+      { status: 400 },
+    );
   }
 
   const ctrl = new AbortController();
@@ -138,11 +191,20 @@ export async function GET(req: Request) {
       }
     }
 
+    // finalUrl recortada al origin para no filtrar paths/queries internos del
+    // sitio probeado (especialmente útil si redirigió a un endpoint sensible).
+    let finalOrigin = "";
+    try {
+      finalOrigin = res.url ? new URL(res.url).origin : "";
+    } catch {
+      finalOrigin = "";
+    }
+
     return NextResponse.json({
       embeddable,
       reason,
       status: res.status,
-      finalUrl: res.url,
+      finalUrl: finalOrigin,
     });
   } catch (err) {
     clearTimeout(timer);

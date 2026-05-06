@@ -36,10 +36,38 @@ export async function POST(
     return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
   }
 
-  // Plan limits enforcement: el plan free permite 1 cliente por marca.
-  // Cada acceso por share link cuenta como un cliente.
-  const check = await canInviteClient(brand.id);
-  if (!check.ok) {
+  const guestId = randomBytes(8).toString("hex");
+  const email = `guest_${guestId}@guest.local`;
+  const passwordHash = await hashPassword(randomBytes(16).toString("hex"));
+
+  // Plan limits enforcement + create en una Serializable transaction. Sin esto
+  // múltiples accesos paralelos al share link podían pasar ambos el check
+  // y generar más clients de los que el plan permite.
+  const txResult = await prisma.$transaction(
+    async (tx) => {
+      const check = await canInviteClient(brand.id, tx);
+      if (!check.ok) return { ok: false as const };
+      const created = await tx.user.create({
+        data: {
+          name: body.name,
+          email,
+          passwordHash,
+          role: "client",
+          memberships: {
+            create: {
+              agencyId: brand.agencyId,
+              brandId: brand.id,
+              role: "client",
+            },
+          },
+        },
+      });
+      return { ok: true as const, user: created };
+    },
+    { isolationLevel: "Serializable" },
+  );
+
+  if (!txResult.ok) {
     return NextResponse.json(
       {
         error:
@@ -48,26 +76,7 @@ export async function POST(
       { status: 402 },
     );
   }
-
-  const guestId = randomBytes(8).toString("hex");
-  const email = `guest_${guestId}@guest.local`;
-  const passwordHash = await hashPassword(randomBytes(16).toString("hex"));
-
-  const user = await prisma.user.create({
-    data: {
-      name: body.name,
-      email,
-      passwordHash,
-      role: "client",
-      memberships: {
-        create: {
-          agencyId: brand.agencyId,
-          brandId: brand.id,
-          role: "client",
-        },
-      },
-    },
-  });
+  const user = txResult.user;
 
   await createSession(user.id, {
     userAgent: req.headers.get("user-agent"),

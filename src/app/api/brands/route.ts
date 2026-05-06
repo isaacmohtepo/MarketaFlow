@@ -27,28 +27,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Solo agencias pueden crear marcas" }, { status: 403 });
   }
 
-  // Plan limits enforcement: chequea si la agency puede crear otra marca.
-  // Devuelve 402 (Payment Required) con la razón legible para que el cliente
-  // muestre el modal de upgrade.
-  const check = await canCreateBrand(owner.agencyId);
-  if (!check.ok) {
+  // Plan limits enforcement con Serializable transaction para cerrar la
+  // race condition (TOCTOU). Sin esto, dos POST paralelos pasarían ambos
+  // el `count < limit` y crearían ambos. Postgres en Serializable detecta
+  // el conflicto y aborta una de las dos con error de serialización.
+  const result = await prisma.$transaction(
+    async (tx) => {
+      const check = await canCreateBrand(owner.agencyId, tx);
+      if (!check.ok) {
+        return { ok: false as const, check };
+      }
+      const brand = await tx.brand.create({
+        data: {
+          name: body.name,
+          handle: body.handle || null,
+          agencyId: owner.agencyId,
+        },
+      });
+      return { ok: true as const, brand };
+    },
+    { isolationLevel: "Serializable" },
+  );
+
+  if (!result.ok) {
     return NextResponse.json(
       {
-        error: check.reason,
-        currentCount: check.currentCount,
-        limit: check.limit,
-        suggestedPlan: check.suggestedPlan,
+        error: result.check.reason,
+        currentCount: result.check.currentCount,
+        limit: result.check.limit,
+        suggestedPlan: result.check.suggestedPlan,
       },
       { status: 402 },
     );
   }
-
-  const brand = await prisma.brand.create({
-    data: {
-      name: body.name,
-      handle: body.handle || null,
-      agencyId: owner.agencyId,
-    },
-  });
-  return NextResponse.json({ id: brand.id });
+  return NextResponse.json({ id: result.brand.id });
 }
