@@ -1,16 +1,20 @@
+import Link from "next/link";
+import { ArrowRight, KeyRound } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { hasMasterKey } from "@/lib/encryption";
 
 /**
  * Admin → Resumen. Stats globales de MarketaFlow.
  */
 export default async function AdminSummary() {
-  const [totalAgencies, totalUsers, activeSubs, trialingSubs, totalBrands] =
+  const [totalAgencies, totalUsers, activeSubs, trialingSubs, totalBrands, masterKeyReady] =
     await Promise.all([
       prisma.agency.count(),
       prisma.user.count(),
       prisma.subscription.count({ where: { status: "active" } }),
       prisma.subscription.count({ where: { status: "trialing" } }),
       prisma.brand.count(),
+      hasMasterKey(),
     ]);
 
   const stats = [
@@ -22,7 +26,28 @@ export default async function AdminSummary() {
   ];
 
   return (
-    <section className="card p-6">
+    <>
+      {!masterKeyReady && (
+        <Link
+          href="/admin/setup"
+          className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 to-rose-50 p-4 transition hover:border-amber-400 hover:shadow-sm"
+        >
+          <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-sm">
+            <KeyRound className="h-5 w-5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13.5px] font-semibold text-zinc-900">
+              Setup pendiente: generá la master key
+            </p>
+            <p className="text-[12px] text-zinc-700">
+              Antes de poder configurar pasarelas de pago, necesitás crear la
+              llave que las encripta. Es un click.
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 flex-shrink-0 text-amber-600" />
+        </Link>
+      )}
+      <section className="card p-6">
       <h2 className="text-sm font-semibold text-zinc-900">Resumen</h2>
       <p className="mt-1 text-xs text-zinc-500">
         Snapshot del estado actual de la plataforma.
@@ -43,5 +68,6 @@ export default async function AdminSummary() {
         ))}
       </div>
     </section>
+    </>
   );
 }

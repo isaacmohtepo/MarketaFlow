@@ -53,7 +53,7 @@ export async function getActiveConfig<T = unknown>(
     where: { provider, environment, enabled: true },
   });
   if (!row) return null;
-  return decryptJson<T>(row.encryptedConfig);
+  return await decryptJson<T>(row.encryptedConfig);
 }
 
 /** Lista todas las configs (sin desencriptar) para el admin panel. */
@@ -86,7 +86,7 @@ export async function upsertConfig(args: {
   publicMeta?: unknown;
   enabled?: boolean;
 }) {
-  const encryptedConfig = encryptJson(args.config);
+  const encryptedConfig = await encryptJson(args.config);
   return prisma.integrationConfig.upsert({
     where: {
       provider_environment: {

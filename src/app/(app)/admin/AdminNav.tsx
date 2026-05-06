@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Users, BarChart3, LayoutGrid } from "lucide-react";
+import { CreditCard, Users, BarChart3, LayoutGrid, KeyRound } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "Resumen", icon: LayoutGrid, desc: "Stats globales" },
+  {
+    slug: "setup",
+    label: "Setup",
+    icon: KeyRound,
+    desc: "Master key de encriptación",
+  },
   {
     slug: "integrations",
     label: "Integraciones",

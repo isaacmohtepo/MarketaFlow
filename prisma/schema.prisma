@@ -68,6 +68,17 @@ model Agency {
 /// Suscripción 1:1 con Agency. Define qué plan tiene activo, su estado de
 /// facturación y add-ons. Lazy-created como "free / active" la primera vez
 /// que se consulta para un agency que no tiene fila todavía.
+/// Configuración global del sistema. Guardamos en este KV table cosas como la
+/// master key de encriptación (para que el admin panel no necesite tocar env
+/// vars en Vercel). Solo el código del servidor lee/escribe acá.
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// Configuración de integraciones externas (pasarelas de pago, providers de
 /// email, AI, etc.) gestionadas desde el admin panel. Las llaves privadas
 /// se guardan ENCRIPTADAS con AES-256-GCM (master key en env). El campo
