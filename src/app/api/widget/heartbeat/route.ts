@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { notifyBrandAgency } from "@/lib/notifications";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,20 @@ function normalizeUrl(raw: string): string {
 }
 
 export async function POST(req: Request) {
+  // Heartbeat es chatty (cada carga de página del widget). Limitamos a 60/min
+  // por IP — suficiente para uso legítimo, frena flood obvio.
+  const rl = rateLimit(req, {
+    key: "widget-heartbeat",
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many heartbeats" },
+      { status: 429, headers: CORS },
+    );
+  }
+
   let payload: {
     token?: string;
     pageUrl?: string;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,20 @@ export function OPTIONS() {
 // Si coinciden ambos en la misma brand, devuelve {ok, brandName}.
 // Lo llama el widget cuando detecta ?mfreview=<token> en la URL.
 export async function POST(req: Request) {
+  // Rate limit: 20/min por IP — el widget llama esto 1 vez por carga,
+  // 20 cubre uso real y bloquea attempts de brute force de tokens.
+  const rl = rateLimit(req, {
+    key: "widget-auth-review",
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many attempts" },
+      { status: 429, headers: CORS },
+    );
+  }
+
   let body: { widgetToken?: string; reviewToken?: string };
   try {
     body = await req.json();

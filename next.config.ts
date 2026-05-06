@@ -28,14 +28,29 @@ const R2_HOST = "https://pub-77b716a803224625943a1a96c345eb45.r2.dev";
 const WOMPI_HOSTS = "https://*.wompi.co https://*.wompi.com";
 const VERCEL_HOSTS = "https://*.vercel-analytics.com https://vitals.vercel-insights.com";
 
+/**
+ * CSP en producción. En dev (NODE_ENV !== production) Next necesita
+ * 'unsafe-eval' para HMR/refresh, así que lo agregamos condicionalmente.
+ *
+ * frame-src amplio (https:, http:): el WebDesignBoard embebe el sitio
+ * staging del CLIENTE de la agencia — esa URL es arbitraria. Necesitamos
+ * permitir cualquier https. Esto NO es un riesgo de XSS porque iframes
+ * cross-origin están sandboxed por el navegador.
+ *
+ * connect-src amplio (https:): mismo motivo — el iframe del cliente puede
+ * hacer fetches a sus propios servicios; nuestro frontend no controla eso.
+ */
+const isDev = process.env.NODE_ENV !== "production";
+
 const CSP = [
   `default-src 'self'`,
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VERCEL_HOSTS}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${VERCEL_HOSTS}`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-  `img-src 'self' data: blob: ${R2_HOST} ${WOMPI_HOSTS}`,
+  `img-src 'self' data: blob: https: ${R2_HOST}`,
   `font-src 'self' data: https://fonts.gstatic.com`,
-  `connect-src 'self' ${R2_HOST} ${WOMPI_HOSTS} ${VERCEL_HOSTS}`,
-  `frame-src 'self' ${WOMPI_HOSTS}`,
+  `media-src 'self' data: blob: https: ${R2_HOST}`,
+  `connect-src 'self' https: ${R2_HOST} ${WOMPI_HOSTS} ${VERCEL_HOSTS}`,
+  `frame-src 'self' https: ${WOMPI_HOSTS}`,
   `frame-ancestors 'self'`,
   `base-uri 'self'`,
   `form-action 'self' ${WOMPI_HOSTS}`,
