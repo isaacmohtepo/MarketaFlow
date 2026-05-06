@@ -102,6 +102,7 @@ model Agency {
   brands       Brand[]
   members      Membership[]
   invitations  TeamInvitation[]
+  customRoles  Role[]
   subscription Subscription?
 }
 
@@ -407,12 +408,35 @@ model Membership {
   userId   String
   agencyId String
   brandId  String?
+  /// Slug del rol. Puede ser un system role hardcodeado en
+  /// src/lib/permissions.ts (owner, manager, community_manager, designer,
+  /// copywriter, strategist, client) o el slug de un Role custom de la
+  /// agency. Para resolver permisos, usar hasPermission() del lib.
   role     String
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   agency   Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   brand    Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@unique([userId, agencyId, brandId])
+}
+
+/// Roles custom definidos por una agency. Los system roles NO viven aquí
+/// (están hardcodeados en src/lib/permissions.ts). El slug se genera del
+/// name y debe ser único por agency. permissions es un array de strings
+/// que matchean el catálogo de PERMISSIONS del lib.
+model Role {
+  id          String   @id @default(cuid())
+  agencyId    String
+  name        String
+  slug        String
+  description String?
+  permissions String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  agency      Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, slug])
+  @@index([agencyId])
 }
 
 model Brand {

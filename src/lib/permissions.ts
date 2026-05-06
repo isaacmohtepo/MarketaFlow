@@ -1,4 +1,124 @@
+/**
+ * RBAC central de MarketaFlow — server-side helpers.
+ *
+ * El catálogo + system roles vive en `./permissions-data` (sin imports de
+ * server). Este archivo agrega los helpers que tocan DB. Para resolver
+ * permisos en código nuevo, usar `hasPermission()`.
+ *
+ * Nota legacy: este archivo también exportaba `getBrandAccess` /
+ * `getPostAccess` / `listUserBrands` con flags `canEdit/canApprove`. Siguen
+ * existiendo para no romper código viejo, pero ahora computan los flags
+ * vía el catálogo de permisos.
+ */
 import { prisma } from "./db";
+import {
+  ALL_PERMISSIONS,
+  PERMISSION_GROUPS,
+  POSTS_WRITE_PERMS,
+  SYSTEM_ROLES,
+  ASSIGNABLE_SYSTEM_ROLES,
+  isSystemRole,
+  getSystemRole,
+  slugifyRoleName,
+  type Permission,
+  type SystemRoleSlug,
+  type SystemRoleDef,
+} from "./permissions-data";
+
+// Re-exports para que código existente no se rompa
+export {
+  ALL_PERMISSIONS,
+  PERMISSION_GROUPS,
+  SYSTEM_ROLES,
+  ASSIGNABLE_SYSTEM_ROLES,
+  isSystemRole,
+  getSystemRole,
+  slugifyRoleName,
+};
+export type { Permission, SystemRoleSlug, SystemRoleDef };
+
+// ============================================================================
+// Resolución de permisos
+// ============================================================================
+
+/**
+ * Devuelve el set de permisos de un role slug. Primero contra system roles
+ * (in-memory), si no matchea busca custom Role en DB. Deny-by-default si no
+ * existe.
+ */
+export async function permissionsForRole(
+  agencyId: string,
+  roleSlug: string,
+): Promise<readonly string[]> {
+  const sys = SYSTEM_ROLES[roleSlug as SystemRoleSlug];
+  if (sys) return sys.permissions;
+  const custom = await prisma.role.findUnique({
+    where: { agencyId_slug: { agencyId, slug: roleSlug } },
+    select: { permissions: true },
+  });
+  return custom?.permissions ?? [];
+}
+
+/**
+ * ¿El user tiene `perm` en esta agency? Si pasás brandId, también acepta
+ * memberships brand-level con ese brandId (scope por marca).
+ */
+export async function hasPermission(
+  userId: string,
+  agencyId: string,
+  perm: Permission | string,
+  brandId?: string | null,
+): Promise<boolean> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId, agencyId },
+    select: { role: true, brandId: true },
+  });
+  if (memberships.length === 0) return false;
+
+  for (const m of memberships) {
+    if (m.brandId !== null && m.brandId !== brandId) continue;
+    const perms = await permissionsForRole(agencyId, m.role);
+    if (perms.includes(perm)) return true;
+  }
+  return false;
+}
+
+export async function requirePermission(
+  userId: string,
+  agencyId: string,
+  perm: Permission | string,
+  brandId?: string | null,
+): Promise<void> {
+  const ok = await hasPermission(userId, agencyId, perm, brandId);
+  if (!ok) throw new PermissionError(perm);
+}
+
+export class PermissionError extends Error {
+  constructor(public perm: string) {
+    super(`Falta permiso: ${perm}`);
+    this.name = "PermissionError";
+  }
+}
+
+export async function getUserPermissions(
+  userId: string,
+  agencyId: string,
+): Promise<Set<string>> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId, agencyId, brandId: null },
+    select: { role: true },
+  });
+  const out = new Set<string>();
+  for (const m of memberships) {
+    const perms = await permissionsForRole(agencyId, m.role);
+    perms.forEach((p) => out.add(p));
+  }
+  return out;
+}
+
+// ============================================================================
+// Legacy helpers
+// ============================================================================
 
 export type BrandAccess = {
   brandId: string;
@@ -8,7 +128,10 @@ export type BrandAccess = {
   canApprove: boolean;
 };
 
-export async function getBrandAccess(userId: string, brandId: string): Promise<BrandAccess | null> {
+export async function getBrandAccess(
+  userId: string,
+  brandId: string,
+): Promise<BrandAccess | null> {
   const brand = await prisma.brand.findUnique({ where: { id: brandId } });
   if (!brand) return null;
 
@@ -21,18 +144,30 @@ export async function getBrandAccess(userId: string, brandId: string): Promise<B
   });
   if (memberships.length === 0) return null;
 
-  const role =
-    memberships.find((m) => m.role === "owner")?.role ??
-    memberships.find((m) => m.role === "editor")?.role ??
-    memberships[0].role;
-
-  return {
-    brandId: brand.id,
-    agencyId: brand.agencyId,
-    role,
-    canEdit: role === "owner" || role === "editor",
-    canApprove: role === "client" || role === "owner",
+  const ROLE_RANK: Record<string, number> = {
+    owner: 100,
+    manager: 90,
+    community_manager: 80,
+    editor: 80, // legacy alias
+    designer: 70,
+    copywriter: 70,
+    strategist: 60,
+    client: 50,
   };
+  const sorted = [...memberships].sort(
+    (a, b) => (ROLE_RANK[b.role] ?? 10) - (ROLE_RANK[a.role] ?? 10),
+  );
+  const role = sorted[0].role;
+
+  let canEdit = false;
+  let canApprove = false;
+  for (const m of memberships) {
+    const perms = await permissionsForRole(brand.agencyId, m.role);
+    if (POSTS_WRITE_PERMS.some((p) => perms.includes(p))) canEdit = true;
+    if (m.role === "client" || m.role === "owner") canApprove = true;
+  }
+
+  return { brandId: brand.id, agencyId: brand.agencyId, role, canEdit, canApprove };
 }
 
 export async function getPostAccess(userId: string, postId: string) {
@@ -68,7 +203,9 @@ export async function listUserBrands(userId: string) {
         logoUrl: m.brand.logoUrl,
         color: m.brand.color,
       });
-    } else if (!m.brand && (m.role === "owner" || m.role === "editor")) {
+    } else if (!m.brand) {
+      const perms = await permissionsForRole(m.agencyId, m.role);
+      if (!perms.includes("posts.view")) continue;
       const ab = await prisma.brand.findMany({ where: { agencyId: m.agencyId } });
       for (const b of ab) {
         if (!brandIds.has(b.id)) {
