@@ -1,16 +1,26 @@
-import { CheckCircle2, KeyRound, AlertTriangle } from "lucide-react";
+import { CheckCircle2, KeyRound, AlertTriangle, ScrollText } from "lucide-react";
 import { hasMasterKey } from "@/lib/encryption";
+import { prisma } from "@/lib/db";
 import GenerateKeyButton from "./GenerateKeyButton";
+import KeyManagementSection from "./KeyManagementSection";
 
 /**
  * Admin → Setup. Genera la master key de encriptación que protege las llaves
- * de pasarelas de pago. Se ejecuta una sola vez en el primer setup.
+ * de pasarelas de pago. Se ejecuta una sola vez en el primer setup. Después
+ * permite rotar la key y exportarla para backup.
  *
  * La key se guarda en `SystemConfig` table (no en env vars), para que admins
  * puedan hacer setup desde el panel sin tocar Vercel.
  */
 export default async function AdminSetup() {
   const ready = await hasMasterKey();
+  const [configsCount, rotations] = await Promise.all([
+    prisma.integrationConfig.count(),
+    prisma.keyRotationLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -38,20 +48,40 @@ export default async function AdminSetup() {
         </div>
 
         {ready ? (
-          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-            <p className="text-[13.5px] font-semibold text-emerald-900">
-              ✓ Master key activa
-            </p>
-            <p className="mt-1 text-[12px] text-emerald-800">
-              Ya podés ir a{" "}
-              <a
-                href="/admin/integrations"
-                className="font-semibold underline hover:no-underline"
-              >
-                Integraciones
-              </a>{" "}
-              y configurar tus pasarelas de pago.
-            </p>
+          <div className="mt-5 space-y-4">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+              <p className="text-[13.5px] font-semibold text-emerald-900">
+                ✓ Master key activa
+              </p>
+              <p className="mt-1 text-[12px] text-emerald-800">
+                {configsCount > 0 ? (
+                  <>
+                    Encriptando {configsCount}{" "}
+                    {configsCount === 1 ? "integración" : "integraciones"}. Las
+                    llaves de Wompi/Stripe que guardás en{" "}
+                    <a
+                      href="/admin/integrations"
+                      className="font-semibold underline hover:no-underline"
+                    >
+                      Integraciones
+                    </a>{" "}
+                    están protegidas con esta key.
+                  </>
+                ) : (
+                  <>
+                    Configurada y lista. Ya podés ir a{" "}
+                    <a
+                      href="/admin/integrations"
+                      className="font-semibold underline hover:no-underline"
+                    >
+                      Integraciones
+                    </a>{" "}
+                    a configurar pasarelas de pago.
+                  </>
+                )}
+              </p>
+            </div>
+            <KeyManagementSection configsCount={configsCount} />
           </div>
         ) : (
           <div className="mt-5 space-y-4">
@@ -104,6 +134,47 @@ export default async function AdminSetup() {
           </li>
         </ul>
       </section>
+
+      {ready && rotations.length > 0 && (
+        <section className="card p-6">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-zinc-400" />
+            <h3 className="text-sm font-semibold text-zinc-900">
+              Historial de rotaciones
+            </h3>
+          </div>
+          <ul className="mt-3 divide-y divide-zinc-100">
+            {rotations.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 py-2.5 text-[12.5px]"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-zinc-900">{r.rotatedByEmail}</p>
+                  {r.reason && (
+                    <p className="mt-0.5 truncate text-[11px] italic text-zinc-500">
+                      "{r.reason}"
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-shrink-0 items-center gap-2 text-zinc-500">
+                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-700">
+                    {r.configsReEncrypted}{" "}
+                    {r.configsReEncrypted === 1 ? "config" : "configs"}
+                  </span>
+                  <span className="text-[11px] tabular-nums">
+                    {r.createdAt.toLocaleDateString("es", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card p-6">
         <h3 className="text-sm font-semibold text-zinc-900">⚠ Importante</h3>

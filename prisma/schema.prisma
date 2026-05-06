@@ -79,6 +79,23 @@ model SystemConfig {
   updatedAt DateTime @updatedAt
 }
 
+/// Audit log de rotaciones de master key. Cada vez que un admin rota,
+/// guardamos quién + cuándo + cuántas integraciones se re-encriptaron.
+/// Útil para compliance (SOC 2, ISO 27001) y debugging.
+model KeyRotationLog {
+  id                String   @id @default(cuid())
+  rotatedByUserId   String
+  rotatedByEmail    String
+  /// Cantidad de IntegrationConfig que se re-encriptaron en esta rotación.
+  configsReEncrypted Int     @default(0)
+  /// Si la rotación pidió un motivo (ej. "sospecha de fuga", "rotación de
+  /// rutina"), lo guardamos para audit.
+  reason            String?
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 /// Configuración de integraciones externas (pasarelas de pago, providers de
 /// email, AI, etc.) gestionadas desde el admin panel. Las llaves privadas
 /// se guardan ENCRIPTADAS con AES-256-GCM (master key en env). El campo
