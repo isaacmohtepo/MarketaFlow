@@ -2,7 +2,7 @@ import type { Post } from "@/generated/prisma";
 import { publishToInstagram } from "./instagram";
 
 export type PublishResult =
-  | { ok: true; url: string }
+  | { ok: true; url: string; mediaId?: string }
   | { ok: false; error: string };
 
 export async function publishPost(

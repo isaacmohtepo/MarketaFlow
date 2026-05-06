@@ -21,6 +21,9 @@ model User {
   /// Timezone IANA (ej. "America/Bogota"). Usado para formatear fechas en
   /// emails y en la UI cuando importa la zona horaria del user.
   timezone           String?
+  /// Idioma preferido (ISO 639-1: "es", "en"). Default null → resuelve a
+  /// "es" desde la app. Affecta UI strings + emails.
+  locale             String?
   /// Soft-disable: si está seteado, el user no puede loguearse y se invalidan
   /// todas sus sesiones. Mantenemos la row para auditoría — distinto de borrar.
   /// Los handlers de auth chequean esto al crear/validar sesión.
@@ -505,6 +508,14 @@ model Post {
   publishedAt  DateTime?
   publishedUrl String?
   publishError String?
+  /// IG Media ID retornado por Meta al publicar — usado para llamar a
+  /// /v21.0/{media-id}/insights y traer likes/comments/reach.
+  igMediaId    String?
+  /// Insights cacheados (likes, comments, reach, impressions, etc.) JSON.
+  /// Refrescados periódicamente con /api/posts/[id]/insights.
+  insights     Json?
+  /// Timestamp del último fetch de insights (para evitar spam de la API).
+  insightsRefreshedAt DateTime?
   deletedAt   DateTime?
   position    Int        @default(0)
   status      String     @default("draft")

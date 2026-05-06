@@ -41,6 +41,7 @@ export async function runScheduledPublishes() {
           publishedAt: new Date(),
           publishedUrl: result.url,
           publishError: null,
+          igMediaId: result.mediaId ?? null,
         },
       });
       await notifyBrandClients({

@@ -99,7 +99,11 @@ export async function publishToInstagram(
     // Obtener permalink
     const permalink = await getPermalink(publishJson.id, accessToken);
 
-    return { ok: true, url: permalink ?? `https://instagram.com/p/${publishJson.id}` };
+    return {
+      ok: true,
+      url: permalink ?? `https://instagram.com/p/${publishJson.id}`,
+      mediaId: publishJson.id,
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, error: msg };

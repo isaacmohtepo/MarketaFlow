@@ -27,6 +27,7 @@ import BrandsAccessList from "./BrandsAccessList";
 import DangerZone from "./DangerZone";
 import AccountTabs from "./AccountTabs";
 import TimezoneSelector from "./TimezoneSelector";
+import LanguageSelector from "./LanguageSelector";
 import DownloadDataButton from "./DownloadDataButton";
 import TwoFactorSetup from "./TwoFactorSetup";
 
@@ -51,6 +52,7 @@ export default async function AccountPage({
         role: true,
         emailNotifications: true,
         timezone: true,
+        locale: true,
         passwordChangedAt: true,
         totpEnabledAt: true,
         createdAt: true,
@@ -173,6 +175,14 @@ export default async function AccountPage({
               subtitle="Para mostrar fechas correctamente en emails y la UI."
             >
               <TimezoneSelector initial={full?.timezone ?? null} />
+            </Section>
+
+            <Section
+              icon={<Globe className="h-3.5 w-3.5" />}
+              title="Idioma"
+              subtitle="Idioma de la interfaz. Migración incremental — algunos textos siguen en español."
+            >
+              <LanguageSelector initial={full?.locale ?? null} />
             </Section>
 
             <Section

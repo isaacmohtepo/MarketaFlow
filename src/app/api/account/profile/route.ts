@@ -29,6 +29,8 @@ const schema = z.object({
     )
     .nullable()
     .optional(),
+  // Idioma de UI: ISO 639-1. Solo aceptamos los soportados.
+  locale: z.enum(["es", "en"]).nullable().optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -48,6 +50,7 @@ export async function PATCH(req: Request) {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.avatarUrl !== undefined ? { avatarUrl: body.avatarUrl } : {}),
       ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
+      ...(body.locale !== undefined ? { locale: body.locale } : {}),
     },
     select: {
       id: true,
@@ -55,6 +58,7 @@ export async function PATCH(req: Request) {
       avatarUrl: true,
       email: true,
       timezone: true,
+      locale: true,
     },
   });
 

@@ -85,8 +85,13 @@ function buildSections({
           icon: Calendar,
           match: (p) => p.startsWith("/calendar"),
         },
-        { label: "Plantillas", href: "/templates", icon: Sparkles, soon: true },
-        { label: "Métricas", href: "/metrics", icon: BarChart3, soon: true },
+        { label: "Plantillas", href: "/templates", icon: Sparkles, match: (p) => p.startsWith("/templates") },
+        {
+          label: "Métricas",
+          href: "/metrics",
+          icon: BarChart3,
+          match: (p) => p === "/metrics",
+        },
       ],
     },
     {

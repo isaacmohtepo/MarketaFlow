@@ -14,6 +14,12 @@ import {
   Search,
   Settings,
   User,
+  Calendar,
+  Sparkles,
+  BarChart3,
+  HelpCircle,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 import { useModKey } from "@/lib/platform";
@@ -56,8 +62,20 @@ const NAV: NavItem[] = [
   { kind: "nav", key: "n-dash", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { kind: "nav", key: "n-brands", label: "Marcas", href: "/brands", icon: Layers },
   { kind: "nav", key: "n-inbox", label: "Inbox", href: "/inbox", icon: Inbox },
-  { kind: "nav", key: "n-account", label: "Cuenta", href: "/account", icon: Settings },
+  { kind: "nav", key: "n-calendar", label: "Calendario", href: "/calendar", icon: Calendar },
+  { kind: "nav", key: "n-templates", label: "Plantillas", href: "/templates", icon: Sparkles },
+  { kind: "nav", key: "n-metrics", label: "Métricas", href: "/metrics", icon: BarChart3 },
   { kind: "nav", key: "n-team", label: "Equipo", href: "/team", icon: User },
+  { kind: "nav", key: "n-billing", label: "Facturación", href: "/billing", icon: CreditCard },
+  { kind: "nav", key: "n-account", label: "Cuenta", href: "/account", icon: Settings },
+  { kind: "nav", key: "n-help", label: "Ayuda", href: "/help", icon: HelpCircle },
+  // Admin (solo aparecen al admin pero no podemos chequear aquí — el filtro
+  // visual lo hace el sidebar; estos links igual van al panel y si el user
+  // no es admin, /admin redirige a /dashboard).
+  { kind: "nav", key: "n-admin", label: "Panel admin", href: "/admin", icon: Shield },
+  { kind: "nav", key: "n-admin-users", label: "Admin · Usuarios", href: "/admin/users", icon: User },
+  { kind: "nav", key: "n-admin-agencies", label: "Admin · Agencias", href: "/admin/agencies", icon: Layers },
+  { kind: "nav", key: "n-admin-settings", label: "Admin · Configuración", href: "/admin/settings", icon: Settings },
 ];
 
 export default function CommandPalette() {
