@@ -57,6 +57,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
+  // Idempotency: cada evento Wompi tiene un `id` (en Wompi se llama
+  // `signature.checksum` o `data.transaction.id` dependiendo del tipo).
+  // Para `transaction.updated` usamos transaction.id como dedup key.
+  // Si ya lo procesamos, devolvemos 200 sin re-ejecutar (Wompi acepta el
+  // ack y no reintenta).
+  const externalId =
+    payload.data?.transaction?.id ??
+    `${payload.event}:${payload.timestamp ?? ""}`;
+  if (externalId) {
+    try {
+      await prisma.webhookEvent.create({
+        data: {
+          provider: "wompi",
+          externalId,
+          eventType: payload.event,
+        },
+      });
+    } catch (err) {
+      // Unique constraint violation = ya procesado. Devolvemos OK silently.
+      const e = err as { code?: string };
+      if (e.code === "P2002") {
+        return NextResponse.json({ ok: true, deduped: true });
+      }
+      throw err;
+    }
+  }
+
   // Wompi envía varios tipos de eventos; el más importante es transaction.updated
   if (payload.event === "transaction.updated") {
     await handleTransactionUpdated(payload.data?.transaction);

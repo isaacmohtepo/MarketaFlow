@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Users, BarChart3, LayoutGrid, KeyRound } from "lucide-react";
+import { CreditCard, Users, BarChart3, LayoutGrid, KeyRound, ScrollText } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "Resumen", icon: LayoutGrid, desc: "Stats globales" },
@@ -17,6 +17,12 @@ const NAV = [
     label: "Integraciones",
     icon: CreditCard,
     desc: "Pasarelas y APIs externas",
+  },
+  {
+    slug: "audit-log",
+    label: "Audit log",
+    icon: ScrollText,
+    desc: "Eventos sensibles",
   },
   { slug: "agencies", label: "Agencias", icon: Users, desc: "Tenants y suscripciones" },
   { slug: "metrics", label: "Métricas", icon: BarChart3, desc: "MRR, churn, etc." },

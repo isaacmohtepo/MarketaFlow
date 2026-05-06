@@ -79,6 +79,26 @@ model SystemConfig {
   updatedAt DateTime @updatedAt
 }
 
+/// Idempotency log de webhooks externos (Wompi, Stripe, etc.). Cada vez
+/// que recibimos un evento con `id` único, lo registramos. Si llega el
+/// mismo `id` después (Wompi reintenta hasta 3 veces), lo ignoramos sin
+/// re-procesar. Cubre el caso "Wompi reenvió APPROVED por timeout pero ya
+/// marcamos invoice paid".
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  /// Provider: "wompi" | "stripe" | etc.
+  provider    String
+  /// ID del evento del provider — debe ser unique por provider.
+  externalId  String
+  /// Tipo del evento (ej. "transaction.updated"). Solo informativo.
+  eventType   String?
+  /// Cuándo lo procesamos (para detectar replays viejos si pasan +24h)
+  receivedAt  DateTime @default(now())
+
+  @@unique([provider, externalId])
+  @@index([receivedAt])
+}
+
 /// Audit log genérico para acciones sensibles (cambio de role, billing,
 /// integraciones, etc.). Compliance-friendly: cada operación que modifica
 /// permisos o estado de pago debería loggear acá.

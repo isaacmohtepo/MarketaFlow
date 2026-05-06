@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, appUrl } from "@/lib/email";
 import { canInviteTeamMember } from "@/lib/billing";
+import { audit } from "@/lib/audit";
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -122,6 +123,20 @@ export async function POST(req: Request) {
       role: body.role,
       expiresAt,
     },
+  });
+
+  audit({
+    category: "team",
+    action: "invitation.sent",
+    actorUserId: user.id,
+    actorEmail: user.email,
+    targetId: inv.id,
+    metadata: {
+      agencyId: owner.agencyId,
+      invitedEmail: body.email,
+      role: body.role,
+    },
+    req,
   });
 
   const acceptUrl = appUrl(`/team/accept/${inv.token}`);

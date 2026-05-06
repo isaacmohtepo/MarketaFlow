@@ -11,11 +11,38 @@ import type { NextConfig } from "next";
  * - Referrer-Policy: strict-origin-when-cross-origin → no leak de paths
  *   privados a terceros via Referer.
  * - Permissions-Policy: deshabilita features peligrosas que no usamos.
+ * - Content-Security-Policy: restringe orígenes de scripts/imágenes/etc.
+ *   Permitimos:
+ *   • script-src: self + 'unsafe-inline' (Next inline scripts) + Vercel analytics
+ *   • style-src: self + 'unsafe-inline' (Tailwind runtime + Geist)
+ *   • img-src: self, data:, R2 público, Wompi (logos checkout)
+ *   • frame-src: self + Wompi checkout
+ *   • connect-src: self + R2, Wompi APIs, Vercel
+ *   • frame-ancestors: 'self' — no permite que MarketaFlow sea embebido
+ *     en otros sitios (clickjacking)
  *
- * NO ponemos Content-Security-Policy global todavía — colidiría con Vercel
- * analytics y los iframes del web feedback. Es deuda futura: diseñar un
- * nonce-based CSP con cuidado.
+ * Evitamos 'strict-dynamic' por la complejidad de nonces con Next 16. Esta
+ * policy es "moderada estricta" — bloquea la mayoría de XSS sin romper la app.
  */
+const R2_HOST = "https://pub-77b716a803224625943a1a96c345eb45.r2.dev";
+const WOMPI_HOSTS = "https://*.wompi.co https://*.wompi.com";
+const VERCEL_HOSTS = "https://*.vercel-analytics.com https://vitals.vercel-insights.com";
+
+const CSP = [
+  `default-src 'self'`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VERCEL_HOSTS}`,
+  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  `img-src 'self' data: blob: ${R2_HOST} ${WOMPI_HOSTS}`,
+  `font-src 'self' data: https://fonts.gstatic.com`,
+  `connect-src 'self' ${R2_HOST} ${WOMPI_HOSTS} ${VERCEL_HOSTS}`,
+  `frame-src 'self' ${WOMPI_HOSTS}`,
+  `frame-ancestors 'self'`,
+  `base-uri 'self'`,
+  `form-action 'self' ${WOMPI_HOSTS}`,
+  `object-src 'none'`,
+  `upgrade-insecure-requests`,
+].join("; ");
+
 const SECURITY_HEADERS = [
   {
     key: "Strict-Transport-Security",
@@ -28,6 +55,7 @@ const SECURITY_HEADERS = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), payment=()",
   },
+  { key: "Content-Security-Policy", value: CSP },
 ];
 
 const nextConfig: NextConfig = {

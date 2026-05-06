@@ -3,7 +3,18 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 
-const COOKIE = "mf_session";
+/**
+ * Nombre de la cookie de sesión. El prefijo `__Host-` agrega garantías:
+ * - Forzosamente Secure (HTTPS) ✓ ya teníamos en prod
+ * - Path=/ obligatorio ✓ ya teníamos
+ * - NO permite Domain (cookie pegada al host exacto, no a subdominios)
+ *
+ * En dev (HTTP) el browser ignora el prefix y la cookie no se setea —
+ * por eso usamos COOKIE_DEV en development.
+ */
+const COOKIE_PROD = "__Host-mf_session";
+const COOKIE_DEV = "mf_session";
+const COOKIE = process.env.NODE_ENV === "production" ? COOKIE_PROD : COOKIE_DEV;
 const SESSION_DAYS = 30;
 
 export async function hashPassword(plain: string) {
@@ -57,7 +68,32 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
+/**
+ * Devuelve el user actual SIN relations cargadas. Versión liviana — usar
+ * por default. Si necesitás memberships/brands, llamá
+ * `getCurrentUserWithMemberships`.
+ *
+ * Performance: 1 JOIN session×user en vez de 4 niveles. Reducir el payload
+ * también baja el riesgo de leak de info via logs accidentales del objeto.
+ */
 export async function getCurrentUser() {
+  const jar = await cookies();
+  const token = jar.get(COOKIE)?.value;
+  if (!token) return null;
+  const session = await prisma.session.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+  if (!session || session.expiresAt < new Date()) return null;
+  return session.user;
+}
+
+/**
+ * Versión con memberships + agency + brand cargadas. Para callers que
+ * necesitan el árbol completo (settings page, etc.). NO usar en endpoints
+ * que solo necesitan el user.id.
+ */
+export async function getCurrentUserWithMemberships() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
