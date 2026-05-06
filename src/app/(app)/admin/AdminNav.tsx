@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Users, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2 } from "lucide-react";
+import { CreditCard, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2, Webhook, HeartPulse, Send, FileText } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "Resumen", icon: LayoutGrid, desc: "Stats globales" },
@@ -13,12 +13,31 @@ const NAV = [
     desc: "Crear, editar, suspender, impersonar",
   },
   { slug: "agencies", label: "Agencias", icon: Building2, desc: "Tenants y suscripciones" },
-  { slug: "metrics", label: "Métricas", icon: BarChart3, desc: "MRR, churn, etc." },
+  { slug: "posts", label: "Posts", icon: FileText, desc: "Buscar contenido cross-tenant" },
+  { slug: "metrics", label: "Métricas", icon: BarChart3, desc: "MRR, churn, retention" },
+  {
+    slug: "communications",
+    label: "Comunicaciones",
+    icon: Send,
+    desc: "Email broadcasts a usuarios",
+  },
   {
     slug: "integrations",
     label: "Integraciones",
     icon: CreditCard,
     desc: "Pasarelas y APIs externas",
+  },
+  {
+    slug: "webhooks",
+    label: "Webhooks",
+    icon: Webhook,
+    desc: "Log de eventos recibidos",
+  },
+  {
+    slug: "health",
+    label: "Health",
+    icon: HeartPulse,
+    desc: "DB / R2 / Wompi / Anthropic",
   },
   {
     slug: "setup",

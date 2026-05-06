@@ -3,14 +3,18 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { verifyToken, verifyRecoveryCode } from "@/lib/totp";
 
 const schema = z.object({
-  // Normalizamos a lowercase para matchear emails que register guarda así.
   email: z
     .string()
     .email()
     .transform((s) => s.toLowerCase().trim()),
   password: z.string().min(1),
+  // Código 2FA opcional. Acepta 6 dígitos TOTP O un recovery code
+  // (ej. "abc12-de345"). Si user tiene 2FA y no manda esto, devolvemos
+  // requires2fa=true y el frontend pide el código.
+  totpToken: z.string().min(1).max(40).optional(),
 });
 
 export async function POST(req: Request) {
@@ -57,6 +61,44 @@ export async function POST(req: Request) {
       { status: 403 },
     );
   }
+
+  // 2FA enforcement: si el user tiene TOTP activado, exigimos el código.
+  if (user.totpEnabledAt && user.totpSecret) {
+    if (!body.totpToken) {
+      return NextResponse.json(
+        { requires2fa: true, message: "Ingresá tu código de 6 dígitos." },
+        { status: 401 },
+      );
+    }
+    // Intentar TOTP primero (formato 6 dígitos). Si no, probar recovery code.
+    const isDigits = /^\d{6}$/.test(body.totpToken);
+    let twoFaOk = false;
+    if (isDigits) {
+      twoFaOk = verifyToken(user.totpSecret, body.totpToken);
+    }
+    if (!twoFaOk) {
+      // Fallback: recovery code. Si matchea, lo consumimos (one-time use).
+      const codes = (user.recoveryCodesHash as string[] | null) ?? [];
+      if (codes.length > 0) {
+        const idx = await verifyRecoveryCode(codes, body.totpToken);
+        if (idx >= 0) {
+          twoFaOk = true;
+          const remaining = codes.filter((_, i) => i !== idx);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { recoveryCodesHash: remaining },
+          });
+        }
+      }
+    }
+    if (!twoFaOk) {
+      return NextResponse.json(
+        { error: "Código 2FA incorrecto", requires2fa: true },
+        { status: 401 },
+      );
+    }
+  }
+
   await createSession(user.id, {
     userAgent: req.headers.get("user-agent"),
     ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,

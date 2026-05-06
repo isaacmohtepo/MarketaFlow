@@ -268,3 +268,81 @@ function monthKey(d: Date): string {
 function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
+
+// ============================================================================
+// Cohort retention
+// ============================================================================
+
+/**
+ * Cohort retention table: para los últimos N meses, agrupa subscriptions
+ * por su mes de creación (cohort) y calcula qué % siguen activas en cada
+ * mes posterior (mes 0 = creación, mes 1 = mes después, etc.).
+ *
+ * Ejemplo de output:
+ *   { cohort: "2025-01", size: 50, retention: [50, 42, 38, 35, ...] }
+ *
+ * Definición de "retenido": subscription con status active O trialing
+ * (no canceled/expired) al final del mes.
+ */
+export type CohortRow = {
+  cohort: string;
+  size: number;
+  retention: (number | null)[];
+};
+
+export async function cohortRetention(months = 6): Promise<CohortRow[]> {
+  const now = new Date();
+  const subs = await prisma.subscription.findMany({
+    select: {
+      id: true,
+      createdAt: true,
+      status: true,
+      updatedAt: true,
+      plan: true,
+    },
+  });
+
+  // Agrupar por cohort month
+  const cohorts = new Map<string, typeof subs>();
+  for (let i = 0; i < months; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
+    cohorts.set(monthKey(d), []);
+  }
+  for (const s of subs) {
+    const k = monthKey(s.createdAt);
+    if (cohorts.has(k)) cohorts.get(k)!.push(s);
+  }
+
+  const rows: CohortRow[] = [];
+  const cohortKeys = Array.from(cohorts.keys());
+  for (let ci = 0; ci < cohortKeys.length; ci++) {
+    const k = cohortKeys[ci];
+    const cohortSubs = cohorts.get(k) ?? [];
+    const size = cohortSubs.length;
+    // mes 0..N donde N = months-1-ci (mes ci hacia adelante)
+    const periodsRemaining = months - ci;
+    const retention: (number | null)[] = [];
+    for (let p = 0; p < periodsRemaining; p++) {
+      const periodEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() - (months - 1 - ci) + p + 1,
+        0,
+      );
+      // Si periodEnd es futuro, marcamos null (no aplica todavía)
+      if (periodEnd > now) {
+        retention.push(null);
+        continue;
+      }
+      // Cuántas de la cohort estaban "active" o "trialing" al final del period
+      const stillActive = cohortSubs.filter((s) => {
+        // Si nunca fue cancelada/expired, está activa
+        if (s.status !== "canceled" && s.status !== "expired") return true;
+        // Si lo fue, miramos si la cancelación pasó DESPUÉS del period end
+        return s.updatedAt > periodEnd;
+      }).length;
+      retention.push(stillActive);
+    }
+    rows.push({ cohort: k, size, retention });
+  }
+  return rows;
+}

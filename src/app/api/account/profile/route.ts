@@ -5,12 +5,28 @@ import { getCurrentUser } from "@/lib/auth";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
-  // avatarUrl: solo http(s). z.url() solo permitía URLs válidas pero zod
-  // acepta javascript: y data: → posible XSS si se renderiza en <img>.
   avatarUrl: z
     .string()
     .url()
     .refine((u) => /^https?:\/\//i.test(u), "URL debe ser http/https")
+    .nullable()
+    .optional(),
+  // Timezone IANA (validado contra el browser Intl). Ej. "America/Bogota".
+  timezone: z
+    .string()
+    .max(60)
+    .refine(
+      (tz) => {
+        if (!tz) return true;
+        try {
+          new Intl.DateTimeFormat("en", { timeZone: tz });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      "Timezone inválida (usa formato IANA como America/Bogota)",
+    )
     .nullable()
     .optional(),
 });
@@ -31,8 +47,15 @@ export async function PATCH(req: Request) {
     data: {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.avatarUrl !== undefined ? { avatarUrl: body.avatarUrl } : {}),
+      ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
     },
-    select: { id: true, name: true, avatarUrl: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      email: true,
+      timezone: true,
+    },
   });
 
   return NextResponse.json({ user: updated });

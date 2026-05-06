@@ -26,16 +26,29 @@ import type { PlanId } from "@/lib/plans";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  // Body raw (lo conservamos por si hay que loguear, aunque la firma de Wompi
-  // se computa de los CAMPOS DEL JSON, no del raw).
   const rawBody = await req.text();
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
   let payload: WompiEvent;
   try {
     payload = JSON.parse(rawBody);
   } catch {
+    // Loggear con id sintético, no podemos usar transaction.id
+    await logWebhookSilent({
+      provider: "wompi",
+      externalId: `parse_error_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      eventType: null,
+      status: "error",
+      errorMessage: "Body inválido (no JSON)",
+      payload: { raw: rawBody.slice(0, 1000) },
+      ip,
+    });
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
+
+  const externalIdBase =
+    payload.data?.transaction?.id ??
+    `${payload.event}:${payload.timestamp ?? Date.now()}`;
 
   // Detectar environment del payload. Wompi manda `environment: "test"|"prod"`.
   let envFromPayload: "sandbox" | "production" = "production";
@@ -48,66 +61,117 @@ export async function POST(req: Request) {
     cfg = await getWompiConfig(envFromPayload);
   } catch (err) {
     console.error("Webhook: no hay config Wompi activa", err);
+    await logWebhookSilent({
+      provider: "wompi",
+      externalId: `noconfig_${externalIdBase}`,
+      eventType: payload.event ?? null,
+      status: "error",
+      errorMessage: "No hay config Wompi activa",
+      payload,
+      ip,
+    });
     return NextResponse.json(
       { error: "Wompi no configurado" },
       { status: 503 },
     );
   }
 
-  // Verificar firma usando el algoritmo correcto de Wompi (SHA-256 de
-  // properties + timestamp + secret). Ver verifyEventSignature.
+  // Verificar firma usando el algoritmo correcto de Wompi
   if (!verifyEventSignature({ event: payload, eventsSecret: cfg.eventsSecret })) {
     console.error("Webhook: firma inválida");
+    await logWebhookSilent({
+      provider: "wompi",
+      externalId: `badsig_${externalIdBase}_${Date.now()}`,
+      eventType: payload.event ?? null,
+      status: "signature_invalid",
+      errorMessage: "Firma HMAC no matchea — probable events_secret incorrecto",
+      payload,
+      ip,
+    });
     return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
   }
 
-  // Idempotency: si YA procesamos este evento antes, devolvemos OK y no
-  // re-ejecutamos. Pero solo grabamos el WebhookEvent DESPUÉS de procesar
-  // exitosamente — si la grabábamos antes y el handler tiraba excepción
-  // (DB transient, email service down, etc.), Wompi reintentaba y nosotros
-  // dropeábamos silenciosamente el retry → invoice nunca quedaba paid.
-  const externalId =
-    payload.data?.transaction?.id ??
-    `${payload.event}:${payload.timestamp ?? ""}`;
-  if (externalId) {
-    const existing = await prisma.webhookEvent.findUnique({
-      where: { provider_externalId: { provider: "wompi", externalId } },
-    });
-    if (existing) {
-      return NextResponse.json({ ok: true, deduped: true });
+  // Idempotency
+  const existing = await prisma.webhookEvent.findUnique({
+    where: { provider_externalId: { provider: "wompi", externalId: externalIdBase } },
+  });
+  if (existing && existing.status === "ok") {
+    return NextResponse.json({ ok: true, deduped: true });
+  }
+
+  // Procesar
+  let processError: string | null = null;
+  try {
+    if (payload.event === "transaction.updated") {
+      await handleTransactionUpdated(payload.data?.transaction);
+    } else if (payload.event === "nequi_token.updated") {
+      // No lo manejamos por ahora
+    } else {
+      console.log("Webhook event no manejado:", payload.event);
     }
+  } catch (err) {
+    processError = err instanceof Error ? err.message : String(err);
+    console.error("Webhook handler tiró excepción", err);
   }
 
-  // Wompi envía varios tipos de eventos; el más importante es transaction.updated
-  if (payload.event === "transaction.updated") {
-    await handleTransactionUpdated(payload.data?.transaction);
-  } else if (payload.event === "nequi_token.updated") {
-    // Nequi tokenization callback — no lo manejamos por ahora
-  } else {
-    console.log("Webhook event no manejado:", payload.event);
-  }
+  // Loggear (upsert porque si era una row de "signature_invalid" anterior con
+  // el mismo externalId la sobrescribimos al éxito)
+  await logWebhookSilent({
+    provider: "wompi",
+    externalId: externalIdBase,
+    eventType: payload.event ?? null,
+    status: processError ? "error" : "ok",
+    errorMessage: processError,
+    payload,
+    ip,
+  });
 
-  // Procesado OK — recién ahora marcamos el evento como visto. Si esto falla
-  // (improbable), Wompi reintentará y nosotros re-procesaremos, pero los
-  // handlers son idempotentes (chequean status/transactionId en cada update).
-  if (externalId) {
-    try {
-      await prisma.webhookEvent.create({
-        data: {
-          provider: "wompi",
-          externalId,
-          eventType: payload.event,
-        },
-      });
-    } catch (err) {
-      // Si justo entre el findUnique y el create entró otro retry, P2002
-      // es esperable y benigno.
-      const e = err as { code?: string };
-      if (e.code !== "P2002") throw err;
-    }
+  if (processError) {
+    return NextResponse.json({ error: "Internal" }, { status: 500 });
   }
-
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * Inserta un WebhookEvent. Si ya existe (mismo provider+externalId), actualiza.
+ * Cualquier error se logguea pero no propaga — el log no debe tirar el handler.
+ */
+async function logWebhookSilent(args: {
+  provider: string;
+  externalId: string;
+  eventType: string | null;
+  status: string;
+  errorMessage: string | null;
+  payload: unknown;
+  ip: string | null;
+}) {
+  try {
+    await prisma.webhookEvent.upsert({
+      where: {
+        provider_externalId: {
+          provider: args.provider,
+          externalId: args.externalId,
+        },
+      },
+      create: {
+        provider: args.provider,
+        externalId: args.externalId,
+        eventType: args.eventType,
+        status: args.status,
+        errorMessage: args.errorMessage,
+        payload: (args.payload ?? undefined) as object | undefined,
+        ip: args.ip,
+      },
+      update: {
+        eventType: args.eventType,
+        status: args.status,
+        errorMessage: args.errorMessage,
+        payload: (args.payload ?? undefined) as object | undefined,
+      },
+    });
+  } catch (err) {
+    console.error("logWebhookSilent failed", err);
+  }
 }
 
 type WompiEvent = {

@@ -27,6 +27,12 @@ model User {
   disabledAt         DateTime?
   /// Razón del disable (opcional, visible solo a admins). Ej. "fraud", "TOS".
   disabledReason     String?
+  /// Two-factor auth (TOTP). Si totpSecret está seteado, el login requiere
+  /// código de 6 dígitos. recoveryCodesHash es JSON array de hashes bcrypt
+  /// para los códigos one-time de recuperación.
+  totpSecret         String?
+  totpEnabledAt      DateTime?
+  recoveryCodesHash  Json?
   createdAt          DateTime       @default(now())
   memberships   Membership[]
   comments      Comment[] @relation("CommentAuthor")
@@ -75,6 +81,10 @@ model Agency {
   /// poder revertir o auditar. Distinto de borrar (delete cascade).
   suspendedAt      DateTime?
   suspendedReason  String?
+  /// Feature flags experimentales habilitadas para esta agency. Se
+  /// resuelve via hasFeature(agencyId, "flag"). Lo que está acá sobrescribe
+  /// los defaults del plan. Ej: { "beta_analytics": true, "white_label": false }.
+  featureFlags     Json?
   createdAt    DateTime          @default(now())
   brands       Brand[]
   members      Membership[]
@@ -101,6 +111,33 @@ model SystemConfig {
 /// mismo `id` después (Wompi reintenta hasta 3 veces), lo ignoramos sin
 /// re-procesar. Cubre el caso "Wompi reenvió APPROVED por timeout pero ya
 /// marcamos invoice paid".
+/// Comunicaciones masivas (broadcasts) que el admin envía a usuarios.
+/// Cada broadcast guarda el snapshot de la audiencia, template, y el
+/// progreso de envío (counts de enviados/fallidos).
+model EmailBroadcast {
+  id          String   @id @default(cuid())
+  /// Subject del email
+  subject     String
+  /// HTML del cuerpo (renderizado con shell de email-templates).
+  bodyHtml    String   @db.Text
+  /// Audiencia: "all" | "agencies" | "clients" | "trial_ending" | "past_due"
+  audience    String
+  /// Estado: "draft" | "sending" | "sent" | "failed"
+  status      String   @default("draft")
+  /// Stats finales del envío
+  sentCount   Int      @default(0)
+  failedCount Int      @default(0)
+  totalCount  Int      @default(0)
+  /// Quién lo creó/envió
+  createdById String?
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+  errorMessage String?
+
+  @@index([createdAt])
+  @@index([status])
+}
+
 model WebhookEvent {
   id          String   @id @default(cuid())
   /// Provider: "wompi" | "stripe" | etc.
@@ -109,11 +146,23 @@ model WebhookEvent {
   externalId  String
   /// Tipo del evento (ej. "transaction.updated"). Solo informativo.
   eventType   String?
+  /// Estado de procesamiento: "ok" | "signature_invalid" | "error" | "deduped"
+  /// Lo seteamos al final del handler (o al rechazar firma).
+  status      String   @default("ok")
+  /// Mensaje de error humano-legible si status != ok.
+  errorMessage String?
+  /// Payload completo recibido (raw JSON) para debugging y replay manual.
+  /// Lo guardamos incluso cuando la firma es inválida — útil para detectar
+  /// si hay configuración mala vs ataque.
+  payload     Json?
+  /// IP de origen (Wompi se sabe pero por si las dudas)
+  ip          String?
   /// Cuándo lo procesamos (para detectar replays viejos si pasan +24h)
   receivedAt  DateTime @default(now())
 
   @@unique([provider, externalId])
   @@index([receivedAt])
+  @@index([provider, status, receivedAt])
 }
 
 /// Audit log genérico para acciones sensibles (cambio de role, billing,
