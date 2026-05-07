@@ -210,3 +210,27 @@ Cosas que se evaluaron pero NO se hacen, con razón:
   override.
 - **DB push**: `cd marketaflow-app && npx prisma db push` después de cambios
   de schema. Migraciones one-shot van en `scripts/migrate-*.mjs`.
+
+## Smoke test API
+
+`scripts/smoke-test.mjs` cubre RBAC + status flow + multi-stage approval +
+templates marketplace + audit log + cross-tenant isolation. 47 asserts.
+
+Cómo correr:
+
+```bash
+# Terminal 1
+cd marketaflow-app && npm run dev
+
+# Terminal 2 (cuando el dev server esté listo)
+cd marketaflow-app && npm run test:smoke
+```
+
+Crea data con prefijo `__smoke_<timestamp>__` y limpia al final. Idempotente.
+Si algún test falla, exit code 1 (CI-friendly).
+
+Notas:
+- Bypassea HTTP login creando User + Session directo via Prisma.
+- Manda `Origin` header para pasar el middleware CSRF.
+- Crea agencies con plan "agency" para esquivar límites del free.
+- Pollea hasta 3s para eventos de audit (fire-and-forget).
