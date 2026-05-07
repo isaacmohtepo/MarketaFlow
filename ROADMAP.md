@@ -211,6 +211,34 @@ Cosas que se evaluaron pero NO se hacen, con razón:
 - **DB push**: `cd marketaflow-app && npx prisma db push` después de cambios
   de schema. Migraciones one-shot van en `scripts/migrate-*.mjs`.
 
+## Sentry — error monitoring
+
+Sentry está instalado y wired pero **dormido sin DSN**. El SDK detecta si
+`SENTRY_DSN` (server) o `NEXT_PUBLIC_SENTRY_DSN` (client) están seteados;
+si no, no inicializa nada (cero overhead).
+
+Archivos:
+- `instrumentation.ts` — server + edge runtime (Sentry.init si DSN)
+- `instrumentation-client.ts` — browser runtime
+- `next.config.ts` — wrapping con `withSentryConfig` solo si están las
+  3 vars (`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
+
+Para activarlo en prod, en Vercel agregá:
+```
+SENTRY_DSN=<dsn server-side>
+NEXT_PUBLIC_SENTRY_DSN=<mismo dsn, expuesto al client>
+SENTRY_ORG=<tu org slug>
+SENTRY_PROJECT=<tu project slug>
+SENTRY_AUTH_TOKEN=<token con scope project:write>
+```
+
+Las primeras 2 hacen runtime reporting; las últimas 3 habilitan upload
+de source maps (stack traces legibles) + tunneling via `/monitoring`
+para evitar ad blockers.
+
+`UNAUTHORIZED` y `CSRF: missing origin/referer` se ignoran porque son
+flujos normales (user no logueado), no bugs.
+
 ## Smoke test API
 
 `scripts/smoke-test.mjs` cubre RBAC + status flow + multi-stage approval +

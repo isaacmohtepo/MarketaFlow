@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 /**
  * Headers de seguridad globales. Aplican a TODAS las rutas excepto el script
@@ -103,4 +104,36 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Sentry source map upload + tunnel.
+ *
+ * Solo activo si `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT`
+ * están en env. Sin esto, withSentryConfig se vuelve no-op pero el SDK
+ * runtime sigue funcionando (usa NEXT_PUBLIC_SENTRY_DSN para reportar).
+ *
+ * El "tunnel" hace que el browser mande los errores a /monitoring de
+ * tu propio dominio (no a sentry.io directo), lo cual evita que ad
+ * blockers tipo uBlock filtren los reports.
+ */
+const sentryEnabled =
+  !!process.env.SENTRY_AUTH_TOKEN &&
+  !!process.env.SENTRY_ORG &&
+  !!process.env.SENTRY_PROJECT;
+
+export default sentryEnabled
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG!,
+      project: process.env.SENTRY_PROJECT!,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      // Subimos source maps en build (para stack traces legibles).
+      // Silent en CI para no spamear logs.
+      silent: !process.env.CI,
+      // Tunnel: el browser POSTea a /monitoring de NUESTRO dominio que
+      // hace proxy a sentry.io. Salva ad blockers.
+      tunnelRoute: "/monitoring",
+      // No subir source maps de paquetes node_modules — no nos sirven y
+      // hacen lento el build.
+      widenClientFileUpload: true,
+      disableLogger: true,
+    })
+  : nextConfig;
