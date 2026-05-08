@@ -81,22 +81,39 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
     else v.pause();
   }
 
-  // Para portraits (aspect < 1): cap de altura a 70vh y centrado.
-  // Para landscapes: 16:9 normal.
-  const isPortrait = aspect < 1;
+  // Detección automática del formato — usamos el aspect real del video
+  // (no forzamos 16:9 o 1:1). Categorías para UX:
+  //   - portrait (aspect < 0.9): reels/stories. Cap de alto a 75vh.
+  //   - square (0.9 ≤ aspect ≤ 1.15): IG feed clásico.
+  //   - landscape (> 1.15): video horizontal estándar.
+  // En todos los casos el container usa el aspectRatio real para no
+  // generar barras negras de relleno.
+  const orientation =
+    aspect < 0.9 ? "portrait" : aspect > 1.15 ? "landscape" : "square";
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const orientationLabel =
+    orientation === "portrait"
+      ? "Vertical"
+      : orientation === "square"
+        ? "Cuadrado"
+        : "Horizontal";
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-sm">
-      {/* Header minimal blanco con detalle fucsia */}
+      {/* Header minimal blanco con detalle fucsia + badge de orientación */}
       <div className="flex items-center gap-2.5 border-b border-zinc-100 bg-white px-4 py-2.5">
         <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-md bg-fuchsia-50 ring-1 ring-fuchsia-100">
           <VideoIcon className="h-3.5 w-3.5 text-fuchsia-600" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-semibold tracking-tight text-zinc-900">
-            Video del post
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-[12.5px] font-semibold tracking-tight text-zinc-900">
+              Video del post
+            </p>
+            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-600">
+              {orientationLabel}
+            </span>
+          </div>
           <p className="truncate text-[11px] text-zinc-500">
             Pausá y clickeá <span className="font-medium text-fuchsia-700">"Comentar este momento"</span> para anclar al segundo exacto.
           </p>
@@ -108,24 +125,21 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
         </div>
       </div>
 
-      {/* Player. Solo acá hay negro (bg del video propiamente). */}
-      <div
-        className={`flex items-center justify-center bg-black ${
-          isPortrait ? "py-2" : ""
-        }`}
-        style={
-          isPortrait
-            ? { maxHeight: "70vh" }
-            : undefined
-        }
-      >
+      {/* Player. El container usa aspectRatio real del video → cero barras
+          negras de relleno. Solo cap de alto en portrait para que reels
+          gigantes no se desborden. */}
+      <div className="flex items-center justify-center bg-black">
         <video
           ref={videoRef}
           src={src}
           {...(mime ? { "data-mime": mime } : {})}
           controls
           preload="metadata"
-          className={`block w-full ${isPortrait ? "h-auto max-h-[70vh] w-auto" : "aspect-video"}`}
+          className="block h-auto w-full"
+          style={{
+            aspectRatio: `${aspect}`,
+            ...(orientation === "portrait" ? { maxHeight: "75vh", width: "auto" } : {}),
+          }}
           onLoadedMetadata={(e) => {
             const v = e.currentTarget;
             setDuration(v.duration || 0);
