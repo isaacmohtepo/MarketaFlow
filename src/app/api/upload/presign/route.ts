@@ -44,11 +44,16 @@ const schema = z.object({
   size: z.number().int().positive().max(MAX_BYTES),
 });
 
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-const R2_BUCKET = process.env.R2_BUCKET;
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+// Trim defensivo: env vars pueden venir con whitespace/quotes accidental
+// que rompen el SDK con errores crípticos.
+const cleanEnv = (v: string | undefined) =>
+  v ? v.trim().replace(/^["']|["']$/g, "") : v;
+
+const R2_ACCOUNT_ID = cleanEnv(process.env.R2_ACCOUNT_ID);
+const R2_ACCESS_KEY_ID = cleanEnv(process.env.R2_ACCESS_KEY_ID);
+const R2_SECRET_ACCESS_KEY = cleanEnv(process.env.R2_SECRET_ACCESS_KEY);
+const R2_BUCKET = cleanEnv(process.env.R2_BUCKET);
+const R2_PUBLIC_URL = cleanEnv(process.env.R2_PUBLIC_URL);
 
 const r2Configured =
   !!R2_ACCOUNT_ID &&
