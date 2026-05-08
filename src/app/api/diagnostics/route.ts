@@ -50,13 +50,29 @@ export async function GET(req: Request) {
   // sino que funcionen contra R2. Detectamos: keys revocadas, bucket
   // typeado mal, CORS no relevante para server-to-R2 pero credentials sí.
   const doWriteTest = url.searchParams.get("test") === "1";
+  // Pista del access key actualmente seteado, para confirmar que el
+  // redeploy agarró el valor correcto. NO exponemos el secret completo,
+  // solo: largo, primeros/últimos chars, y si parece formato legítimo
+  // (32 chars hex sin underscores).
+  const accessKey = process.env.R2_ACCESS_KEY_ID?.trim().replace(/^["']|["']$/g, "") ?? "";
+  const accessKeyHint = {
+    length: accessKey.length,
+    prefix: accessKey.slice(0, 4),
+    suffix: accessKey.slice(-4),
+    looksLikeHex: /^[a-f0-9]{32}$/i.test(accessKey),
+    hasUnderscores: accessKey.includes("_"),
+    expectedFormat: "32 chars hex (a-f, 0-9), sin underscores ni prefijos",
+  };
+
   const storage: {
     configured: boolean;
     mode: string;
+    accessKeyHint: typeof accessKeyHint;
     writeTest?: { ok: boolean; error?: string };
   } = {
     configured: isR2Configured,
     mode: isR2Configured ? "r2" : "local-fallback",
+    accessKeyHint,
   };
 
   if (!isR2Configured) {
