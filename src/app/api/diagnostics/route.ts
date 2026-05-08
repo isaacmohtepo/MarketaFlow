@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canCreatePost, getEffectiveLimits } from "@/lib/billing";
@@ -44,14 +45,31 @@ export async function GET(req: Request) {
   const issues: string[] = [];
 
   // === Storage check ===
-  const storage = {
+  // Si pasaste ?test=1 hacemos un write real (PUT + DELETE de un objeto de
+  // 1 byte) para verificar que las credenciales no solo estén seteadas
+  // sino que funcionen contra R2. Detectamos: keys revocadas, bucket
+  // typeado mal, CORS no relevante para server-to-R2 pero credentials sí.
+  const doWriteTest = url.searchParams.get("test") === "1";
+  const storage: {
+    configured: boolean;
+    mode: string;
+    writeTest?: { ok: boolean; error?: string };
+  } = {
     configured: isR2Configured,
     mode: isR2Configured ? "r2" : "local-fallback",
   };
+
   if (!isR2Configured) {
     issues.push(
       "Storage no está configurado. Las imágenes y videos no se pueden persistir en producción. El admin tiene que setear R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL en las env vars de Vercel.",
     );
+  } else if (doWriteTest) {
+    storage.writeTest = await runR2WriteTest();
+    if (!storage.writeTest.ok) {
+      issues.push(
+        `R2 está configurado pero el write real falló: ${storage.writeTest.error}`,
+      );
+    }
   }
 
   // === Plan check ===
@@ -100,4 +118,54 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({ storage, plan, issues });
+}
+
+/**
+ * Test real: hace PUT + DELETE de un objeto chico contra R2 y reporta
+ * éxito o el error exacto. No expone secrets — solo la categoría del
+ * error (auth/network/bucket/etc).
+ */
+async function runR2WriteTest(): Promise<{ ok: boolean; error?: string }> {
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const bucket = process.env.R2_BUCKET;
+  if (!accountId || !accessKeyId || !secretAccessKey || !bucket) {
+    return { ok: false, error: "env vars incompletas" };
+  }
+
+  const client = new S3Client({
+    region: "auto",
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+
+  const key = `_diagnostics/test-${Date.now()}.txt`;
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: "test",
+        ContentType: "text/plain",
+      }),
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    // Codes comunes:
+    // - "InvalidAccessKeyId" -> el access key id no existe o esta mal
+    // - "SignatureDoesNotMatch" -> el secret esta mal
+    // - "NoSuchBucket" -> el bucket name esta mal
+    // - "AccessDenied" -> el token no tiene permisos write
+    return { ok: false, error: `PUT falló: ${msg}` };
+  }
+
+  // Cleanup
+  try {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  } catch {
+    // Ignoramos error de cleanup
+  }
+
+  return { ok: true };
 }
