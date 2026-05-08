@@ -23,7 +23,14 @@ export type VideoCommenterHandle = {
   pause: () => void;
 };
 
-export type VideoMarker = { id: string; time: number };
+export type VideoMarker = {
+  id: string;
+  time: number;
+  /** Texto del comment para preview en hover (truncado en UI). */
+  body?: string;
+  /** Nombre del autor para el preview. */
+  author?: string;
+};
 
 type Props = {
   src: string;
@@ -43,6 +50,8 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
   const [currentTime, setCurrentTime] = useState(0);
   const [isPaused, setIsPaused] = useState(true);
   const [hoverPct, setHoverPct] = useState<number | null>(null);
+  // Cuál marker está hover, para preview con el cuerpo del comment.
+  const [hoverMarkerId, setHoverMarkerId] = useState<string | null>(null);
   // Aspect ratio del video real para evitar barras negras gigantes en
   // portraits/reels. Por default asumimos 16:9 hasta que cargue metadata.
   const [aspect, setAspect] = useState<number>(16 / 9);
@@ -181,7 +190,11 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                   key={m.id}
                   type="button"
                   onClick={() => onMarkerClick?.(m.id)}
-                  onMouseEnter={() => setHoverPct(pct)}
+                  onMouseEnter={() => {
+                    setHoverPct(pct);
+                    setHoverMarkerId(m.id);
+                  }}
+                  onMouseLeave={() => setHoverMarkerId(null)}
                   style={{ left: `${pct}%` }}
                   className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fuchsia-500 ring-2 ring-white shadow-sm transition hover:scale-125 hover:bg-fuchsia-600"
                   title={`Comentario en ${formatTime(m.time)}`}
@@ -190,7 +203,40 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                 </button>
               );
             })}
-            {hoverPct !== null && (
+            {/* Preview con el cuerpo del comment al hover sobre un marker */}
+            {hoverMarkerId !== null && (() => {
+              const m = markers.find((x) => x.id === hoverMarkerId);
+              if (!m) return null;
+              const pct = Math.min(100, (m.time / duration) * 100);
+              return (
+                <div
+                  style={{ left: `${pct}%` }}
+                  className="pointer-events-none absolute -top-2 z-20 max-w-[260px] -translate-x-1/2 -translate-y-full rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[11px] text-white shadow-xl ring-1 ring-black/5"
+                >
+                  <div className="mb-0.5 flex items-center gap-1.5">
+                    <span className="font-mono text-[10px] font-bold text-fuchsia-300">
+                      {formatTime(m.time)}
+                    </span>
+                    {m.author && (
+                      <span className="text-[10px] text-zinc-400">{m.author}</span>
+                    )}
+                  </div>
+                  {m.body && (
+                    <p className="line-clamp-3 leading-snug">{m.body}</p>
+                  )}
+                  {!m.body && (
+                    <p className="italic text-zinc-400">(sin texto)</p>
+                  )}
+                  {/* Pico inferior */}
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-zinc-900"
+                  />
+                </div>
+              );
+            })()}
+            {/* Tooltip de tiempo cuando hover en track sin marker específico */}
+            {hoverPct !== null && hoverMarkerId === null && (
               <div
                 style={{ left: `${hoverPct}%` }}
                 className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded-md bg-zinc-900 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white shadow"

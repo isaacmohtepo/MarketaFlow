@@ -171,7 +171,12 @@ export default function PostBoard({
   // Marcadores en la timeline = comments con videoTime, sin replies, sin resueltos
   const videoMarkers = comments
     .filter((c) => c.videoTime != null && c.parentId == null && !c.resolved)
-    .map((c) => ({ id: c.id, time: c.videoTime as number }));
+    .map((c) => ({
+      id: c.id,
+      time: c.videoTime as number,
+      body: c.body,
+      author: c.userName,
+    }));
   // Visibilidad automática: si el post está en draft = modo equipo (todos los comments
   // nuevos son internos). En revisión o más = modo cliente (públicos).
   const isInternalMode = isAgency && liveStatus === "draft";
@@ -1069,7 +1074,12 @@ export default function PostBoard({
         )}
       </div>
 
-      <div className="flex flex-col gap-4 lg:aspect-square lg:overflow-hidden">
+      {/* Columna de comentarios. Antes usaba aspect-square que la
+          encogía cuando la columna era angosta (p.ej. con grid 60/40
+          para videos). Ahora usa un alto fijo razonable que da espacio
+          para ver muchos comentarios sin tener que scrollear todo el
+          tiempo, manteniendo el form de comentar pegado al fondo. */}
+      <div className="flex flex-col gap-4 lg:h-[calc(100vh-12rem)] lg:min-h-[640px] lg:overflow-hidden">
         {isDeleted && canDelete && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
             <div className="flex items-start gap-2">

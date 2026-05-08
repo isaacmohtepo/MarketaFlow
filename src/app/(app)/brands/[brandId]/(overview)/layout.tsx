@@ -53,14 +53,16 @@ export default async function BrandOverviewLayout({
     social_post: 0,
     web_design: 0,
     video: 0,
-    branding: 0,
     graphic: 0,
-    other: 0,
   };
   for (const row of typeCountsRows) {
-    // Posts legacy sin assetType cuentan como social_post
-    const t = row.assetType ?? "social_post";
-    if (t in typeCounts) typeCounts[t] += row._count._all;
+    // Posts legacy sin assetType cuentan como social_post.
+    // branding (identidad) y other se agrupan bajo "graphic" — el tab
+    // visible los muestra todos juntos.
+    const raw = row.assetType ?? "social_post";
+    const bucket =
+      raw === "branding" || raw === "other" ? "graphic" : raw;
+    if (bucket in typeCounts) typeCounts[bucket] += row._count._all;
   }
 
   return (

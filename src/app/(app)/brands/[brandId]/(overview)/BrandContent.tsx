@@ -57,6 +57,10 @@ export default async function BrandContent({
 
   const allVisiblePosts = accessiblePosts.filter((p) => {
     const t = p.assetType ?? "social_post";
+    // El tab "Gráficos" agrupa graphic + branding (identidad) + other.
+    if (activeType === "graphic") {
+      return t === "graphic" || t === "branding" || t === "other";
+    }
     return t === activeType;
   });
 

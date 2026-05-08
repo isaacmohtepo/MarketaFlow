@@ -7,9 +7,10 @@ const TABS = [
   { type: "social_post", icon: "📷", label: "Posts" },
   { type: "web_design", icon: "🌐", label: "Webs" },
   { type: "video", icon: "🎬", label: "Videos" },
-  { type: "branding", icon: "✨", label: "Identidad" },
+  // "Gráficos" agrupa: graphic + branding (identidad de marca) + other
+  // (cualquier otro deliverable como PSDs, ZIPs, etc). Antes eran 3 tabs
+  // separadas que confundían al user.
   { type: "graphic", icon: "🎨", label: "Gráficos" },
-  { type: "other", icon: "📁", label: "Otros" },
 ] as const;
 
 const ALL_TYPES = TABS.map((t) => t.type) as readonly string[];
