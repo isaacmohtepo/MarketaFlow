@@ -175,19 +175,70 @@ export default function NewPostForm({
       ) {
         continue;
       }
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        setError("No se pudo subir alguno de los archivos");
+      // Para archivos grandes (> 4 MB) usamos upload directo a R2 con
+      // presigned URL — Vercel Hobby tiene límite de 4.5 MB en request
+      // body de serverless functions, así que sin esto los videos fallan
+      // en producción aunque /api/upload acepte hasta 100 MB.
+      const useDirect = file.size > 4 * 1024 * 1024;
+      try {
+        let url: string;
+        if (useDirect) {
+          // 1) Pedir presigned URL al backend
+          const pre = await fetch("/api/upload/presign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+            }),
+          });
+          if (!pre.ok) {
+            const err = await pre.json().catch(() => ({}));
+            setError(err.error ?? "No se pudo iniciar el upload del archivo");
+            continue;
+          }
+          const { signedUrl, publicUrl } = (await pre.json()) as {
+            signedUrl: string;
+            publicUrl: string;
+          };
+          // 2) PUT directo del archivo a R2
+          const putRes = await fetch(signedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": file.type || "application/octet-stream" },
+            body: file,
+          });
+          if (!putRes.ok) {
+            setError(`No se pudo subir "${file.name}" a R2 (${putRes.status})`);
+            continue;
+          }
+          url = publicUrl;
+        } else {
+          // Path tradicional para archivos chicos (multipart via Vercel)
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch("/api/upload", { method: "POST", body: fd });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            setError(err.error ?? `No se pudo subir "${file.name}"`);
+            continue;
+          }
+          const j = await res.json();
+          url = j.url;
+        }
+        uploaded.push(url);
+        newMeta[url] = {
+          mime: file.type || "application/octet-stream",
+          name: file.name,
+        };
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? `Error subiendo "${file.name}": ${err.message}`
+            : `Error subiendo "${file.name}"`,
+        );
         continue;
       }
-      const j = await res.json();
-      uploaded.push(j.url);
-      newMeta[j.url] = {
-        mime: j.mime ?? file.type ?? "application/octet-stream",
-        name: j.name ?? file.name,
-      };
     }
     setImages((cur) => [...cur, ...uploaded]);
     setMeta((cur) => ({ ...cur, ...newMeta }));

@@ -211,6 +211,35 @@ Cosas que se evaluaron pero NO se hacen, con razón:
 - **DB push**: `cd marketaflow-app && npx prisma db push` después de cambios
   de schema. Migraciones one-shot van en `scripts/migrate-*.mjs`.
 
+## R2 CORS — requerido para upload de videos
+
+Los uploads grandes (> 4 MB) usan presigned URL para PUT directo desde el
+browser a Cloudflare R2, esquivando el límite de body de Vercel Hobby.
+Esto requiere que el bucket tenga **CORS policy permitiendo PUT** desde
+los dominios de la app.
+
+Configurar en Cloudflare → R2 → tu bucket → Settings → CORS Policy:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "https://marketa-flow.vercel.app",
+      "https://*.vercel.app"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Sin esto, el browser tira CORS error al hacer PUT y el upload falla
+silencioso. Síntoma típico: "No se pudo subir el archivo" sin más
+contexto.
+
 ## Sentry — error monitoring
 
 Sentry está instalado y wired pero **dormido sin DSN**. El SDK detecta si

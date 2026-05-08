@@ -63,8 +63,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Archivo requerido" }, { status: 400 });
   }
 
-  if (file.size > 25 * 1024 * 1024) {
-    return NextResponse.json({ error: "Máximo 25MB por archivo" }, { status: 413 });
+  // Cap a 100MB. Para archivos > ~4MB el cliente debería usar
+  // /api/upload/presign que hace PUT directo a R2, esquivando el límite
+  // del request body de Vercel. Acá igual aceptamos hasta 100MB para
+  // dev local y para clientes sin presign disponible.
+  if (file.size > 100 * 1024 * 1024) {
+    return NextResponse.json(
+      {
+        error: `Máximo 100MB por archivo (subiste ${(file.size / 1024 / 1024).toFixed(1)}MB). Para videos más grandes, comprimilos antes.`,
+      },
+      { status: 413 },
+    );
   }
 
   // Validar MIME del navegador (no es 100% confiable porque viene del cliente,
