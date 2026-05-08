@@ -62,9 +62,16 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
       seekAndPlay(seconds: number) {
         const v = videoRef.current;
         if (!v) return;
+        // Preserva el estado: si el video estaba reproduciendo, sigue
+        // reproduciendo desde el nuevo punto; si estaba en pausa, queda
+        // en pausa en el nuevo punto. UX más natural — el cliente
+        // puede inspeccionar un momento sin auto-arrancar el video.
+        const wasPlaying = !v.paused;
         v.currentTime = Math.max(0, Math.min(seconds, v.duration || seconds));
         v.scrollIntoView({ behavior: "smooth", block: "center" });
-        v.play().catch(() => {});
+        if (wasPlaying) {
+          v.play().catch(() => {});
+        }
       },
       getCurrentTime() {
         return videoRef.current?.currentTime ?? 0;
@@ -162,12 +169,17 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
         />
       </div>
 
-      {/* Timeline: solo visible si hay marcadores. Estilo minimal. */}
-      {duration > 0 && markers.length > 0 && (
+      {/* Timeline siempre visible (cuando ya cargó duration). Si no
+          hay marcadores aún, igual mostramos la barra con progress —
+          así el user ve dónde está parado el video y entiende dónde
+          va a aparecer un punto rosa cuando comente. */}
+      {duration > 0 && (
         <div className="border-t border-zinc-100 bg-zinc-50/60 px-4 py-3">
           <div className="mb-1.5 flex items-center justify-between text-[10.5px]">
             <span className="font-semibold uppercase tracking-wider text-zinc-500">
-              {markers.length} {markers.length === 1 ? "comentario" : "comentarios"}
+              {markers.length === 0
+                ? "Timeline"
+                : `${markers.length} ${markers.length === 1 ? "comentario" : "comentarios"}`}
             </span>
             <span className="font-mono tabular-nums text-zinc-400">
               {formatTime(currentTime)}
