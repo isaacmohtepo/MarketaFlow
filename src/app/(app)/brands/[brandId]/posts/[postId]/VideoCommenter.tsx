@@ -115,9 +115,9 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
         : "Horizontal";
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-sm">
+    <div className="rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-sm">
       {/* Header minimal blanco con detalle fucsia + badge de orientación */}
-      <div className="flex items-center gap-2.5 border-b border-zinc-100 bg-white px-4 py-2.5">
+      <div className="flex items-center gap-2.5 rounded-t-2xl border-b border-zinc-100 bg-white px-4 py-2.5">
         <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-md bg-fuchsia-50 ring-1 ring-fuchsia-100">
           <VideoIcon className="h-3.5 w-3.5 text-fuchsia-600" />
         </span>
@@ -215,15 +215,40 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                 </button>
               );
             })}
-            {/* Preview con el cuerpo del comment al hover sobre un marker */}
+            {/* Preview con el cuerpo del comment al hover sobre un marker.
+                Clampamos la posición horizontal cuando el marker está
+                cerca de los bordes para que el tooltip no se mocha contra
+                el overflow:hidden de la card padre. */}
             {hoverMarkerId !== null && (() => {
               const m = markers.find((x) => x.id === hoverMarkerId);
               if (!m) return null;
               const pct = Math.min(100, (m.time / duration) * 100);
+              // Alinear tooltip:
+              //  - cerca del borde izquierdo (< 18%): anchor por la izquierda
+              //  - cerca del borde derecho (> 82%): anchor por la derecha
+              //  - centrado para los demás
+              const align =
+                pct < 18 ? "left" : pct > 82 ? "right" : "center";
+              const transformX =
+                align === "left"
+                  ? "translate(-12px, -100%)"
+                  : align === "right"
+                    ? "translate(calc(-100% + 12px), -100%)"
+                    : "translate(-50%, -100%)";
+              const arrowLeft =
+                align === "left"
+                  ? "12px"
+                  : align === "right"
+                    ? "calc(100% - 18px)"
+                    : "50%";
               return (
                 <div
-                  style={{ left: `${pct}%` }}
-                  className="pointer-events-none absolute -top-2 z-20 max-w-[260px] -translate-x-1/2 -translate-y-full rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[11px] text-white shadow-xl ring-1 ring-black/5"
+                  style={{
+                    left: `${pct}%`,
+                    transform: transformX,
+                    top: "-8px",
+                  }}
+                  className="pointer-events-none absolute z-20 w-[240px] max-w-[260px] rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[11px] text-white shadow-xl ring-1 ring-black/5"
                 >
                   <div className="mb-0.5 flex items-center gap-1.5">
                     <span className="font-mono text-[10px] font-bold text-fuchsia-300">
@@ -239,10 +264,12 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                   {!m.body && (
                     <p className="italic text-zinc-400">(sin texto)</p>
                   )}
-                  {/* Pico inferior */}
+                  {/* Pico inferior — apunta al marker independientemente
+                      del align del tooltip. */}
                   <span
                     aria-hidden
-                    className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-zinc-900"
+                    style={{ left: arrowLeft }}
+                    className="absolute top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-zinc-900"
                   />
                 </div>
               );
@@ -261,7 +288,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
       )}
 
       {/* Action bar: blanco, minimal, botón principal con gradient */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 bg-white px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-2 rounded-b-2xl border-t border-zinc-100 bg-white px-4 py-2.5">
         <button
           type="button"
           onClick={togglePlay}
