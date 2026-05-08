@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess, hasPermission } from "@/lib/permissions";
+import { audit } from "@/lib/audit";
 
 const schema = z.object({
   name: z.string().min(1).max(80).optional(),
@@ -56,4 +57,56 @@ export async function PATCH(
     data: body,
   });
   return NextResponse.json({ brand: updated });
+}
+
+/**
+ * DELETE /api/brands/[id]
+ *
+ * Borra la marca de forma permanente. Cascade:
+ * - Posts (y sus images, comments, approvals, versions, activities)
+ * - Memberships brand-level (clients de esa marca)
+ * - HashtagSets, PostTemplates
+ *
+ * No es reversible — requiere `brands.delete` (default solo owner) y
+ * confirmación explícita en la UI.
+ */
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const access = await getBrandAccess(user.id, id);
+  if (!access) {
+    return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  }
+  const ok = await hasPermission(user.id, access.agencyId, "brands.delete", id);
+  if (!ok) {
+    return NextResponse.json(
+      { error: "Sin permiso: brands.delete" },
+      { status: 403 },
+    );
+  }
+
+  const brand = await prisma.brand.findUnique({
+    where: { id },
+    select: { name: true, agencyId: true },
+  });
+  if (!brand) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+
+  await prisma.brand.delete({ where: { id } });
+
+  audit({
+    category: "team",
+    action: "brand.deleted",
+    actorUserId: user.id,
+    actorEmail: user.email,
+    targetId: id,
+    metadata: { agencyId: brand.agencyId, name: brand.name },
+    req,
+  });
+
+  return NextResponse.json({ ok: true });
 }

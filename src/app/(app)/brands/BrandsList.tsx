@@ -30,6 +30,8 @@ export type BrandRow = {
   color: string | null;
   agencyName: string;
   role: string;
+  /** Marca pausada por exceder el límite del plan. Read-only. */
+  locked?: boolean;
   total: number;
   pending: number;
   published: number;
@@ -152,7 +154,16 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
   const canEditBrand = has("brands.edit", b.id);
 
   return (
-    <div className="card group relative overflow-hidden p-4 transition hover:border-zinc-300">
+    <div
+      className={`card group relative overflow-hidden p-4 transition hover:border-zinc-300 ${
+        b.locked ? "opacity-70 ring-1 ring-amber-200" : ""
+      }`}
+    >
+      {b.locked && (
+        <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-white shadow-sm">
+          🔒 Pausada
+        </div>
+      )}
       <div className="flex items-start gap-3">
         <Link href={`/brands/${b.id}`} className="flex min-w-0 flex-1 items-start gap-3">
           <span

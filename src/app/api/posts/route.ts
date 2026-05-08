@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
 import { recordActivity } from "@/lib/activity";
 import { assertBrandNotSuspended } from "@/lib/suspension";
+import { assertBrandUnlocked } from "@/lib/brand-lock";
 import { ASSET_TYPES } from "@/lib/asset-types";
 import { canCreatePost } from "@/lib/billing";
 
@@ -87,6 +88,11 @@ export async function POST(req: Request) {
   // Suspension guard: si la agency está suspended, bloqueamos creates.
   const suspendGuard = await assertBrandNotSuspended(body.brandId);
   if (!suspendGuard.ok) return suspendGuard.response;
+
+  // Brand-lock guard: si la marca está pausada por exceder el plan,
+  // bloqueamos creates. El owner debe upgradear o reactivarla.
+  const lockGuard = await assertBrandUnlocked(body.brandId);
+  if (!lockGuard.ok) return lockGuard.response;
 
   // Plan limits enforcement: chequea posts/mes. Lo hacemos ANTES del transaction
   // (lectura sola, no race-sensitive en este punto). El check final + create

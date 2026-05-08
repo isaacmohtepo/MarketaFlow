@@ -12,10 +12,12 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getBillingSummary, getEffectiveLimits } from "@/lib/billing";
+import { syncBrandLocks } from "@/lib/brand-lock";
 import { PLANS_LIST, formatCop, type PlanId } from "@/lib/plans";
 import type { Prisma } from "@/generated/prisma";
 import BillingActions from "./BillingActions";
 import InvoiceFilters from "./InvoiceFilters";
+import BrandLockToggle from "./BrandLockToggle";
 
 const PAGE_SIZE = 15;
 
@@ -121,13 +123,17 @@ export default async function BillingPage({
   const yearsSet = new Set(allYears.map((i) => i.createdAt.getFullYear()));
   const years = Array.from(yearsSet).sort((a, b) => b - a);
 
+  // Reconciliar brand locks: si la agency excede maxBrands del plan,
+  // las brands más recientes quedan locked automáticamente. Idempotente.
+  await syncBrandLocks(agency.id);
+
   // Uso del plan: cuántos recursos consumió la agencia vs el límite del
   // plan. Sirve para que el owner vea de un vistazo "estoy cerca del
   // límite, conviene upgradear" antes de chocar con un error 402.
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
-  const [limits, postsThisMonth, brandsCount, membersCount] = await Promise.all([
+  const [limits, postsThisMonth, allBrands, membersCount] = await Promise.all([
     getEffectiveLimits(agency.id),
     prisma.post.count({
       where: {
@@ -136,11 +142,25 @@ export default async function BillingPage({
         deletedAt: null,
       },
     }),
-    prisma.brand.count({ where: { agencyId: agency.id } }),
+    prisma.brand.findMany({
+      where: { agencyId: agency.id },
+      select: {
+        id: true,
+        name: true,
+        logoUrl: true,
+        color: true,
+        lockedAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
     prisma.membership.count({
       where: { agencyId: agency.id, brandId: null },
     }),
   ]);
+  const brandsCount = allBrands.length;
+  const lockedBrands = allBrands.filter((b) => b.lockedAt !== null);
+  const hasLockedBrands = lockedBrands.length > 0;
   const usage = [
     {
       key: "posts",
@@ -326,6 +346,71 @@ export default async function BillingPage({
           ))}
         </div>
       </section>
+
+      {/* Marcas pausadas: solo aparece si hay alguna locked. Permite
+          al user elegir cuáles activar/pausar dentro del límite. */}
+      {hasLockedBrands && (
+        <section className="card border-amber-300 bg-amber-50/40 p-6 ring-1 ring-amber-200">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-amber-500 text-white shadow-md">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-amber-900">
+                {lockedBrands.length}{" "}
+                {lockedBrands.length === 1 ? "marca pausada" : "marcas pausadas"} por límite del plan
+              </h2>
+              <p className="mt-0.5 text-[12px] text-amber-800">
+                Tu plan {plan.name} permite {limits.maxBrands}{" "}
+                {limits.maxBrands === 1 ? "marca activa" : "marcas activas"} pero tenés{" "}
+                {brandsCount}. Las pausadas siguen siendo de solo lectura — los datos
+                no se pierden. Podés intercambiar cuál está activa o upgradear el plan.
+              </p>
+            </div>
+          </div>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {allBrands.map((b) => {
+              const isLocked = b.lockedAt !== null;
+              return (
+                <li
+                  key={b.id}
+                  className={`flex items-center gap-3 rounded-lg border bg-white p-2.5 ${
+                    isLocked ? "border-amber-200" : "border-emerald-200"
+                  }`}
+                >
+                  <span
+                    className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-md text-[12px] font-bold text-white"
+                    style={{ background: b.color ?? "#a1a1aa" }}
+                  >
+                    {b.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={b.logoUrl}
+                        alt=""
+                        className="h-full w-full rounded-md object-cover"
+                      />
+                    ) : (
+                      b.name[0]?.toUpperCase()
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-zinc-900">
+                      {b.name}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">
+                      {isLocked ? "Pausada" : "Activa"}
+                    </p>
+                  </div>
+                  <BrandLockToggle brandId={b.id} locked={isLocked} />
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-3 text-[11px] text-amber-700">
+            Tip: si subís de plan, todas las marcas se reactivan automáticamente.
+          </p>
+        </section>
+      )}
 
       {/* Hero del plan + acciones */}
       <section className="card overflow-hidden">

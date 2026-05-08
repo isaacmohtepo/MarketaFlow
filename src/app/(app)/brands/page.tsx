@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
-import { Layers } from "lucide-react";
+import Link from "next/link";
+import { Layers, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
 import { listUserBrands, hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import { syncBrandLocks } from "@/lib/brand-lock";
 import NewBrandTile from "@/app/(app)/dashboard/NewBrandTile";
 import { getKpisForBrands } from "@/lib/kpis";
 import BrandsList, { type BrandRow } from "./BrandsList";
@@ -24,6 +26,15 @@ export default async function BrandsIndexPage() {
     ? await hasPermission(user.id, agencyM.agencyId, "brands.create")
     : false;
 
+  // Reconciliar locks contra el plan + obtener cuántas hay pausadas
+  // para mostrar banner.
+  if (agencyM) await syncBrandLocks(agencyM.agencyId);
+  const lockedCount = agencyM
+    ? await prisma.brand.count({
+        where: { agencyId: agencyM.agencyId, lockedAt: { not: null } },
+      })
+    : 0;
+
   const brandIds = brands.map((b) => b.id);
 
   // Datos por marca (status counts + brand handle) + KPIs en batch
@@ -38,14 +49,20 @@ export default async function BrandsIndexPage() {
     brandIds.length > 0
       ? prisma.brand.findMany({
           where: { id: { in: brandIds } },
-          select: { id: true, handle: true },
+          select: { id: true, handle: true, lockedAt: true },
         })
-      : Promise.resolve([] as { id: string; handle: string | null }[]),
+      : Promise.resolve(
+          [] as { id: string; handle: string | null; lockedAt: Date | null }[],
+        ),
     getKpisForBrands(brandIds),
   ]);
 
   const handleMap = new Map<string, string | null>();
-  for (const b of brandDetails) handleMap.set(b.id, b.handle);
+  const lockedMap = new Map<string, boolean>();
+  for (const b of brandDetails) {
+    handleMap.set(b.id, b.handle);
+    lockedMap.set(b.id, b.lockedAt !== null);
+  }
 
   const stats = new Map<string, { total: number; pending: number; published: number }>();
   for (const id of brandIds) stats.set(id, { total: 0, pending: 0, published: 0 });
@@ -67,6 +84,7 @@ export default async function BrandsIndexPage() {
       color: b.color,
       agencyName: b.agencyName,
       role: b.role,
+      locked: lockedMap.get(b.id) ?? false,
       total: s.total,
       pending: s.pending,
       published: s.published,
@@ -99,6 +117,35 @@ export default async function BrandsIndexPage() {
             </p>
           </div>
         </div>
+
+        {/* Banner de marcas pausadas por exceso de plan */}
+        {lockedCount > 0 && (
+          <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 ring-1 ring-amber-200/60">
+            <div className="flex items-start gap-3">
+              <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-amber-500 text-white shadow-md">
+                <AlertTriangle className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px] font-bold text-amber-900">
+                  {lockedCount} {lockedCount === 1 ? "marca pausada" : "marcas pausadas"}
+                </p>
+                <p className="mt-0.5 text-[12px] text-amber-800">
+                  Excediste el límite de marcas activas de tu plan. Las pausadas
+                  son de solo lectura — los datos no se pierden. Elegí cuáles
+                  reactivar o upgradeá.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/billing"
+                    className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+                  >
+                    Gestionar marcas y plan
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {brands.length === 0 ? (
           <div className="mt-10 card p-10 text-center">

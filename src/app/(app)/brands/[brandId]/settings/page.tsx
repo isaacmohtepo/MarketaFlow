@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getBrandAccess } from "@/lib/permissions";
+import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import BrandCustomization from "./BrandCustomization";
 import DuplicateBrandButton from "./DuplicateBrandButton";
+import DeleteBrandButton from "./DeleteBrandButton";
 
 /**
  * Settings → General. Personalización de la marca (logo, color, bio) +
@@ -28,6 +29,13 @@ export default async function BrandSettingsGeneral({
     }),
   ]);
   if (!brand) notFound();
+
+  const canDelete = await hasPermission(
+    user.id,
+    access.agencyId,
+    "brands.delete",
+    brandId,
+  );
 
   return (
     <>
@@ -77,6 +85,19 @@ export default async function BrandSettingsGeneral({
           ))}
         </ul>
       </section>
+
+      {canDelete && (
+        <section className="card border-rose-200 bg-rose-50/30 p-6 ring-1 ring-rose-200/40">
+          <h2 className="text-sm font-semibold text-rose-900">Zona peligrosa</h2>
+          <p className="mt-1 text-xs text-rose-700/80">
+            Borra la marca de forma permanente. Se eliminan todos los posts,
+            comentarios, plantillas e historial. No se puede deshacer.
+          </p>
+          <div className="mt-3">
+            <DeleteBrandButton brandId={brandId} brandName={brand.name} />
+          </div>
+        </section>
+      )}
     </>
   );
 }

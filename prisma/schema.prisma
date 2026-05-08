@@ -454,6 +454,12 @@ model Brand {
   // mobilePortrait, tabletPortrait, tabletLandscape, laptop, widescreen.
   // Cada uno es el upper-bound (px) de esa categoría. null = usar defaults.
   breakpoints Json?
+  /// Marca pausada por exceder el límite del plan. Cuando la agencia
+  /// downgradea a un plan con menos brands de las que tiene, las
+  /// excedentes se marcan con lockedAt en vez de borrarse — así no se
+  /// pierde data y se puede reactivar con upgrade. Las locked son
+  /// read-only (no posts nuevos, no edits, comments visibles).
+  lockedAt    DateTime?
   /// Credenciales de publicación de Instagram (Meta Graph API).
   /// igUserId = Instagram Business Account ID (NO @username)
   /// igAccessToken = long-lived user token con permisos pages_show_list,
