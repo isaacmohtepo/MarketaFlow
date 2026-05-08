@@ -1077,7 +1077,7 @@ export default function PostBoard({
       {/* Columna de comentarios — sticky para que se quede visible
           mientras scroleas, con alto generoso (700px min) y cap en
           el viewport para no salirse de pantalla. */}
-      <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:min-h-[700px] lg:overflow-hidden">
+      <div className="flex flex-col gap-2.5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:min-h-[720px] lg:overflow-hidden">
         {isDeleted && canDelete && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
             <div className="flex items-start gap-2">
@@ -1165,9 +1165,9 @@ export default function PostBoard({
           (currentStatus === "changes_requested" || currentStatus === "in_review") && (
             <button
               onClick={() => setVersionModalOpen(true)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-fuchsia-300 bg-fuchsia-50/50 py-2.5 text-sm font-semibold text-fuchsia-700 transition hover:border-fuchsia-400 hover:bg-fuchsia-50"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-fuchsia-300 bg-fuchsia-50/40 py-1.5 text-[12.5px] font-semibold text-fuchsia-700 transition hover:border-fuchsia-400 hover:bg-fuchsia-50"
             >
-              <UploadCloud className="h-4 w-4" />
+              <UploadCloud className="h-3.5 w-3.5" />
               Subir nueva versión
             </button>
           )}
@@ -1211,20 +1211,23 @@ export default function PostBoard({
 
         {!isDeleted && canApprovePost &&
           (liveStatus === "in_review" || liveStatus === "changes_requested") && (
-            <div className="rounded-xl border divider bg-white px-3.5 py-2.5">
+            <div className="rounded-md border divider bg-white px-2.5 py-1.5">
               {!confirmingApprove ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <ShieldCheck className="h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  <p className="flex-1 min-w-[180px] text-[12.5px] text-zinc-700">
-                    Si está listo, aprobalo. Si necesita ajustes, dejá un comentario y se enviará como pedido de cambios.
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
+                  <p
+                    className="flex-1 truncate text-[11.5px] text-zinc-600"
+                    title="Si está listo, aprobalo. Si necesita ajustes, dejá un comentario y se enviará como pedido de cambios."
+                  >
+                    Listo para aprobar
                   </p>
                   <button
                     onClick={() => setConfirmingApprove(true)}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                    className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-[12px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                    Aprobar post
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                    Aprobar
                   </button>
                 </div>
               ) : (
@@ -1767,15 +1770,21 @@ function StatusSelector({
   }, []);
 
   return (
-    <div ref={ref} className="card relative p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-        Estado
-      </p>
+    <div ref={ref} className="card relative px-3 py-2">
+      <div className="flex items-center gap-2">
+        <p
+          className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"
+          title="Override manual. El cliente sigue pudiendo aprobar/rechazar normalmente."
+        >
+          Estado
+        </p>
+        <div className="flex-1" />
+      </div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
-        className="mt-1.5 flex w-full items-center justify-between gap-2 rounded-md border divider bg-white px-3 py-2 text-[13px] font-medium text-zinc-900 transition hover:border-zinc-300 disabled:opacity-60"
+        className="mt-1 flex w-full items-center justify-between gap-2 rounded-md border divider bg-white px-2.5 py-1.5 text-[12.5px] font-medium text-zinc-900 transition hover:border-zinc-300 disabled:opacity-60"
       >
         <span className="flex items-center gap-2">
           <span
@@ -1815,9 +1824,6 @@ function StatusSelector({
           })}
         </div>
       )}
-      <p className="mt-1.5 text-[10px] text-zinc-500">
-        Override manual. El cliente sigue pudiendo aprobar/rechazar normalmente.
-      </p>
     </div>
   );
 }
