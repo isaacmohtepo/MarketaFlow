@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma";
 import InboxNotifications from "./InboxNotifications";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
+import MediaThumb from "@/components/MediaThumb";
 
 const MONTHS = [
   "ene", "feb", "mar", "abr", "may", "jun",
@@ -374,12 +375,9 @@ function Row({
         className="flex items-center gap-3 px-3 py-2.5 transition hover:bg-zinc-50"
       >
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt=""
-            className="h-10 w-10 flex-shrink-0 rounded-md object-cover"
-          />
+          <span className="block h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
+            <MediaThumb url={imageUrl} className="h-full w-full object-cover" showPlayIcon={false} />
+          </span>
         ) : (
           <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-[10px] text-zinc-400">
             —

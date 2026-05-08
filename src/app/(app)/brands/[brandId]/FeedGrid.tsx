@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import MediaThumb from "@/components/MediaThumb";
 import {
   CalendarClock,
   CheckCircle2,
@@ -248,8 +249,7 @@ export default function FeedGrid({
                 }`}
               >
                 {p.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <MediaThumb url={p.imageUrl} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50">
                     <ImageOff className="h-5 w-5 text-zinc-400" />
@@ -304,11 +304,8 @@ export default function FeedGrid({
                 }}
               >
                 {p.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.imageUrl}
-                    alt=""
-                    draggable={false}
+                  <MediaThumb
+                    url={p.imageUrl}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                 ) : (

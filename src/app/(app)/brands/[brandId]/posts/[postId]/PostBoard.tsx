@@ -707,7 +707,16 @@ export default function PostBoard({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+    <div
+      className={`grid gap-6 lg:items-start ${
+        // Cuando hay video presente, le damos ~60% al media para que el
+        // player no se vea apretado; comments column ~40%. Para posts
+        // de imagen mantenemos 50/50.
+        videoMedia || externalVideoUrl
+          ? "lg:grid-cols-[3fr_2fr]"
+          : "lg:grid-cols-2"
+      }`}
+    >
       <div className="flex flex-col gap-3">
         {compareWith && (
           <BeforeAfterSlider
