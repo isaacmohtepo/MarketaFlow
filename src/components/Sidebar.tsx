@@ -120,7 +120,7 @@ function buildSections({
                   } as NavItem,
                   {
                     label: "Facturas",
-                    href: "/billing?tab=invoices",
+                    href: "/billing#facturas",
                     icon: FileText,
                     match: (p: string) => p.startsWith("/billing/invoices"),
                   } as NavItem,

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getBillingSummary } from "@/lib/billing";
+import { getBillingSummary, getEffectiveLimits } from "@/lib/billing";
 import { PLANS_LIST, formatCop, type PlanId } from "@/lib/plans";
 import type { Prisma } from "@/generated/prisma";
 import BillingActions from "./BillingActions";
@@ -120,6 +120,50 @@ export default async function BillingPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const yearsSet = new Set(allYears.map((i) => i.createdAt.getFullYear()));
   const years = Array.from(yearsSet).sort((a, b) => b - a);
+
+  // Uso del plan: cuántos recursos consumió la agencia vs el límite del
+  // plan. Sirve para que el owner vea de un vistazo "estoy cerca del
+  // límite, conviene upgradear" antes de chocar con un error 402.
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const [limits, postsThisMonth, brandsCount, membersCount] = await Promise.all([
+    getEffectiveLimits(agency.id),
+    prisma.post.count({
+      where: {
+        brand: { agencyId: agency.id },
+        createdAt: { gte: monthStart },
+        deletedAt: null,
+      },
+    }),
+    prisma.brand.count({ where: { agencyId: agency.id } }),
+    prisma.membership.count({
+      where: { agencyId: agency.id, brandId: null },
+    }),
+  ]);
+  const usage = [
+    {
+      key: "posts",
+      label: "Posts este mes",
+      used: postsThisMonth,
+      limit: limits.maxPostsPerMonth,
+      hint: "Se resetea el 1 de cada mes.",
+    },
+    {
+      key: "brands",
+      label: "Marcas activas",
+      used: brandsCount,
+      limit: limits.maxBrands,
+      hint: "Cada cliente nuevo es una marca.",
+    },
+    {
+      key: "members",
+      label: "Miembros del equipo",
+      used: membersCount,
+      limit: limits.maxTeamMembers,
+      hint: "Owner + editores + community managers.",
+    },
+  ];
 
   const plan = summary.plan;
   const isFree = plan.id === "free";
@@ -250,6 +294,39 @@ export default async function BillingPage({
         />
       </div>
 
+      {/* Uso del plan: consumo de recursos vs limites */}
+      <section className="card p-6">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              Uso del plan
+            </h2>
+            <p className="mt-0.5 text-[11.5px] text-zinc-500">
+              Cuánto consumiste de tu plan {plan.name} este mes.
+            </p>
+          </div>
+          {isFree && (
+            <Link
+              href="/pricing"
+              className="text-[11.5px] font-semibold text-fuchsia-700 hover:underline"
+            >
+              Ver planes →
+            </Link>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {usage.map((u) => (
+            <UsageBar
+              key={u.key}
+              label={u.label}
+              used={u.used}
+              limit={u.limit}
+              hint={u.hint}
+            />
+          ))}
+        </div>
+      </section>
+
       {/* Hero del plan + acciones */}
       <section className="card overflow-hidden">
         <div className="border-b border-zinc-100 bg-gradient-to-br from-fuchsia-50/40 via-white to-amber-50/30 p-6">
@@ -370,7 +447,10 @@ export default async function BillingPage({
       )}
 
       {/* Historial */}
-      <section className="card p-6">
+      <section
+        id="facturas"
+        className="card p-6 scroll-mt-20"
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">
@@ -515,6 +595,80 @@ function buildExportUrl(
   if (filters.year && filters.year !== "all") p.set("year", filters.year);
   if (filters.q) p.set("q", filters.q);
   return `/api/billing/invoices/export?${p.toString()}`;
+}
+
+function UsageBar({
+  label,
+  used,
+  limit,
+  hint,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  hint?: string;
+}) {
+  const isUnlimited = limit === -1;
+  const pct = isUnlimited
+    ? 0
+    : limit > 0
+      ? Math.min(100, Math.round((used / limit) * 100))
+      : 0;
+  // Tono según qué tan cerca del límite estás
+  const tone =
+    isUnlimited || pct < 60
+      ? "emerald"
+      : pct < 90
+        ? "amber"
+        : "rose";
+  const barClass: Record<string, string> = {
+    emerald: "bg-emerald-500",
+    amber: "bg-amber-500",
+    rose: "bg-rose-500",
+  };
+  const textClass: Record<string, string> = {
+    emerald: "text-zinc-900",
+    amber: "text-amber-700",
+    rose: "text-rose-700",
+  };
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11.5px] font-semibold uppercase tracking-wider text-zinc-500">
+          {label}
+        </p>
+        {isUnlimited && (
+          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9.5px] font-bold text-emerald-700">
+            ILIMITADO
+          </span>
+        )}
+      </div>
+      <p className={`mt-2 text-2xl font-bold tabular-nums ${textClass[tone]}`}>
+        {used.toLocaleString()}
+        {!isUnlimited && (
+          <span className="text-base font-normal text-zinc-400">
+            {" "}/ {limit.toLocaleString()}
+          </span>
+        )}
+      </p>
+      {!isUnlimited && (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className={`h-full transition-all ${barClass[tone]}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+      {hint && (
+        <p className="mt-1.5 text-[10.5px] text-zinc-500">
+          {tone === "rose" && !isUnlimited
+            ? "Estás cerca del límite. Considerá upgradear."
+            : hint}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function StatCard({
