@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UploadCloud, X, Loader2, ImagePlus, RotateCcw, FileIcon } from "lucide-react";
+import { UploadCloud, X, Loader2, ImagePlus, RotateCcw, FileIcon, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useApiFetch } from "@/lib/api-client";
 import CaptionAssist from "./CaptionAssist";
@@ -76,6 +77,38 @@ export default function NewPostForm({
   const [zoneActive, setZoneActive] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+
+  // Diagnóstico de storage + plan: pre-flight check al cargar el form.
+  // Si hay un issue (storage no configurado / plan limit hit), mostramos
+  // un banner antes que el user pierda tiempo subiendo y se choque con
+  // un error genérico.
+  const [diagnostics, setDiagnostics] = useState<{
+    storage: { configured: boolean; mode: string };
+    plan: {
+      planId: string;
+      maxPostsPerMonth: number;
+      postsThisMonth: number;
+      canCreateMore: boolean;
+      reason: string | null;
+      suggestedPlan: string | null;
+    } | null;
+    issues: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/diagnostics?brandId=${encodeURIComponent(brandId)}`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j) setDiagnostics(j);
+      })
+      .catch(() => {});
+  }, [brandId]);
+
+  const planBlocking =
+    !!diagnostics?.plan && !diagnostics.plan.canCreateMore;
+  const storageBlocking = diagnostics?.storage.configured === false;
   const { confirm: confirmDialog } = useConfirm();
   const apiFetch = useApiFetch();
   const hydratedRef = useRef(false);
@@ -161,6 +194,18 @@ export default function NewPostForm({
   async function uploadFiles(filesIn: FileList | File[]) {
     const arr = Array.from(filesIn);
     if (arr.length === 0) return;
+    if (planBlocking) {
+      setError(
+        "Llegaste al límite de tu plan. Upgradeá para crear más posts.",
+      );
+      return;
+    }
+    if (storageBlocking) {
+      setError(
+        "Storage no configurado. Pedile al admin que configure las env vars de R2 en Vercel.",
+      );
+      return;
+    }
     setUploading(true);
     setError(null);
     const uploaded: string[] = [];
@@ -344,6 +389,64 @@ export default function NewPostForm({
       }}
       className="space-y-5"
     >
+      {/* Banner de plan limit reached — bloquea uploads y submit */}
+      {planBlocking && diagnostics?.plan && (
+        <div className="rounded-xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 to-amber-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-rose-500 text-white shadow-md">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold text-rose-900">
+                Llegaste al límite de tu plan
+              </p>
+              <p className="mt-0.5 text-[12.5px] text-rose-800">
+                {diagnostics.plan.reason ??
+                  `Usaste ${diagnostics.plan.postsThisMonth} de ${diagnostics.plan.maxPostsPerMonth} posts este mes en tu plan ${diagnostics.plan.planId}.`}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/billing"
+                  className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-semibold"
+                >
+                  Ver planes y upgrade
+                </Link>
+                <Link
+                  href={`/brands/${brandId}`}
+                  className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+                >
+                  Volver al feed
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de storage no configurado — bloquea uploads (no submit
+          si solo usas URL externa) */}
+      {storageBlocking && (
+        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-amber-500 text-white shadow-md">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold text-amber-900">
+                Storage no configurado
+              </p>
+              <p className="mt-0.5 text-[12.5px] text-amber-800">
+                El admin tiene que setear las env vars de Cloudflare R2 en
+                Vercel (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+                R2_BUCKET, R2_PUBLIC_URL). Mientras tanto podés crear posts
+                con URL externa de YouTube/Vimeo o usar el modo
+                planificación.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {draftRestored && (
         <div className="flex items-center gap-2.5 rounded-lg border border-fuchsia-200 bg-fuchsia-50/60 px-3 py-2 text-[12px] text-fuchsia-900">
           <RotateCcw className="h-3.5 w-3.5 flex-shrink-0" />

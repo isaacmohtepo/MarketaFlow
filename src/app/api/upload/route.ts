@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { uploadFile } from "@/lib/storage";
+import { uploadFile, isR2Configured } from "@/lib/storage";
 
 /**
  * Allowlist de MIME types permitidos para upload. Bloqueamos:
@@ -108,6 +108,24 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("upload failed", err);
-    return NextResponse.json({ error: "Error al subir" }, { status: 500 });
+    // Diferenciar la causa para que el frontend pueda mostrar mensaje útil.
+    if (!isR2Configured) {
+      return NextResponse.json(
+        {
+          error:
+            "Storage no configurado en este servidor. El admin tiene que setear las env vars de R2 (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL) en Vercel.",
+          code: "storage_not_configured",
+        },
+        { status: 503 },
+      );
+    }
+    const msg = err instanceof Error ? err.message : "unknown";
+    return NextResponse.json(
+      {
+        error: `Error al subir: ${msg}`,
+        code: "storage_error",
+      },
+      { status: 500 },
+    );
   }
 }
