@@ -64,6 +64,9 @@ const schema = z.object({
   body: z.string().min(1).max(5000),
   x: z.number().min(0).max(1).optional(),
   y: z.number().min(0).max(1).optional(),
+  // Timestamp en segundos para comentarios anclados a un momento del video.
+  // Cap en 24h para evitar valores absurdos.
+  videoTime: z.number().min(0).max(86400).optional().nullable(),
   parentId: z.string().max(64).optional(),
   internal: z.boolean().optional(),
   // attachmentUrl: z.url() permitía javascript: y data: → XSS si se renderiza
@@ -141,6 +144,8 @@ export async function POST(
       body: body.body,
       x: isReply ? null : body.x ?? null,
       y: isReply ? null : body.y ?? null,
+      // videoTime no se hereda en replies (no tiene sentido)
+      videoTime: isReply ? null : body.videoTime ?? null,
       parentId: body.parentId ?? null,
       internal: isInternal,
       attachmentUrl: body.attachmentUrl ?? null,
@@ -250,6 +255,7 @@ function serialize(c: {
   body: string;
   x: number | null;
   y: number | null;
+  videoTime: number | null;
   parentId: string | null;
   resolved: boolean;
   internal: boolean;
@@ -271,6 +277,7 @@ function serialize(c: {
     body: c.body,
     x: c.x,
     y: c.y,
+    videoTime: c.videoTime,
     parentId: c.parentId,
     resolved: c.resolved,
     internal: c.internal,

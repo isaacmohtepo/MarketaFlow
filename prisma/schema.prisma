@@ -602,8 +602,13 @@ model Comment {
   postId        String
   userId        String
   body          String
+  // Anclaje espacial para imágenes (% del ancho/alto). Null para
+  // comentarios sin posición, replies, o anclados a video.
   x             Float?
   y             Float?
+  // Anclaje temporal para videos. Segundos desde el inicio (decimal).
+  // Null si el comentario no se hizo sobre un video con timestamp.
+  videoTime     Float?
   parentId      String?
   resolved      Boolean   @default(false)
   // Comentario interno del equipo: el cliente NO lo ve. Por default, si el post

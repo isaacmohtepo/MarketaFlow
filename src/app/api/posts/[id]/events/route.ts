@@ -109,6 +109,7 @@ export async function GET(
                 body: c.body,
                 x: c.x,
                 y: c.y,
+                videoTime: c.videoTime,
                 parentId: c.parentId,
                 resolved: c.resolved,
                 internal: c.internal,

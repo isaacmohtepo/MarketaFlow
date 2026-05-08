@@ -233,6 +233,7 @@ export default async function PostPage({
                 userId: c.userId,
                 x: c.x,
                 y: c.y,
+                videoTime: c.videoTime,
                 parentId: c.parentId,
                 resolved: c.resolved,
                 pageUrl: c.pageUrl,
@@ -252,6 +253,7 @@ export default async function PostPage({
             postId={post.id}
             imageUrl={post.imageUrl}
             images={images.map((i) => i.url)}
+            mediaItems={images.map((i) => ({ url: i.url, mime: i.mime ?? null }))}
             canApprove={access.canApprove && access.role === "client"}
             canEdit={access.canEdit}
             canEditCaption={canEditCaption}
@@ -289,6 +291,7 @@ export default async function PostPage({
               userId: c.userId,
               x: c.x,
               y: c.y,
+              videoTime: c.videoTime,
               parentId: c.parentId,
               resolved: c.resolved,
               internal: c.internal,

@@ -6,6 +6,10 @@ import { useShortcut } from "@/lib/shortcut";
 import { Check, MoreHorizontal, Pencil, Trash2, CornerDownRight, GitCompare, UploadCloud, RotateCcw, AlertTriangle, X, MessageSquare, ShieldCheck, Paperclip, FileIcon, ImageIcon, Loader2, Globe, Monitor } from "lucide-react";
 import NewVersionModal from "./NewVersionModal";
 import BeforeAfterSlider from "./BeforeAfterSlider";
+import VideoCommenter, {
+  formatTime,
+  type VideoCommenterHandle,
+} from "./VideoCommenter";
 import MentionInput from "@/components/MentionInput";
 import MentionText from "@/components/MentionText";
 import { useMentionedRoles } from "@/lib/useMentionedRoles";
@@ -32,6 +36,7 @@ type Comment = {
   userId: string;
   x: number | null;
   y: number | null;
+  videoTime?: number | null;
   parentId: string | null;
   resolved: boolean;
   internal?: boolean;
@@ -49,6 +54,7 @@ export default function PostBoard({
   postId,
   imageUrl,
   images,
+  mediaItems,
   canApprove,
   canEdit,
   canEditCaption,
@@ -75,6 +81,8 @@ export default function PostBoard({
   postId: string;
   imageUrl: string | null;
   images: string[];
+  /** Media con mime info para detectar videos. Si está omitido, se asume todo imagen. */
+  mediaItems?: { url: string; mime: string | null }[];
   canApprove: boolean;
   canEdit: boolean;
   canEditCaption: boolean;
@@ -130,6 +138,36 @@ export default function PostBoard({
   const [attaching, setAttaching] = useState(false);
   const attachInputRef = useRef<HTMLInputElement>(null);
   const [liveStatus, setLiveStatus] = useState<string>(currentStatus);
+
+  // ===== Video commenting =====
+  // El primer media item con mime video/* habilita el modo video. Solo
+  // soportamos archivos subidos directamente (mp4/webm/mov), no embeds
+  // de YouTube/Vimeo (que viven en post.sourceUrl, no acá).
+  const videoMedia = (mediaItems ?? []).find((m) =>
+    (m.mime ?? "").startsWith("video/"),
+  );
+  const videoCommenterRef = useRef<VideoCommenterHandle | null>(null);
+  // Timestamp capturado del player. Si es null, los comments se envían sin
+  // anclaje temporal. Si tiene valor, se incluye en el body del POST.
+  const [pendingVideoTime, setPendingVideoTime] = useState<number | null>(null);
+
+  function captureVideoTime(seconds: number) {
+    setPendingVideoTime(seconds);
+    // Foco en el input de comentarios principal para que el user empiece a escribir
+    setTimeout(() => commentInputRef.current?.focus(), 50);
+  }
+
+  function seekToComment(commentId: string) {
+    const c = comments.find((x) => x.id === commentId);
+    if (c?.videoTime != null && videoCommenterRef.current) {
+      videoCommenterRef.current.seekAndPlay(c.videoTime);
+      setActiveId(commentId);
+    }
+  }
+  // Marcadores en la timeline = comments con videoTime, sin replies, sin resueltos
+  const videoMarkers = comments
+    .filter((c) => c.videoTime != null && c.parentId == null && !c.resolved)
+    .map((c) => ({ id: c.id, time: c.videoTime as number }));
   // Visibilidad automática: si el post está en draft = modo equipo (todos los comments
   // nuevos son internos). En revisión o más = modo cliente (públicos).
   const isInternalMode = isAgency && liveStatus === "draft";
@@ -271,7 +309,16 @@ export default function PostBoard({
     if (brandIdFromUrl) router.push(`/brands/${brandIdFromUrl}`);
   });
 
-  const slides = images.length > 0 ? images : imageUrl ? [imageUrl] : [];
+  // Para el carousel solo usamos slides de IMAGEN. Si mediaItems trae info
+  // de mime, filtramos los videos (que se renderizan en VideoCommenter
+  // separado). Si no hay mediaItems, asumimos todo imagen (legacy).
+  const imageOnlyUrls = mediaItems
+    ? mediaItems
+        .filter((m) => !(m.mime ?? "").startsWith("video/"))
+        .map((m) => m.url)
+    : images;
+  const slides =
+    imageOnlyUrls.length > 0 ? imageOnlyUrls : imageUrl ? [imageUrl] : [];
   const currentSlide = slides[slide] ?? null;
   const hasCarousel = slides.length > 1;
 
@@ -354,6 +401,9 @@ export default function PostBoard({
         attachmentUrl: attachment?.url ?? null,
         attachmentName: attachment?.name ?? null,
         attachmentMime: attachment?.mime ?? null,
+        // Si el user clickeó "Comentar este momento" antes de enviar,
+        // ancla el comentario al timestamp del video. Se limpia post-envío.
+        videoTime: pendingVideoTime,
         internal: override?.internal ?? isInternalMode,
       }),
     });
@@ -363,6 +413,7 @@ export default function PostBoard({
       setComments((c) => [...c, j.comment]);
       setBody("");
       setAttachment(null);
+      setPendingVideoTime(null);
       if (j.autoStatusChange) router.refresh();
     }
   }
@@ -653,11 +704,41 @@ export default function PostBoard({
             onClose={() => setCompareWith(null)}
           />
         )}
+        {videoMedia && (
+          <div className={`mb-3 ${compareWith ? "hidden" : ""}`}>
+            <VideoCommenter
+              ref={videoCommenterRef}
+              src={videoMedia.url}
+              mime={videoMedia.mime}
+              markers={videoMarkers}
+              canComment={canWriteComments && !isDeleted}
+              onCaptureTime={captureVideoTime}
+              onMarkerClick={seekToComment}
+            />
+            {pendingVideoTime != null && (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-fuchsia-50 px-3 py-2 text-[12px] text-fuchsia-800 ring-1 ring-fuchsia-200">
+                <span className="font-mono font-semibold">
+                  {formatTime(pendingVideoTime)}
+                </span>
+                <span>
+                  Tu próximo comentario quedará anclado a este momento del video.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPendingVideoTime(null)}
+                  className="ml-auto text-fuchsia-700 hover:text-fuchsia-900 underline-offset-2 hover:underline"
+                >
+                  cancelar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <div
           ref={imgWrapRef}
           onClick={onImageClick}
           className={`relative aspect-square cursor-crosshair overflow-hidden rounded-xl card p-2 select-none ${
-            compareWith ? "hidden" : ""
+            compareWith || (videoMedia && slides.length === 0) ? "hidden" : ""
           }`}
         >
           {currentSlide ? (
@@ -1181,6 +1262,16 @@ export default function PostBoard({
                     />
                   ) : (
                     <>
+                      {c.videoTime != null && (
+                        <button
+                          type="button"
+                          onClick={() => seekToComment(c.id)}
+                          className="mt-1 inline-flex items-center gap-1 rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-mono font-semibold text-fuchsia-700 ring-1 ring-fuchsia-200 transition hover:bg-fuchsia-100"
+                          title="Saltar a este momento del video"
+                        >
+                          ▶ {formatTime(c.videoTime)}
+                        </button>
+                      )}
                       <MentionText
                         text={c.body}
                         className="mt-1 block whitespace-pre-wrap text-zinc-800"
