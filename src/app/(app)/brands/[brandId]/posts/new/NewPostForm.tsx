@@ -19,6 +19,7 @@ import {
   type AssetType,
 } from "@/lib/asset-types";
 import { extractVideoThumbnail } from "@/lib/video-thumbnail";
+import RecentMediaPicker from "./RecentMediaPicker";
 
 const DRAFT_KEY = (brandId: string) => `mf:draft:${brandId}`;
 const DRAFT_DEBOUNCE_MS = 800;
@@ -750,6 +751,38 @@ export default function NewPostForm({
             </p>
           )}
         </div>
+      )}
+
+      {/* Picker de media reciente: aparece para todos los assetTypes
+          que aceptan archivos. Permite reusar archivos subidos a otros
+          posts de la misma brand sin re-subirlos. */}
+      {!(assetType === "video" && sourceUrl.trim() && isValidHttpUrl(sourceUrl.trim())) && (
+        <RecentMediaPicker
+          brandId={brandId}
+          selectedUrls={new Set(images)}
+          onSelect={(item) => {
+            // Filtro defensivo: para social_post solo aceptamos image/video.
+            if (
+              assetType === "social_post" &&
+              !(item.mime ?? "").startsWith("image/") &&
+              !(item.mime ?? "").startsWith("video/")
+            ) {
+              return;
+            }
+            // Para video assetType, solo videos.
+            if (assetType === "video" && !(item.mime ?? "").startsWith("video/")) {
+              return;
+            }
+            setImages((cur) => (cur.includes(item.url) ? cur : [...cur, item.url]));
+            setMeta((cur) => ({
+              ...cur,
+              [item.url]: {
+                mime: item.mime ?? "application/octet-stream",
+                name: item.name ?? "archivo",
+              },
+            }));
+          }}
+        />
       )}
 
       {/* Upload zone — para video assetType, sirve como ALTERNATIVA a la
