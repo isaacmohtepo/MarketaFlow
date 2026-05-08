@@ -166,8 +166,15 @@ export default function NewPostForm({
     const uploaded: string[] = [];
     const newMeta: Record<string, { mime: string; name: string }> = {};
     for (const file of arr) {
-      // Para social_post limitamos a imágenes; para el resto, cualquier archivo
-      if (assetType === "social_post" && !file.type.startsWith("image/")) continue;
+      // social_post + video aceptan imagen o video. Otros aceptan cualquier
+      // archivo. (El backend valida tipos seguros vía /api/upload.)
+      if (
+        assetType === "social_post" &&
+        !file.type.startsWith("image/") &&
+        !file.type.startsWith("video/")
+      ) {
+        continue;
+      }
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
@@ -562,23 +569,26 @@ export default function NewPostForm({
         </div>
       )}
 
-      {/* Upload zone */}
+      {/* Upload zone — para video assetType, sirve como ALTERNATIVA a la
+          URL externa (YouTube/Vimeo). Si el user ya pegó una URL válida,
+          ocultamos el uploader para no confundir. */}
+      {!(assetType === "video" && sourceUrl.trim() && isValidHttpUrl(sourceUrl.trim())) && (
       <div>
         <label className="block text-[13px] font-medium text-zinc-700">
           {assetType === "social_post"
-            ? "Imágenes"
+            ? "Imágenes o videos"
             : assetType === "web_design"
               ? "Mockups o capturas"
               : assetType === "video"
-                ? "Archivo de video o thumbnail"
+                ? "Archivo de video"
                 : "Archivos"}
           <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
             {assetType === "social_post"
-              ? "varias para carrusel"
+              ? "varias para carrusel · acepta reels mp4"
               : assetType === "web_design"
                 ? "opcional"
                 : assetType === "video"
-                  ? "opcional si pegaste URL"
+                  ? "alternativa a la URL externa"
                   : "PDF, ZIP, AI, PSD, lo que necesites"}
           </span>
         </label>
@@ -587,11 +597,13 @@ export default function NewPostForm({
           ref={fileInputRef}
           type="file"
           accept={
-            assetType === "social_post" || assetType === "video"
+            assetType === "social_post"
               ? "image/*,video/*"
-              : undefined
+              : assetType === "video"
+                ? "video/*"
+                : undefined
           }
-          multiple
+          multiple={assetType !== "video"}
           className="sr-only"
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {
@@ -732,6 +744,7 @@ export default function NewPostForm({
           </div>
         )}
       </div>
+      )}
 
       <div>
         <label className="block text-[13px] font-medium text-zinc-700">

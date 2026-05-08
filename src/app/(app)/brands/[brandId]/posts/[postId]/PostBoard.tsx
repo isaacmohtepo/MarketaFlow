@@ -732,17 +732,25 @@ export default function PostBoard({
               onMarkerClick={seekToComment}
             />
             {pendingVideoTime != null && (
-              <div className="mt-2 flex items-center gap-2 rounded-lg bg-fuchsia-50 px-3 py-2 text-[12px] text-fuchsia-800 ring-1 ring-fuchsia-200">
-                <span className="font-mono font-semibold">
-                  {formatTime(pendingVideoTime)}
+              <div className="mt-2 flex items-center gap-3 rounded-xl bg-gradient-to-r from-fuchsia-100 via-rose-50 to-fuchsia-100 px-4 py-2.5 text-[12.5px] text-fuchsia-900 ring-1 ring-fuchsia-300/60 shadow-sm">
+                <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 text-white shadow-md">
+                  <span className="font-mono text-[10px] font-bold">▶</span>
                 </span>
-                <span>
-                  Tu próximo comentario quedará anclado a este momento del video.
-                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">
+                    Anclando a{" "}
+                    <span className="font-mono text-fuchsia-700">
+                      {formatTime(pendingVideoTime)}
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-fuchsia-700/80">
+                    Tu próximo comentario va a marcar este segundo del video.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setPendingVideoTime(null)}
-                  className="ml-auto text-fuchsia-700 hover:text-fuchsia-900 underline-offset-2 hover:underline"
+                  className="rounded-md px-2 py-1 text-[11px] font-medium text-fuchsia-700 hover:bg-fuchsia-200/60"
                 >
                   cancelar
                 </button>
@@ -1285,10 +1293,14 @@ export default function PostBoard({
                         <button
                           type="button"
                           onClick={() => seekToComment(c.id)}
-                          className="mt-1 inline-flex items-center gap-1 rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-mono font-semibold text-fuchsia-700 ring-1 ring-fuchsia-200 transition hover:bg-fuchsia-100"
+                          className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-rose-500 px-2.5 py-1 text-[11px] font-mono font-bold text-white shadow-sm ring-1 ring-fuchsia-400/40 transition hover:scale-[1.03] hover:shadow-md"
                           title="Saltar a este momento del video"
                         >
-                          ▶ {formatTime(c.videoTime)}
+                          <span className="text-[10px]">▶</span>
+                          {formatTime(c.videoTime)}
+                          <span className="font-sans text-[10px] font-medium opacity-80">
+                            en el video
+                          </span>
                         </button>
                       )}
                       <MentionText
