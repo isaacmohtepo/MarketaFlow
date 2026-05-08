@@ -11,6 +11,12 @@ import {
 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import UserActions from "./UserActions";
+import {
+  formatAuditAction,
+  formatAuditTime,
+  categoryLabel,
+  categoryTone,
+} from "@/lib/audit-format";
 
 /**
  * Detalle de un usuario para admins. Muestra toda la info + acciones.
@@ -276,47 +282,56 @@ export default async function AdminUserDetailPage({
           <p className="mt-3 text-[12px] text-zinc-500">Sin actividad registrada.</p>
         ) : (
           <ol className="mt-3 space-y-2 text-[12px]">
-            {recentAudit.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-start gap-3 rounded-md border border-zinc-100 bg-zinc-50/40 px-3 py-2"
-              >
-                <span
-                  className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                    a.actorUserId === id
-                      ? "bg-blue-50 text-blue-700"
-                      : "bg-amber-50 text-amber-700"
-                  }`}
-                  title={a.actorUserId === id ? "Hizo" : "Recibió"}
+            {recentAudit.map((a) => {
+              const isActor = a.actorUserId === id;
+              const text = formatAuditAction({
+                id: a.id,
+                category: a.category,
+                action: a.action,
+                actorEmail: a.actorEmail,
+                targetId: a.targetId,
+                metadata: a.metadata,
+                ip: a.ip,
+                createdAt: a.createdAt,
+              });
+              return (
+                <li
+                  key={a.id}
+                  className="flex items-start gap-3 rounded-md border border-zinc-100 bg-white px-3 py-2"
                 >
-                  {a.actorUserId === id ? "→" : "←"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] text-zinc-800">
-                    <strong>{a.action}</strong>
-                    <span className="text-zinc-500"> · {a.category}</span>
-                    {a.actorUserId !== id && a.actorEmail && (
-                      <span className="text-zinc-500"> · por {a.actorEmail}</span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 text-[10.5px] text-zinc-500">
-                    {a.createdAt.toLocaleString("es", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {a.ip && (
-                      <>
-                        {" · "}
-                        <span className="font-mono">{a.ip}</span>
-                      </>
-                    )}
-                  </p>
-                </div>
-              </li>
-            ))}
+                  <span
+                    className={`mt-0.5 flex-shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${
+                      isActor
+                        ? "bg-blue-50 text-blue-700 ring-blue-200"
+                        : categoryTone(a.category)
+                    }`}
+                    title={isActor ? "Hizo esta acción" : "Acción recibida"}
+                  >
+                    {isActor ? "Hizo" : categoryLabel(a.category)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] text-zinc-800">{text}</p>
+                    <p className="mt-0.5 text-[10.5px] text-zinc-500">
+                      {formatAuditTime(a.createdAt)}
+                      {!isActor && a.actorEmail && (
+                        <>
+                          {" · por "}
+                          <span className="font-medium text-zinc-700">
+                            {a.actorEmail}
+                          </span>
+                        </>
+                      )}
+                      {a.ip && (
+                        <>
+                          {" · "}
+                          <span className="font-mono text-[10px]">{a.ip}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
       </section>

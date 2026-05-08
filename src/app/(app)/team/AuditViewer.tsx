@@ -10,7 +10,16 @@ import {
   RotateCcw,
   Trash2,
   Mail,
+  Lock,
+  Unlock,
+  CreditCard,
+  Building2,
 } from "lucide-react";
+import {
+  formatAuditAction,
+  formatAuditTime,
+  categoryTone as categoryToneFn,
+} from "@/lib/audit-format";
 
 type Event = {
   id: string;
@@ -23,27 +32,30 @@ type Event = {
   createdAt: string;
 };
 
-const ACTION_META: Record<
+// Mapeo de iconos por acción. Solo para visual — el texto ya viene de
+// formatAuditAction.
+const ACTION_ICONS: Record<
   string,
-  { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }
+  React.ComponentType<{ className?: string }>
 > = {
-  "invitation.sent": { label: "Invitación enviada", icon: Mail, tone: "indigo" },
-  "invitation.cancelled": { label: "Invitación cancelada", icon: Trash2, tone: "zinc" },
-  "membership.removed": { label: "Miembro removido", icon: UserMinus, tone: "rose" },
-  "membership.role_changed": { label: "Rol cambiado", icon: Pencil, tone: "amber" },
-  "role.created": { label: "Rol custom creado", icon: Shield, tone: "emerald" },
-  "role.updated": { label: "Rol custom editado", icon: Pencil, tone: "indigo" },
-  "role.deleted": { label: "Rol custom eliminado", icon: Trash2, tone: "rose" },
-  "system_role.overridden": { label: "Rol del sistema editado", icon: Pencil, tone: "amber" },
-  "system_role.restored": { label: "Rol del sistema restaurado", icon: RotateCcw, tone: "emerald" },
-};
-
-const TONE: Record<string, string> = {
-  indigo: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-  zinc: "bg-zinc-100 text-zinc-700 ring-zinc-200",
-  rose: "bg-rose-50 text-rose-700 ring-rose-200",
-  amber: "bg-amber-50 text-amber-700 ring-amber-200",
-  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  "invitation.sent": Mail,
+  "invitation.cancelled": Trash2,
+  "membership.removed": UserMinus,
+  "membership.role_changed": Pencil,
+  "role.created": Shield,
+  "role.updated": Pencil,
+  "role.deleted": Trash2,
+  "system_role.overridden": Pencil,
+  "system_role.restored": RotateCcw,
+  "brand.deleted": Trash2,
+  "brand.locked": Lock,
+  "brand.unlocked": Unlock,
+  "subscription.canceled": CreditCard,
+  "subscription.set_plan": CreditCard,
+  "subscription.reactivate": CreditCard,
+  "agency.deleted": Building2,
+  "user.created": UserPlus,
+  "user.deleted": Trash2,
 };
 
 export default function AuditViewer() {
@@ -98,34 +110,40 @@ export default function AuditViewer() {
       ) : (
         <ul className="card divide-y divide-zinc-100/80 overflow-hidden">
           {events.map((e) => {
-            const meta = ACTION_META[e.action] ?? {
-              label: e.action,
-              icon: ScrollText,
-              tone: "zinc" as const,
-            };
-            const Icon = meta.icon;
+            const Icon = ACTION_ICONS[e.action] ?? ScrollText;
+            const tone = categoryToneFn(e.category);
+            const text = formatAuditAction({
+              id: e.id,
+              category: e.category,
+              action: e.action,
+              actorEmail: e.actorEmail,
+              targetId: e.targetId,
+              metadata: e.metadata,
+              ip: e.ip,
+              createdAt: e.createdAt,
+            });
             return (
               <li key={e.id} className="flex items-start gap-3 p-3">
                 <span
-                  className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg ring-1 ${TONE[meta.tone]}`}
+                  className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg ring-1 ${tone}`}
                 >
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-zinc-900">
-                    {meta.label}
-                  </p>
+                  <p className="text-[13px] text-zinc-900">{text}</p>
                   <p className="mt-0.5 text-[11.5px] text-zinc-500">
-                    {e.actorEmail ?? "Sistema"}
+                    <span className="font-medium text-zinc-700">
+                      {e.actorEmail ?? "Sistema"}
+                    </span>
                     {" · "}
                     <time dateTime={e.createdAt}>
-                      {formatRelative(e.createdAt)}
+                      {formatAuditTime(e.createdAt)}
                     </time>
                   </p>
                   {e.metadata && Object.keys(e.metadata).length > 0 && (
                     <details className="mt-1 text-[11px]">
                       <summary className="cursor-pointer text-zinc-400 hover:text-zinc-600">
-                        Detalles
+                        Detalles técnicos
                       </summary>
                       <pre className="mt-1 max-w-full overflow-auto rounded bg-zinc-50 p-2 text-[10.5px] text-zinc-600">
                         {JSON.stringify(e.metadata, null, 2)}
@@ -154,15 +172,3 @@ export default function AuditViewer() {
   );
 }
 
-function formatRelative(iso: string): string {
-  const d = new Date(iso);
-  const diffMs = Date.now() - d.getTime();
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "hace un momento";
-  if (min < 60) return `hace ${min} min`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `hace ${hr} h`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `hace ${day} d`;
-  return d.toLocaleDateString();
-}

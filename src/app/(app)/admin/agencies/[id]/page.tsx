@@ -12,6 +12,12 @@ import { prisma } from "@/lib/db";
 import { PLANS, formatCop, type PlanId } from "@/lib/plans";
 import AgencyActions from "./AgencyActions";
 import FeatureFlagsPanel from "./FeatureFlagsPanel";
+import {
+  formatAuditAction,
+  formatAuditTime,
+  categoryLabel,
+  categoryTone,
+} from "@/lib/audit-format";
 
 export default async function AdminAgencyDetailPage({
   params,
@@ -56,13 +62,29 @@ export default async function AdminAgencyDetailPage({
         take: 30,
       }),
       prisma.auditLog.findMany({
-        where: { OR: [{ targetId: id }] },
+        where: {
+          // Eventos relacionados a la agency: targetId == agencyId, o
+          // metadata.agencyId == agencyId (cubre brand.locked, role.*,
+          // membership.*, subscription.*, etc.)
+          OR: [
+            { targetId: id },
+            { metadata: { path: ["agencyId"], equals: id } },
+          ],
+        },
         orderBy: { createdAt: "desc" },
-        take: 15,
+        take: 30,
       }),
     ]);
 
   if (!agency) notFound();
+
+  // Lookups para formatear: brand id → name, user id → email/name
+  const brandLookup: Record<string, string> = {};
+  for (const b of brands) brandLookup[b.id] = b.name;
+  const userLookup: Record<string, string> = {};
+  for (const m of members) {
+    userLookup[m.user.id] = m.user.name ?? m.user.email;
+  }
 
   const plan = PLANS[(subscription?.plan ?? "free") as PlanId] ?? PLANS.free;
   const totalPaid = invoices
@@ -304,39 +326,64 @@ export default async function AdminAgencyDetailPage({
         <div className="flex items-center gap-2">
           <Activity className="h-3.5 w-3.5 text-zinc-500" />
           <h2 className="text-sm font-semibold text-zinc-900">
-            Audit log relacionado
+            Actividad reciente ({recentAudit.length})
           </h2>
         </div>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Eventos del equipo, billing, brands y configuración relacionados
+          a esta agencia.
+        </p>
         {recentAudit.length === 0 ? (
           <p className="mt-3 text-[12px] text-zinc-500">Sin eventos.</p>
         ) : (
           <ol className="mt-3 space-y-2 text-[12px]">
-            {recentAudit.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-start gap-3 rounded-md border border-zinc-100 bg-zinc-50/40 px-3 py-2"
-              >
-                <span className="mt-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700">
-                  {a.category}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] text-zinc-800">
-                    <strong>{a.action}</strong>
-                    {a.actorEmail && (
-                      <span className="text-zinc-500"> · por {a.actorEmail}</span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 text-[10.5px] text-zinc-500">
-                    {a.createdAt.toLocaleString("es", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              </li>
-            ))}
+            {recentAudit.map((a) => {
+              const text = formatAuditAction(
+                {
+                  id: a.id,
+                  category: a.category,
+                  action: a.action,
+                  actorEmail: a.actorEmail,
+                  targetId: a.targetId,
+                  metadata: a.metadata,
+                  ip: a.ip,
+                  createdAt: a.createdAt,
+                },
+                { brands: brandLookup, users: userLookup },
+              );
+              return (
+                <li
+                  key={a.id}
+                  className="flex items-start gap-3 rounded-md border border-zinc-100 bg-white px-3 py-2"
+                >
+                  <span
+                    className={`mt-0.5 flex-shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ${categoryTone(a.category)}`}
+                  >
+                    {categoryLabel(a.category)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] text-zinc-800">{text}</p>
+                    <p className="mt-0.5 text-[10.5px] text-zinc-500">
+                      {formatAuditTime(a.createdAt)}
+                      {a.actorEmail && (
+                        <>
+                          {" · por "}
+                          <span className="font-medium text-zinc-700">
+                            {a.actorEmail}
+                          </span>
+                        </>
+                      )}
+                      {a.ip && (
+                        <>
+                          {" · "}
+                          <span className="font-mono text-[10px]">{a.ip}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
       </section>
