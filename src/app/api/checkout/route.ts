@@ -95,11 +95,17 @@ export async function POST(req: Request) {
     },
   });
 
-  // Persistimos el cycle elegido en la subscription para saber al renovar.
-  // El plan/status no se cambian todavía — eso lo hace el webhook al confirmar.
+  // **CRÍTICO**: NO tocamos plan ni billingCycle de la subscription
+  // hasta que el webhook confirme el pago. Si el user va a Wompi y se
+  // arrepiente sin pagar, queda con el plan viejo.
+  // Guardamos la INTENCIÓN en pendingPlan/pendingBillingCycle, que el
+  // webhook lee al confirmar pago y mueve a los campos reales.
   await prisma.subscription.update({
     where: { id: sub.id },
-    data: { billingCycle: body.cycle, plan: body.planId },
+    data: {
+      pendingPlan: body.planId,
+      pendingBillingCycle: body.cycle,
+    },
   });
 
   // Resolución del base URL para el redirect, en orden de preferencia:

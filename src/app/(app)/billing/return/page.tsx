@@ -121,7 +121,18 @@ export default async function BillingReturnPage({
                 currentPeriodEnd: periodEnd,
                 nextChargeAt,
                 trialEndsAt: null,
-                plan: invoice.subscription.plan as PlanId,
+                // Aplicar el plan/cycle pendiente (el checkout dejó la
+                // intencion en pendingPlan en lugar de tocar plan
+                // directamente). Si no hay pending, mantenemos el
+                // plan actual (cobro de renovacion).
+                ...(invoice.subscription.pendingPlan
+                  ? { plan: invoice.subscription.pendingPlan as PlanId }
+                  : {}),
+                ...(invoice.subscription.pendingBillingCycle
+                  ? { billingCycle: invoice.subscription.pendingBillingCycle }
+                  : {}),
+                pendingPlan: null,
+                pendingBillingCycle: null,
               },
             }),
           ]);

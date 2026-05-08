@@ -268,6 +268,12 @@ async function handleTransactionUpdated(
       const nextChargeAt = new Date(periodEnd);
       nextChargeAt.setDate(nextChargeAt.getDate() - 1);
 
+      // Aplicar el plan/cycle pendientes (que el checkout dejó en
+      // pendingPlan/pendingBillingCycle) ahora que el pago se confirmó.
+      // Si no hay pending (p.ej. cobro de renovación normal), no
+      // tocamos plan/cycle — siguen como estaban.
+      const pendingPlan = invoice.subscription.pendingPlan;
+      const pendingCycle = invoice.subscription.pendingBillingCycle;
       await tx.subscription.update({
         where: { id: invoice.subscriptionId },
         data: {
@@ -277,6 +283,12 @@ async function handleTransactionUpdated(
           nextChargeAt,
           // Si era trial, finalizamos el trial
           trialEndsAt: null,
+          // Aplicar pending plan/cycle si hay
+          ...(pendingPlan ? { plan: pendingPlan } : {}),
+          ...(pendingCycle ? { billingCycle: pendingCycle } : {}),
+          // Limpiar pending después de aplicar
+          pendingPlan: null,
+          pendingBillingCycle: null,
         },
       });
 

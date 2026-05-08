@@ -262,12 +262,21 @@ model Subscription {
   agencyId           String          @unique
   agency             Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
-  /// "free" | "pro" | "agency"
+  /// "free" | "pro" | "agency". Solo se actualiza cuando el webhook
+  /// de Wompi confirma el pago. NUNCA tocar este campo desde el
+  /// checkout endpoint — usar pendingPlan en su lugar.
   plan               String          @default("free")
   /// "trialing" | "active" | "past_due" | "canceled" | "expired"
   status             String          @default("active")
-  /// "monthly" | "yearly"
+  /// "monthly" | "yearly". Idem plan — solo el webhook lo modifica.
   billingCycle       String          @default("monthly")
+
+  /// Plan que el user inició checkout pero todavía no pagó. Cuando el
+  /// webhook confirma el pago, movemos pendingPlan → plan y
+  /// limpiamos esto. Si el user nunca paga, queda hasta que arranque
+  /// otro checkout (sobreescribe).
+  pendingPlan        String?
+  pendingBillingCycle String?
 
   /// Fin del trial (si está en trialing). Pasado este momento, el cron
   /// downgradea a free si no se cargó tarjeta.
