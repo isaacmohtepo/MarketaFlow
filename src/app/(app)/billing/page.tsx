@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getBillingSummary, getEffectiveLimits } from "@/lib/billing";
 import { syncBrandLocks } from "@/lib/brand-lock";
+import { expireStalePendingInvoices } from "@/lib/invoice-cleanup";
 import { PLANS_LIST, formatCop, type PlanId } from "@/lib/plans";
 import type { Prisma } from "@/generated/prisma";
 import BillingActions from "./BillingActions";
@@ -126,6 +127,10 @@ export default async function BillingPage({
   // Reconciliar brand locks: si la agency excede maxBrands del plan,
   // las brands más recientes quedan locked automáticamente. Idempotente.
   await syncBrandLocks(agency.id);
+
+  // Expirar invoices pending viejas (60 min sin pago confirmado) →
+  // las marca como canceled. Sino quedan flotando en el historial.
+  await expireStalePendingInvoices({ agencyId: agency.id });
 
   // Uso del plan: cuántos recursos consumió la agencia vs el límite del
   // plan. Sirve para que el owner vea de un vistazo "estoy cerca del
@@ -794,6 +799,10 @@ function StatusBadge({ status }: { status: string }) {
     failed: {
       label: "Falló",
       cls: "bg-rose-50 text-rose-700 ring-rose-200",
+    },
+    canceled: {
+      label: "Cancelada",
+      cls: "bg-zinc-100 text-zinc-600 ring-zinc-200",
     },
     refunded: {
       label: "Reembolsada",

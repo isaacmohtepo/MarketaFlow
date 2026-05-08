@@ -7,6 +7,7 @@ import { getOrCreateSubscription } from "@/lib/billing";
 import { createPaymentLink, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { hasPermission } from "@/lib/permissions";
+import { cancelPriorPendingInvoices } from "@/lib/invoice-cleanup";
 
 const schema = z.object({
   planId: z.enum(["pro", "agency"]),
@@ -94,6 +95,10 @@ export async function POST(req: Request) {
       description: `${plan.name} (${body.cycle === "yearly" ? "anual" : "mensual"})`,
     },
   });
+
+  // Si el user había iniciado otro checkout sin completarlo, cancelar
+  // las invoices pending previas — sino se acumulan en el historial.
+  await cancelPriorPendingInvoices(sub.id, reference);
 
   // **CRÍTICO**: NO tocamos plan ni billingCycle de la subscription
   // hasta que el webhook confirme el pago. Si el user va a Wompi y se

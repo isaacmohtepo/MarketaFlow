@@ -66,6 +66,7 @@ export default function InvoiceFilters({
         <option value="all">Todos los estados</option>
         <option value="paid">Pagadas</option>
         <option value="pending">Pendientes</option>
+        <option value="canceled">Canceladas</option>
         <option value="failed">Fallidas</option>
         <option value="refunded">Reembolsadas</option>
       </select>

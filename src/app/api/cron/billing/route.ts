@@ -137,6 +137,16 @@ export async function GET(req: Request) {
       error: err instanceof Error ? err.message : String(err),
     };
   }
+  // Cleanup global de invoices pending abandonadas (>60min sin pago)
+  try {
+    const { expireStalePendingInvoices } = await import("@/lib/invoice-cleanup");
+    const expired = await expireStalePendingInvoices({ all: true });
+    childResults.expiredPendingInvoices = { count: expired };
+  } catch (err) {
+    childResults.expiredPendingInvoices = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 
   return NextResponse.json({
     ok: true,
