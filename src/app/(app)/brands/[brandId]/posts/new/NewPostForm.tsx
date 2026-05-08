@@ -586,7 +586,11 @@ export default function NewPostForm({
         <input
           ref={fileInputRef}
           type="file"
-          accept={assetType === "social_post" ? "image/*" : undefined}
+          accept={
+            assetType === "social_post" || assetType === "video"
+              ? "image/*,video/*"
+              : undefined
+          }
           multiple
           className="sr-only"
           onChange={(e) => {

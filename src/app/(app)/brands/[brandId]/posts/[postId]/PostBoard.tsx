@@ -10,6 +10,7 @@ import VideoCommenter, {
   formatTime,
   type VideoCommenterHandle,
 } from "./VideoCommenter";
+import { VideoEmbed } from "@/components/AssetPreview";
 import MentionInput from "@/components/MentionInput";
 import MentionText from "@/components/MentionText";
 import { useMentionedRoles } from "@/lib/useMentionedRoles";
@@ -55,6 +56,7 @@ export default function PostBoard({
   imageUrl,
   images,
   mediaItems,
+  externalVideoUrl,
   canApprove,
   canEdit,
   canEditCaption,
@@ -83,6 +85,8 @@ export default function PostBoard({
   images: string[];
   /** Media con mime info para detectar videos. Si está omitido, se asume todo imagen. */
   mediaItems?: { url: string; mime: string | null }[];
+  /** URL externa a YouTube/Vimeo/Loom (post.sourceUrl con assetType="video"). */
+  externalVideoUrl?: string | null;
   canApprove: boolean;
   canEdit: boolean;
   canEditCaption: boolean;
@@ -704,6 +708,18 @@ export default function PostBoard({
             onClose={() => setCompareWith(null)}
           />
         )}
+        {/* Video externo (YouTube/Vimeo/Loom) — embed simple, sin
+            timestamp anchoring (los iframes propietarios no exponen
+            currentTime sin postMessage APIs). Va antes del PostBoard
+            interactivo para que el user vea el video y abajo comente. */}
+        {externalVideoUrl && !videoMedia && (
+          <div className={`mb-3 ${compareWith ? "hidden" : ""}`}>
+            <VideoEmbed url={externalVideoUrl} />
+            <p className="mt-2 text-[11px] text-zinc-500">
+              Comentá abajo. (Anclar comentarios a un momento del video solo funciona si subís el archivo directo, no con embeds de YouTube/Vimeo/Loom.)
+            </p>
+          </div>
+        )}
         {videoMedia && (
           <div className={`mb-3 ${compareWith ? "hidden" : ""}`}>
             <VideoCommenter
@@ -738,7 +754,10 @@ export default function PostBoard({
           ref={imgWrapRef}
           onClick={onImageClick}
           className={`relative aspect-square cursor-crosshair overflow-hidden rounded-xl card p-2 select-none ${
-            compareWith || (videoMedia && slides.length === 0) ? "hidden" : ""
+            compareWith ||
+            ((videoMedia || externalVideoUrl) && slides.length === 0)
+              ? "hidden"
+              : ""
           }`}
         >
           {currentSlide ? (

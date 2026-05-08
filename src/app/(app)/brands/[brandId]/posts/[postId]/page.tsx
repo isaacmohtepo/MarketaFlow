@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 import { ASSET_TYPE_TAB_LABEL, assetTypeLabel, assetTypeTint, isAssetType } from "@/lib/asset-types";
-import { FileList, VideoEmbed, WebsiteEmbed } from "@/components/AssetPreview";
+import { FileList, WebsiteEmbed } from "@/components/AssetPreview";
 import PostBoard from "./PostBoard";
 import WebDesignBoard from "./WebDesignBoard";
 import Timeline from "./Timeline";
@@ -186,11 +186,9 @@ export default async function PostPage({
           </div>
         )}
 
-        {post.assetType === "video" && post.sourceUrl && (
-          <div className="mt-5">
-            <VideoEmbed url={post.sourceUrl} />
-          </div>
-        )}
+        {/* Video externo (YouTube/Vimeo/Loom) ahora se renderiza dentro
+            de PostBoard para que la sección de comentarios quede al lado
+            del video, no en otra columna visual. */}
 
         {post.caption && (
           <div className="card mt-5 whitespace-pre-wrap p-4 text-sm text-zinc-800">
@@ -254,6 +252,9 @@ export default async function PostPage({
             imageUrl={post.imageUrl}
             images={images.map((i) => i.url)}
             mediaItems={images.map((i) => ({ url: i.url, mime: i.mime ?? null }))}
+            externalVideoUrl={
+              post.assetType === "video" && post.sourceUrl ? post.sourceUrl : null
+            }
             canApprove={access.canApprove && access.role === "client"}
             canEdit={access.canEdit}
             canEditCaption={canEditCaption}

@@ -114,7 +114,7 @@ export default function NewVersionModal({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           className="sr-only"
           onChange={(e) => {

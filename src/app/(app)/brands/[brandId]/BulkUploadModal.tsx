@@ -167,7 +167,7 @@ export default function BulkUploadModal({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           multiple
           className="sr-only"
           onChange={(e) => {
