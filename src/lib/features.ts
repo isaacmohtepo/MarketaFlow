@@ -14,29 +14,25 @@ import { prisma } from "./db";
  * Mutation: setFeature(agencyId, "flagName", value).
  */
 
-export const KNOWN_FLAGS = [
-  "ai_captions",
-  "beta_analytics",
-  "white_label",
-  "v2_inbox",
-  "scheduled_emails",
-] as const;
+/**
+ * Lista de flags conocidos. Mantener corta — agregar solo cuando hay
+ * código real que consulte el flag con `hasFeature()`. Si un flag está
+ * acá pero ningún componente lo lee, el toggle del admin no hace nada
+ * y confunde al user.
+ *
+ * Histórico: hubo placeholders (beta_analytics, white_label, v2_inbox,
+ * scheduled_emails) que se quitaron porque no había implementación.
+ * Cuando se construya alguno de esos features, agregar de vuelta acá.
+ */
+export const KNOWN_FLAGS = ["ai_captions"] as const;
 export type FeatureFlag = (typeof KNOWN_FLAGS)[number];
 
 const DEFAULTS: Record<FeatureFlag, boolean> = {
   ai_captions: true,
-  beta_analytics: false,
-  white_label: false,
-  v2_inbox: false,
-  scheduled_emails: false,
 };
 
 const FLAG_DESCRIPTIONS: Record<FeatureFlag, string> = {
   ai_captions: "Generación de captions con AI (Anthropic)",
-  beta_analytics: "Métricas avanzadas: cohort retention, funnel",
-  white_label: "Dominio propio + branding personalizado",
-  v2_inbox: "Nueva versión del inbox (en testing)",
-  scheduled_emails: "Programar envíos de email a futuro",
 };
 
 export function flagDescription(flag: FeatureFlag): string {

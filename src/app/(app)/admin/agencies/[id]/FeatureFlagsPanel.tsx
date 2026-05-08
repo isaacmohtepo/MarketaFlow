@@ -4,26 +4,12 @@ import { useEffect, useState } from "react";
 import { Loader2, Flag } from "lucide-react";
 import { toast } from "sonner";
 
+// Mantener corto: solo flags reales con código que los consulta. Si
+// agregás un flag nuevo, también agregalo a KNOWN_FLAGS en lib/features.ts.
 const FLAG_INFO: Record<string, { label: string; description: string }> = {
   ai_captions: {
     label: "AI Captions",
     description: "Generación de captions con Anthropic",
-  },
-  beta_analytics: {
-    label: "Beta Analytics",
-    description: "Métricas avanzadas: cohort, retention, funnel",
-  },
-  white_label: {
-    label: "White Label",
-    description: "Dominio propio + branding personalizado",
-  },
-  v2_inbox: {
-    label: "V2 Inbox",
-    description: "Nueva versión del inbox (en testing)",
-  },
-  scheduled_emails: {
-    label: "Scheduled Emails",
-    description: "Programar envíos a futuro",
   },
 };
 
