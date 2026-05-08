@@ -18,6 +18,7 @@ import {
   isAssetType,
   type AssetType,
 } from "@/lib/asset-types";
+import { extractVideoThumbnail } from "@/lib/video-thumbnail";
 
 const DRAFT_KEY = (brandId: string) => `mf:draft:${brandId}`;
 const DRAFT_DEBOUNCE_MS = 800;
@@ -210,25 +211,13 @@ export default function NewPostForm({
     setError(null);
     const uploaded: string[] = [];
     const newMeta: Record<string, { mime: string; name: string }> = {};
-    for (const file of arr) {
-      // social_post + video aceptan imagen o video. Otros aceptan cualquier
-      // archivo. (El backend valida tipos seguros vía /api/upload.)
-      if (
-        assetType === "social_post" &&
-        !file.type.startsWith("image/") &&
-        !file.type.startsWith("video/")
-      ) {
-        continue;
-      }
-      // Para archivos grandes (> 4 MB) usamos upload directo a R2 con
-      // presigned URL — Vercel Hobby tiene límite de 4.5 MB en request
-      // body de serverless functions, así que sin esto los videos fallan
-      // en producción aunque /api/upload acepte hasta 100 MB.
+
+    // Sube un solo archivo (vía presign si > 4MB, sino multipart). Devuelve
+    // la URL pública o null si falla (el error ya quedó seteado).
+    async function uploadOne(file: File): Promise<string | null> {
       const useDirect = file.size > 4 * 1024 * 1024;
       try {
-        let url: string;
         if (useDirect) {
-          // 1) Pedir presigned URL al backend
           const pre = await fetch("/api/upload/presign", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -241,13 +230,12 @@ export default function NewPostForm({
           if (!pre.ok) {
             const err = await pre.json().catch(() => ({}));
             setError(err.error ?? "No se pudo iniciar el upload del archivo");
-            continue;
+            return null;
           }
           const { signedUrl, publicUrl } = (await pre.json()) as {
             signedUrl: string;
             publicUrl: string;
           };
-          // 2) PUT directo del archivo a R2
           const putRes = await fetch(signedUrl, {
             method: "PUT",
             headers: { "Content-Type": file.type || "application/octet-stream" },
@@ -255,22 +243,63 @@ export default function NewPostForm({
           });
           if (!putRes.ok) {
             setError(`No se pudo subir "${file.name}" a R2 (${putRes.status})`);
-            continue;
+            return null;
           }
-          url = publicUrl;
-        } else {
-          // Path tradicional para archivos chicos (multipart via Vercel)
-          const fd = new FormData();
-          fd.append("file", file);
-          const res = await fetch("/api/upload", { method: "POST", body: fd });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            setError(err.error ?? `No se pudo subir "${file.name}"`);
-            continue;
-          }
-          const j = await res.json();
-          url = j.url;
+          return publicUrl;
         }
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          setError(err.error ?? `No se pudo subir "${file.name}"`);
+          return null;
+        }
+        const j = await res.json();
+        return j.url as string;
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? `Error subiendo "${file.name}": ${err.message}`
+            : `Error subiendo "${file.name}"`,
+        );
+        return null;
+      }
+    }
+
+    for (const file of arr) {
+      // social_post + video aceptan imagen o video. Otros aceptan cualquier
+      // archivo. (El backend valida tipos seguros vía /api/upload.)
+      if (
+        assetType === "social_post" &&
+        !file.type.startsWith("image/") &&
+        !file.type.startsWith("video/")
+      ) {
+        continue;
+      }
+
+      try {
+        // Si es video, generamos y subimos un thumbnail JPG ANTES del
+        // video. Eso asegura que en grids/feeds se vea una portada real
+        // (frame del segundo 1 del video) en lugar de un icono roto.
+        // El primer archivo image-mime termina siendo cover via la lógica
+        // de /api/posts.
+        if (file.type.startsWith("video/")) {
+          const thumb = await extractVideoThumbnail(file);
+          if (thumb) {
+            const thumbUrl = await uploadOne(thumb);
+            if (thumbUrl) {
+              uploaded.push(thumbUrl);
+              newMeta[thumbUrl] = { mime: thumb.type, name: thumb.name };
+            }
+          }
+          // Si la extracción falla, igual subimos el video — solo queda
+          // sin póster automático (el VideoCommenter mostrará el primer
+          // frame al cargar metadata).
+        }
+
+        const url = await uploadOne(file);
+        if (!url) continue;
         uploaded.push(url);
         newMeta[url] = {
           mime: file.type || "application/octet-stream",

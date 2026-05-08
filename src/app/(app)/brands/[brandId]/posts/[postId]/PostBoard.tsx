@@ -1074,12 +1074,10 @@ export default function PostBoard({
         )}
       </div>
 
-      {/* Columna de comentarios. Antes usaba aspect-square que la
-          encogía cuando la columna era angosta (p.ej. con grid 60/40
-          para videos). Ahora usa un alto fijo razonable que da espacio
-          para ver muchos comentarios sin tener que scrollear todo el
-          tiempo, manteniendo el form de comentar pegado al fondo. */}
-      <div className="flex flex-col gap-4 lg:h-[calc(100vh-12rem)] lg:min-h-[640px] lg:overflow-hidden">
+      {/* Columna de comentarios — sticky para que se quede visible
+          mientras scroleas, con alto generoso (700px min) y cap en
+          el viewport para no salirse de pantalla. */}
+      <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:min-h-[700px] lg:overflow-hidden">
         {isDeleted && canDelete && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
             <div className="flex items-start gap-2">
@@ -1284,7 +1282,7 @@ export default function PostBoard({
               </button>
             )}
           </div>
-          <ul className="scroll-visible mt-2 max-h-[480px] space-y-2 pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
+          <ul className="scroll-visible mt-2 max-h-[640px] space-y-2 pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
             {visibleParents.length === 0 && (
               <li className="text-xs text-zinc-500">Sin comentarios aún.</li>
             )}
