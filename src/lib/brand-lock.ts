@@ -21,16 +21,22 @@ import { getEffectiveLimits } from "./billing";
 export type BrandLockResult = { ok: true } | { ok: false; response: NextResponse };
 
 /**
- * Reconcilia los locks de las brands de una agency contra el límite
- * del plan actual. Idempotente — corrélo después de un downgrade,
- * upgrade o cambio manual de locks.
+ * Reconcilia los locks: garantiza que unlocked <= maxBrands. Solo
+ * BLOQUEA excedentes — NUNCA desbloquea (respeta la elección manual
+ * del user). Idempotente.
  *
- * Política default: deja unlocked las primeras N brands ordenadas por
- * createdAt asc (las más antiguas, asumiendo que son las "principales").
- * Las recientes excedentes pasan a locked.
+ * Reglas:
+ * - Plan ilimitado: desbloquea todo (única excepción donde unlock es
+ *   automático — viene de un upgrade).
+ * - Si unlocked.length > maxBrands: bloquea el exceso, las más
+ *   RECIENTES primero (asumiendo que las antiguas son las principales).
+ * - Si unlocked.length <= maxBrands: NO toca nada. Si hay brands
+ *   locked y maxBrands lo permite, el user puede reactivarlas
+ *   manualmente desde la UI.
  *
- * Si el user ya eligió manualmente cuál pausar (locked existente que
- * no está en las N más recientes), respetamos esa elección.
+ * Razón: si el user pausa manualmente la brand "Posicionados" para
+ * mantener "OtraBrand" activa, no queremos que la siguiente carga de
+ * /billing revierta su elección automáticamente.
  */
 export async function syncBrandLocks(agencyId: string): Promise<{
   unlocked: string[];
@@ -43,8 +49,8 @@ export async function syncBrandLocks(agencyId: string): Promise<{
     orderBy: { createdAt: "asc" },
   });
 
-  // Plan ilimitado → desbloquear todo (en caso que haya quedado de un
-  // plan anterior limitado).
+  // Plan ilimitado → desbloquear todo (caso especial: viene de upgrade
+  // y el user no debería manualmente desbloquear N brands).
   if (limits.maxBrands === -1) {
     const toUnlock = all.filter((b) => b.lockedAt !== null).map((b) => b.id);
     if (toUnlock.length > 0) {
@@ -56,42 +62,40 @@ export async function syncBrandLocks(agencyId: string): Promise<{
     return { unlocked: all.map((b) => b.id), locked: [] };
   }
 
-  if (all.length <= limits.maxBrands) {
-    // Está dentro del límite — desbloquear todo lo que esté locked
-    const toUnlock = all.filter((b) => b.lockedAt !== null).map((b) => b.id);
-    if (toUnlock.length > 0) {
-      await prisma.brand.updateMany({
-        where: { id: { in: toUnlock } },
-        data: { lockedAt: null },
-      });
-    }
+  const unlocked = all.filter((b) => b.lockedAt === null);
+  const lockedIds = all.filter((b) => b.lockedAt !== null).map((b) => b.id);
+
+  // Dentro del límite (incluye empate exacto): no tocamos nada. Si el
+  // user pauso manualmente, esa elección queda firme.
+  if (unlocked.length <= limits.maxBrands) {
     return {
-      unlocked: all.map((b) => b.id),
-      locked: [],
+      unlocked: unlocked.map((b) => b.id),
+      locked: lockedIds,
     };
   }
 
-  // Hay exceso. Política: las primeras N (más antiguas) quedan unlocked,
-  // el resto locked. Si el user ya eligio otras, respetar las que ya
-  // estaban locked y mantenerlas. Aquí reseteamos a la regla "más antiguas
-  // primero" por simplicidad — más adelante podemos hacer una UI para
-  // que el user elija.
-  const unlockedIds = all.slice(0, limits.maxBrands).map((b) => b.id);
-  const lockedIds = all.slice(limits.maxBrands).map((b) => b.id);
+  // Hay exceso de unlocked. Bloqueamos las MÁS RECIENTES hasta volver
+  // al límite. Las antiguas quedan unlocked.
+  // Ordenamos por createdAt asc → primeras N quedan unlocked, resto se
+  // bloquea (entre las que estaban unlocked).
+  const unlockedSorted = [...unlocked].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  );
+  const stayUnlocked = unlockedSorted.slice(0, limits.maxBrands).map((b) => b.id);
+  const newlyLocked = unlockedSorted.slice(limits.maxBrands).map((b) => b.id);
   const now = new Date();
 
-  await prisma.$transaction([
-    prisma.brand.updateMany({
-      where: { id: { in: unlockedIds }, lockedAt: { not: null } },
-      data: { lockedAt: null },
-    }),
-    prisma.brand.updateMany({
-      where: { id: { in: lockedIds }, lockedAt: null },
+  if (newlyLocked.length > 0) {
+    await prisma.brand.updateMany({
+      where: { id: { in: newlyLocked } },
       data: { lockedAt: now },
-    }),
-  ]);
+    });
+  }
 
-  return { unlocked: unlockedIds, locked: lockedIds };
+  return {
+    unlocked: stayUnlocked,
+    locked: [...lockedIds, ...newlyLocked],
+  };
 }
 
 /**
