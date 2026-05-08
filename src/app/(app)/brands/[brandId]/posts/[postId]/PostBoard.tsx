@@ -313,18 +313,32 @@ export default function PostBoard({
     if (brandIdFromUrl) router.push(`/brands/${brandIdFromUrl}`);
   });
 
-  // Para el carousel solo usamos slides de IMAGEN. Si mediaItems trae info
-  // de mime, filtramos los videos (que se renderizan en VideoCommenter
-  // separado). Si no hay mediaItems, asumimos todo imagen (legacy).
+  // Para el carousel solo usamos slides de IMAGEN. Si mediaItems trae
+  // info de mime, filtramos los videos (que se renderizan en
+  // VideoCommenter separado). Si no hay mediaItems, asumimos legacy
+  // (todo imagen) y caemos a images / imageUrl.
+  //
+  // BUG histórico: el `imageUrl` cover se setea al primer archivo del
+  // post — si el post tiene solo video, ese cover ES el video. No
+  // queremos que el fallback `[imageUrl]` lo trate como imagen y
+  // muestre carrusel vacío con icono roto.
   const imageOnlyUrls = mediaItems
     ? mediaItems
         .filter((m) => !(m.mime ?? "").startsWith("video/"))
         .map((m) => m.url)
     : images;
-  const slides =
-    imageOnlyUrls.length > 0 ? imageOnlyUrls : imageUrl ? [imageUrl] : [];
+  const slides = mediaItems
+    ? // Cuando tenemos mediaItems confiamos solo en eso (no fallback)
+      imageOnlyUrls
+    : // Legacy: imágenes string + cover (sin mime info)
+      imageOnlyUrls.length > 0
+      ? imageOnlyUrls
+      : imageUrl
+        ? [imageUrl]
+        : [];
   const currentSlide = slides[slide] ?? null;
   const hasCarousel = slides.length > 1;
+  const hasAnyImage = slides.length > 0;
 
   const { parents, repliesByParent } = useMemo(() => {
     const ps: Comment[] = [];
@@ -762,10 +776,11 @@ export default function PostBoard({
           ref={imgWrapRef}
           onClick={onImageClick}
           className={`relative aspect-square cursor-crosshair overflow-hidden rounded-xl card p-2 select-none ${
-            compareWith ||
-            ((videoMedia || externalVideoUrl) && slides.length === 0)
-              ? "hidden"
-              : ""
+            // Ocultá el carrusel si:
+            // - estamos comparando versiones, O
+            // - no hay nada de imagen para mostrar (post video-only,
+            //   etc) — antes mostraba un placeholder/icono roto.
+            compareWith || !hasAnyImage ? "hidden" : ""
           }`}
         >
           {currentSlide ? (
@@ -959,9 +974,11 @@ export default function PostBoard({
             </div>
           )}
         </div>
-        <p className="text-xs text-zinc-500">
-          💡 Click en cualquier punto de la imagen para anclar un comentario · pasa el mouse sobre un pin para verlo.
-        </p>
+        {hasAnyImage && (
+          <p className="text-xs text-zinc-500">
+            💡 Click en cualquier punto de la imagen para anclar un comentario · pasa el mouse sobre un pin para verlo.
+          </p>
+        )}
 
         {/* Versions panel */}
         {versions.length > 0 && (
