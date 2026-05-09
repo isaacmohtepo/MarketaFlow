@@ -19,6 +19,7 @@ import type { Prisma } from "@/generated/prisma";
 import BillingActions from "./BillingActions";
 import InvoiceFilters from "./InvoiceFilters";
 import BrandLockToggle from "./BrandLockToggle";
+import PaymentMethods from "./PaymentMethods";
 
 const PAGE_SIZE = 15;
 
@@ -499,42 +500,23 @@ export default async function BillingPage({
         </section>
       )}
 
-      {/* Payment method */}
-      {paymentMethods.length > 0 && (
-        <section className="card p-6">
-          <h2 className="text-sm font-semibold text-zinc-900">Método de pago</h2>
-          <ul className="mt-3 space-y-2">
-            {paymentMethods.map((pm) => (
-              <li
-                key={pm.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 place-items-center rounded-md bg-zinc-100 text-zinc-600">
-                    <CreditCard className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-[13px] font-semibold text-zinc-900">
-                      {pm.brand?.toUpperCase() ?? pm.type} ••••{" "}
-                      {pm.last4 ?? "—"}
-                    </p>
-                    {pm.expMonth && pm.expYear && (
-                      <p className="text-[11px] text-zinc-500">
-                        Vence {String(pm.expMonth).padStart(2, "0")}/{pm.expYear}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {pm.isDefault && (
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
-                    Default
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Métodos de pago — gestión completa (ver, marcar default, borrar,
+          agregar/cambiar). El componente client se encarga de todo. */}
+      <section className="card p-6">
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Métodos de pago</h2>
+            <p className="mt-0.5 text-[11.5px] text-zinc-500">
+              Tarjeta o Nequi guardados para los cobros recurrentes mensuales/anuales.
+            </p>
+          </div>
+        </div>
+        <PaymentMethods
+          currentPlan={plan.id}
+          currentCycle={summary.billingCycle}
+          isFree={isFree}
+        />
+      </section>
 
       {/* Historial */}
       <section

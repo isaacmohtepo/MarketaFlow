@@ -39,6 +39,21 @@ export type WompiTransaction = {
   customer_email?: string;
   payment_method_type?: string;
   payment_source_id?: number;
+  /** Detalle del método usado (cuando GET /transactions/{id}). */
+  payment_method?: {
+    type?: string;
+    /** Solo NEQUI: teléfono enmascarado del titular. */
+    phone_number?: string;
+    /** Solo CARD: detalles para display (last4, brand, exp, holder). */
+    extra?: {
+      name?: string;
+      brand?: string;
+      last_four?: string;
+      exp_year?: string;
+      exp_month?: string;
+      card_holder?: string;
+    };
+  };
   status_message?: string | null;
   created_at: string;
   finalized_at?: string;
@@ -216,6 +231,8 @@ export async function chargeWithToken(args: {
   currency?: "COP";
   customerEmail: string;
   paymentSourceId: number;
+  /** "CARD" | "NEQUI" — tipo del payment_source guardado. Default CARD. */
+  paymentMethodType?: "CARD" | "NEQUI";
   description?: string;
   environment?: IntegrationEnvironment;
 }): Promise<WompiTransaction> {
@@ -229,12 +246,20 @@ export async function chargeWithToken(args: {
     integritySecret: cfg.integritySecret,
   });
 
+  // El payment_method.type debe coincidir con el tipo del payment_source
+  // guardado. Para CARD se incluye `installments`; para NEQUI no.
+  const methodType = args.paymentMethodType ?? "CARD";
+  const paymentMethod =
+    methodType === "NEQUI"
+      ? { type: "NEQUI" as const }
+      : { type: "CARD" as const, installments: 1 };
+
   const body = {
-    acceptance_token: undefined as undefined, // no aplica al cobrar con token
+    acceptance_token: undefined as undefined,
     amount_in_cents: args.amountInCents,
     currency,
     customer_email: args.customerEmail,
-    payment_method: { type: "CARD", token: undefined, installments: 1 },
+    payment_method: paymentMethod,
     payment_source_id: args.paymentSourceId,
     reference: args.reference,
     signature,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { chargeWithToken, generateReference } from "@/lib/wompi";
+import { resolveWompiEnvironment } from "@/lib/integrations";
 import { sendTrialEndedEmail } from "@/lib/billing-emails";
 import { isCronAuthorized } from "@/lib/cron-auth";
 
@@ -210,6 +211,28 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     },
   });
 
+  // Resolvé environment dinámico (production si está habilitado en
+  // /admin/integrations, sino sandbox). ANTES estaba hardcoded a
+  // "sandbox" — bug crítico que rompía cobros en producción.
+  const environment = await resolveWompiEnvironment();
+  if (!environment) {
+    // Sin Wompi configurado, no podemos cobrar — dejamos la subscription
+    // como past_due y avisamos en el cron log.
+    await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { status: "past_due" },
+    });
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: "failed",
+        failedAt: new Date(),
+        failedReason: "Wompi no está configurado en /admin/integrations.",
+      },
+    });
+    return false;
+  }
+
   try {
     const tx = await chargeWithToken({
       reference,
@@ -217,8 +240,9 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
       currency: "COP",
       customerEmail: ownerEmail,
       paymentSourceId: parseInt(pm.wompiSourceId, 10),
+      paymentMethodType: (pm.type === "NEQUI" ? "NEQUI" : "CARD"),
       description: `MarketaFlow ${plan.name} renovación`,
-      environment: "sandbox", // TODO: leer de la config
+      environment,
     });
 
     if (tx.status === "APPROVED") {

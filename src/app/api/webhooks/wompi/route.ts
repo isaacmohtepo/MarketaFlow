@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getWompiConfig } from "@/lib/integrations";
+import { getWompiConfig, resolveWompiEnvironment } from "@/lib/integrations";
 import { verifyEventSignature, getTransaction } from "@/lib/wompi";
 import {
   sendPaymentSuccessEmail,
@@ -292,8 +292,14 @@ async function handleTransactionUpdated(
         },
       });
 
-      // Si vino payment_source_id, guardamos el token para cobros futuros
+      // Si vino payment_source_id, guardamos el token para cobros futuros.
+      // Marcamos esta como default y desmarcamos las anteriores (último
+      // método pagado se vuelve el principal).
       if (transaction.payment_source_id) {
+        await tx.paymentMethod.updateMany({
+          where: { subscriptionId: invoice.subscriptionId, isDefault: true },
+          data: { isDefault: false },
+        });
         await tx.paymentMethod.upsert({
           where: { wompiSourceId: String(transaction.payment_source_id) },
           create: {
@@ -310,6 +316,52 @@ async function handleTransactionUpdated(
         });
       }
     });
+
+    // Enriquecer display info (last4, brand, expiry, holder, nequi phone)
+    // — el webhook NO trae estos campos. Hay que pedir GET /transactions/{id}
+    // para obtenerlos. Fire-and-forget; si falla, el método queda guardado
+    // con el token pero sin info visible.
+    if (transaction.payment_source_id) {
+      try {
+        const env = await resolveWompiEnvironment();
+        if (env) {
+          const full = await getTransaction(transaction.id, env);
+          const pm = full?.payment_method;
+          if (pm) {
+            const updates: {
+              brand?: string | null;
+              last4?: string | null;
+              expMonth?: number | null;
+              expYear?: number | null;
+              holderName?: string | null;
+            } = {};
+            if (pm.type === "CARD" && pm.extra) {
+              updates.brand = pm.extra.brand ?? null;
+              updates.last4 = pm.extra.last_four ?? null;
+              const m = pm.extra.exp_month ? parseInt(pm.extra.exp_month, 10) : null;
+              const y = pm.extra.exp_year ? parseInt(pm.extra.exp_year, 10) : null;
+              updates.expMonth = m && Number.isFinite(m) ? m : null;
+              // exp_year viene como "27"; lo expandimos a 2027.
+              updates.expYear = y && Number.isFinite(y) ? (y < 100 ? 2000 + y : y) : null;
+              updates.holderName = pm.extra.card_holder ?? null;
+            } else if (pm.type === "NEQUI" && pm.phone_number) {
+              updates.brand = "NEQUI";
+              // Wompi enmascara el teléfono (ej. "300****1234")
+              updates.last4 = pm.phone_number.slice(-4);
+              updates.holderName = pm.phone_number;
+            }
+            if (Object.keys(updates).length > 0) {
+              await prisma.paymentMethod.update({
+                where: { wompiSourceId: String(transaction.payment_source_id) },
+                data: updates,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to enrich payment method details", err);
+      }
+    }
 
     // Email de confirmación al owner. No bloqueamos la respuesta del webhook
     // si el email falla — el cobro ya está registrado.
