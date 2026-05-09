@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Smartphone, Loader2, Trash2, Star, StarOff, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import AddPaymentMethodModal from "./AddPaymentMethodModal";
 
 type PaymentMethod = {
   id: string;
@@ -48,7 +49,7 @@ export default function PaymentMethods({
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
   const [activeEnv, setActiveEnv] = useState<"sandbox" | "production" | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const { confirm } = useConfirm();
 
   async function load() {
@@ -120,30 +121,12 @@ export default function PaymentMethods({
     }
   }
 
-  async function changeMethod() {
+  function openAdd() {
     if (isFree) {
       toast.error("Suscribite a un plan pago primero para guardar un método.");
       return;
     }
-    setUpdating(true);
-    try {
-      const r = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: currentPlan,
-          cycle: currentCycle,
-        }),
-      });
-      const j = await r.json();
-      if (!r.ok) {
-        toast.error(j.error ?? "No se pudo iniciar el cambio");
-        return;
-      }
-      window.location.href = j.checkoutUrl;
-    } finally {
-      setUpdating(false);
-    }
+    setAddOpen(true);
   }
 
   if (methods === null) {
@@ -201,23 +184,26 @@ export default function PaymentMethods({
       {!isFree && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-zinc-500">
-            Para cambiar el método principal, pagá una vez con la tarjeta/Nequi
-            nueva — queda guardada y los cobros recurrentes pasan a usarla.
+            Agregá una tarjeta o Nequi sin cobrar nada — queda guardada para
+            cobros recurrentes futuros.
           </p>
           <button
-            onClick={changeMethod}
-            disabled={updating}
-            className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold disabled:opacity-60"
+            onClick={openAdd}
+            className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
           >
-            {updating ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Plus className="h-3.5 w-3.5" />
-            )}
-            {methods.length === 0 ? "Agregar método" : "Cambiar método"}
+            <Plus className="h-3.5 w-3.5" />
+            Agregar método
           </button>
         </div>
       )}
+      <AddPaymentMethodModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={() => {
+          load();
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
