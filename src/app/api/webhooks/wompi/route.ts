@@ -103,7 +103,16 @@ export async function POST(req: Request) {
   let processError: string | null = null;
   try {
     if (payload.event === "transaction.updated") {
-      await handleTransactionUpdated(payload.data?.transaction);
+      // Normalizar environment del evento. Wompi usa "test" / "prod" /
+      // a veces "production". Mapeamos a nuestro vocabulario.
+      const rawEnv = (payload as { environment?: string }).environment ?? "";
+      const normalizedEnv: "sandbox" | "production" | null =
+        rawEnv === "test" || rawEnv === "sandbox"
+          ? "sandbox"
+          : rawEnv === "prod" || rawEnv === "production"
+            ? "production"
+            : null;
+      await handleTransactionUpdated(payload.data?.transaction, normalizedEnv);
     } else if (payload.event === "nequi_token.updated") {
       // No lo manejamos por ahora
     } else {
@@ -202,6 +211,9 @@ type WompiEvent = {
 
 async function handleTransactionUpdated(
   transaction: NonNullable<NonNullable<WompiEvent["data"]>["transaction"]> | undefined,
+  /** Environment del evento ("sandbox" | "production"). Wompi manda
+   *  "test"/"prod"; el caller normaliza antes de pasarlo. */
+  environmentFromEvent: "sandbox" | "production" | null,
 ) {
   if (!transaction) return;
 
@@ -295,7 +307,16 @@ async function handleTransactionUpdated(
       // Si vino payment_source_id, guardamos el token para cobros futuros.
       // Marcamos esta como default y desmarcamos las anteriores (último
       // método pagado se vuelve el principal).
+      // El environment del evento queda registrado: tokens de sandbox NO
+      // funcionan en producción y viceversa, así que el cron filtra por
+      // env activo al cobrar.
       if (transaction.payment_source_id) {
+        // Wompi manda event.environment ("test" o "prod"). Lo
+        // normalizamos a nuestro vocabulario ("sandbox"/"production").
+        // event no está en scope acá pero podemos inferir del cfg
+        // resuelto al verificar la firma. Más confiable: pedírselo
+        // al caller.
+        const sourceEnv = environmentFromEvent;
         await tx.paymentMethod.updateMany({
           where: { subscriptionId: invoice.subscriptionId, isDefault: true },
           data: { isDefault: false },
@@ -307,11 +328,13 @@ async function handleTransactionUpdated(
             wompiSourceId: String(transaction.payment_source_id),
             type: transaction.payment_method_type ?? "CARD",
             isDefault: true,
+            environment: sourceEnv ?? null,
           },
           update: {
             subscriptionId: invoice.subscriptionId,
             type: transaction.payment_method_type ?? "CARD",
             isDefault: true,
+            environment: sourceEnv ?? null,
           },
         });
       }

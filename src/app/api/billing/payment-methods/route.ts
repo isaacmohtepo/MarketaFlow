@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { resolveWompiEnvironment } from "@/lib/integrations";
 
 /**
  * GET /api/billing/payment-methods
@@ -32,9 +33,15 @@ export async function GET() {
       },
     },
   });
-  if (!sub) return NextResponse.json({ paymentMethods: [] });
+  if (!sub) return NextResponse.json({ paymentMethods: [], activeEnv: null });
+
+  // Env activo: el cron y los cobros recurrentes usan este. Lo
+  // exponemos para que la UI pueda flagear métodos de otro env como
+  // "no usables" sin tener que esperar al primer cobro fallido.
+  const activeEnv = await resolveWompiEnvironment();
 
   return NextResponse.json({
+    activeEnv,
     paymentMethods: sub.paymentMethods.map((pm) => ({
       id: pm.id,
       type: pm.type,
@@ -44,6 +51,10 @@ export async function GET() {
       expYear: pm.expYear,
       holderName: pm.holderName,
       isDefault: pm.isDefault,
+      // null en rows legacy → asumimos "sandbox" por compat
+      environment: pm.environment ?? "sandbox",
+      // Calculado: ¿se puede usar para cobros con la config actual?
+      usable: !activeEnv ? false : (pm.environment ?? "sandbox") === activeEnv,
       createdAt: pm.createdAt.toISOString(),
     })),
   });

@@ -233,6 +233,29 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     return false;
   }
 
+  // Environment match check: tokens de sandbox NO funcionan en
+  // production y viceversa. Si el token guardado es de otro env,
+  // saltamos el cobro y dejamos past_due con razón clara — sino
+  // Wompi devuelve un error críptico tipo "payment_source not found".
+  // pm.environment puede ser null para rows legacy (asumimos sandbox
+  // por compatibilidad histórica).
+  const pmEnv = pm.environment ?? "sandbox";
+  if (pmEnv !== environment) {
+    await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { status: "past_due" },
+    });
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: "failed",
+        failedAt: new Date(),
+        failedReason: `El método de pago guardado es de ${pmEnv} pero el environment activo es ${environment}. El cliente tiene que volver a agregar el método con la tarjeta real desde /billing → "Cambiar método".`,
+      },
+    });
+    return false;
+  }
+
   try {
     const tx = await chargeWithToken({
       reference,

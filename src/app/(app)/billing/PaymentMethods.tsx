@@ -15,6 +15,10 @@ type PaymentMethod = {
   expYear: number | null;
   holderName: string | null;
   isDefault: boolean;
+  environment: "sandbox" | "production";
+  /** False si el env del token no matchea el env activo de Wompi.
+   *  Esos métodos no van a funcionar para cobros recurrentes. */
+  usable: boolean;
   createdAt: string;
 };
 
@@ -42,6 +46,7 @@ export default function PaymentMethods({
 }) {
   const router = useRouter();
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
+  const [activeEnv, setActiveEnv] = useState<"sandbox" | "production" | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const { confirm } = useConfirm();
@@ -51,6 +56,7 @@ export default function PaymentMethods({
     if (r.ok) {
       const j = await r.json();
       setMethods(j.paymentMethods ?? []);
+      setActiveEnv(j.activeEnv ?? null);
     } else {
       setMethods([]);
     }
@@ -149,8 +155,26 @@ export default function PaymentMethods({
     );
   }
 
+  const unusableCount = methods.filter((m) => !m.usable).length;
+
   return (
     <div>
+      {/* Banner: hay métodos guardados que no sirven con el env activo */}
+      {unusableCount > 0 && activeEnv && (
+        <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-900">
+          <p className="font-semibold">
+            {unusableCount === 1
+              ? "Tenés 1 método de pago guardado que no funciona con la config actual de Wompi."
+              : `Tenés ${unusableCount} métodos guardados que no funcionan con la config actual de Wompi.`}
+          </p>
+          <p className="mt-1 text-amber-800">
+            El environment activo es <strong>{activeEnv}</strong> pero esos
+            tokens son de otro environment. Wompi no los reconoce. Agregá un
+            método nuevo con el botón "Cambiar método" — el próximo pago va
+            a generar un token válido para {activeEnv}.
+          </p>
+        </div>
+      )}
       {methods.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/40 p-5 text-center">
           <CreditCard className="mx-auto h-7 w-7 text-zinc-300" />
@@ -229,18 +253,38 @@ function PaymentMethodRow({
   return (
     <li
       className={`flex items-center gap-3 rounded-lg border p-3 ${
-        pm.isDefault ? "border-fuchsia-200 bg-fuchsia-50/30" : "border-zinc-200 bg-white"
+        !pm.usable
+          ? "border-amber-200 bg-amber-50/30 opacity-75"
+          : pm.isDefault
+            ? "border-fuchsia-200 bg-fuchsia-50/30"
+            : "border-zinc-200 bg-white"
       }`}
     >
       <span className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-md ring-1 ${tone}`}>
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <p className="truncate text-[13px] font-semibold text-zinc-900">{label}</p>
           {pm.isDefault && (
             <span className="rounded-full bg-fuchsia-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
               Principal
+            </span>
+          )}
+          {pm.environment === "sandbox" && (
+            <span
+              className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-200"
+              title="Token de prueba — solo funciona en sandbox"
+            >
+              Sandbox
+            </span>
+          )}
+          {!pm.usable && (
+            <span
+              className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200"
+              title="Este método no funciona con la config actual de Wompi"
+            >
+              No usable
             </span>
           )}
         </div>

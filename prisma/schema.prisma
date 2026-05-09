@@ -340,6 +340,16 @@ model PaymentMethod {
 
   isDefault      Boolean      @default(true)
 
+  /// Wompi environment con que se creó el token: "sandbox" | "production".
+  /// Wompi tiene universos paralelos — un token de sandbox no funciona
+  /// en production y viceversa. El cron salta tokens que no matchean
+  /// el environment actual (configurado en /admin/integrations) en vez
+  /// de intentar cobrar y fallar con error críptico.
+  ///
+  /// Null para rows legacy creadas antes de este campo (asumimos sandbox
+  /// porque era el default histórico).
+  environment    String?
+
   createdAt      DateTime     @default(now())
 
   @@index([subscriptionId])
