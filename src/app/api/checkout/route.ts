@@ -8,11 +8,13 @@ import { createPaymentLink, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { hasPermission } from "@/lib/permissions";
 import { cancelPriorPendingInvoices } from "@/lib/invoice-cleanup";
+import { validateCoupon } from "@/lib/coupons";
 
 const schema = z.object({
   planId: z.enum(["pro", "agency"]),
   cycle: z.enum(["monthly", "yearly"]).default("monthly"),
   agencyId: z.string().optional(), // si no se provee, usamos la primera agency del user
+  couponCode: z.string().min(1).max(50).optional(),
 });
 
 /**
@@ -66,8 +68,33 @@ export async function POST(req: Request) {
 
   const sub = await getOrCreateSubscription(ownership.agencyId);
   const plan = PLANS[body.planId as PlanId];
-  const amountInCents =
+  const originalCents =
     body.cycle === "yearly" ? plan.priceCopYearly : plan.priceCopMonthly;
+
+  // Si vino couponCode, validar + aplicar descuento. Si el código es
+  // inválido, devolvemos error claro (no silent ignore — el user quiere
+  // saber por qué su código no funciona). Si es válido, amountInCents
+  // queda con el descuento aplicado y guardamos el código en el invoice
+  // para que el webhook registre la redención al confirmar pago.
+  let amountInCents = originalCents;
+  let appliedCoupon: { code: string; discountCents: number } | null = null;
+  if (body.couponCode) {
+    const result = await validateCoupon({
+      code: body.couponCode,
+      agencyId: ownership.agencyId,
+      planId: body.planId,
+      cycle: body.cycle,
+      amountCents: originalCents,
+    });
+    if (!result.valid) {
+      return NextResponse.json({ error: result.reason }, { status: 400 });
+    }
+    amountInCents = result.finalCents;
+    appliedCoupon = {
+      code: result.code,
+      discountCents: result.discountCents,
+    };
+  }
 
   // Reference única para esta transacción — el webhook la usará para encontrar
   // el invoice + subscription al actualizarlas.
@@ -92,7 +119,15 @@ export async function POST(req: Request) {
       wompiReference: reference,
       periodStart,
       periodEnd,
-      description: `${plan.name} (${body.cycle === "yearly" ? "anual" : "mensual"})`,
+      description: `${plan.name} (${body.cycle === "yearly" ? "anual" : "mensual"})${
+        appliedCoupon ? ` · cupón ${appliedCoupon.code}` : ""
+      }`,
+      ...(appliedCoupon
+        ? {
+            couponCode: appliedCoupon.code,
+            discountCents: appliedCoupon.discountCents,
+          }
+        : {}),
     },
   });
 

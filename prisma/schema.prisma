@@ -415,6 +415,13 @@ model Invoice {
   addonType          String?
   addonQuantity      Int?
 
+  /// Cupón aplicado (si el user ingresó código de descuento en checkout).
+  /// `couponCode` se guarda denormalizado para mostrarlo en historial.
+  /// `discountCents` es el descuento aplicado (siempre positivo). `amount`
+  /// arriba YA tiene el descuento aplicado (es el final que cobramos).
+  couponCode         String?
+  discountCents      Int?
+
   paidAt             DateTime?
   failedAt           DateTime?
   failedReason       String?
@@ -423,6 +430,62 @@ model Invoice {
   updatedAt          DateTime     @updatedAt
 
   @@index([subscriptionId, createdAt])
+}
+
+/// Códigos de descuento para promos. Los crea el admin del sistema desde
+/// /admin/coupons. El user los aplica en el checkout antes de pagar.
+///
+/// Tipos de descuento:
+///  - percentOff (0-100) → porcentaje del precio
+///  - amountOffCents → descuento fijo en centavos COP
+///  - Exactamente UNO de los dos debe estar set (validado en el endpoint)
+///
+/// Restricciones:
+///  - validFrom / validUntil → ventana de tiempo de validez
+///  - maxRedemptions → cap total de usos (null = ilimitado)
+///  - applicablePlans → si tiene valores, solo aplica a esos plans (ej.
+///    ["pro"] = solo válido para upgrade a Pro). Vacío = todos.
+///  - applicableCycles → idem para "monthly"/"yearly". Vacío = ambos.
+///  - oncePerAgency → si true, una agency solo lo puede usar 1 vez (chequeado
+///    via CouponRedemption.agencyId al validar).
+model Coupon {
+  id               String              @id @default(cuid())
+  /// Código case-insensitive que el user ingresa (lo normalizamos a UPPERCASE)
+  code             String              @unique
+  description      String?
+  percentOff       Int?
+  amountOffCents   Int?
+  validFrom        DateTime            @default(now())
+  validUntil       DateTime?
+  maxRedemptions   Int?
+  redemptionCount  Int                 @default(0)
+  applicablePlans  String[]            @default([])
+  applicableCycles String[]            @default([])
+  oncePerAgency    Boolean             @default(true)
+  active           Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  createdByUserId  String?
+  redemptions      CouponRedemption[]
+
+  @@index([code])
+  @@index([active, validUntil])
+}
+
+/// Tabla de uso: 1 row por invoice que aplicó cupón. Permite:
+///  - Contar redenciones por cupón (uso real + atómico)
+///  - Verificar "oncePerAgency" buscando si esta agency ya redimió este cupón
+///  - Historial de cuánto se ahorró cada cliente
+model CouponRedemption {
+  id               String   @id @default(cuid())
+  couponId         String
+  coupon           Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  agencyId         String
+  invoiceId        String   @unique
+  amountSavedCents Int
+  redeemedAt       DateTime @default(now())
+
+  @@index([couponId])
+  @@index([agencyId])
 }
 
 model TeamInvitation {

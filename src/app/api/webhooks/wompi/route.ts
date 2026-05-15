@@ -338,6 +338,25 @@ async function handleTransactionUpdated(
       // El environment del evento queda registrado: tokens de sandbox NO
       // funcionan en producción y viceversa, así que el cron filtra por
       // env activo al cobrar.
+      // Si el invoice tenía cupón aplicado, registrar la redención
+      // (incrementa counter + crea row de auditoría). Idempotente.
+      if (invoice.couponCode && invoice.discountCents != null) {
+        const { recordRedemption } = await import("@/lib/coupons");
+        const sub = await tx.subscription.findUnique({
+          where: { id: invoice.subscriptionId },
+          select: { agencyId: true },
+        });
+        if (sub) {
+          await recordRedemption({
+            code: invoice.couponCode,
+            agencyId: sub.agencyId,
+            invoiceId: invoice.id,
+            amountSavedCents: invoice.discountCents,
+            tx,
+          });
+        }
+      }
+
       if (transaction.payment_source_id) {
         // Wompi manda event.environment ("test" o "prod"). Lo
         // normalizamos a nuestro vocabulario ("sandbox"/"production").
