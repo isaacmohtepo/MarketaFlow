@@ -10,6 +10,7 @@ import {
   generateReference,
 } from "@/lib/wompi";
 import { audit } from "@/lib/audit";
+import { getSystemSetting } from "@/lib/system-settings";
 
 // $5.000 COP de validación (igual que el flow Wompi-redirect). Va por
 // chargeWithToken (path tokenize, no Payment Link) que NO tiene el
@@ -380,7 +381,14 @@ export async function POST(req: Request) {
   //
   // Después de approved, hacemos void inmediato → el user no ve cargo real
   // en su extracto. Si void falla (raro), aplicamos como crédito.
-  if (sourceId && sourceStatus === "AVAILABLE") {
+  //
+  // Toggleable via setting paymentValidationEnabled: si la cuenta Wompi
+  // tiene anti-fraude muy estricto (WS02 frecuentes), el admin puede
+  // apagarlo y guardar tarjetas sin verificar. Trade-off: cards que no
+  // funcionan se descubren recién en el primer cobro de renovación.
+  const validationEnabled = await getSystemSetting("paymentValidationEnabled");
+
+  if (validationEnabled && sourceId && sourceStatus === "AVAILABLE") {
     const validationRef = generateReference(sub.id);
     let chargeOk = false;
     let chargeTxId: string | null = null;

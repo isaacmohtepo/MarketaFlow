@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getWompiConfig, resolveWompiEnvironment } from "@/lib/integrations";
+import { getSystemSetting } from "@/lib/system-settings";
 
 /**
  * GET /api/billing/wompi-public-config
@@ -54,11 +55,16 @@ export async function GET() {
     console.error("Failed to fetch Wompi merchant config", err);
   }
 
+  // Bandera para que el modal sepa si va a hacer el cobro de validación
+  // o no — para mostrar (o no) el disclaimer del cargo de $5.000.
+  const validationEnabled = await getSystemSetting("paymentValidationEnabled");
+
   return NextResponse.json({
     publicKey: cfg.publicKey,
     environment: env,
     apiBase,
     acceptanceToken,
     acceptancePersonalDataAuthToken,
+    validationEnabled,
   });
 }

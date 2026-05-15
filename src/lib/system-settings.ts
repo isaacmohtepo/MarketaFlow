@@ -103,6 +103,17 @@ const SETTINGS = {
     unit: "días",
     group: "billing",
   },
+  paymentValidationEnabled: {
+    type: "boolean",
+    dbKey: "setting:payment_validation_enabled",
+    default: true,
+    label: "Validar tarjetas con cobro temporal",
+    description:
+      "Al agregar tarjeta nueva via modal, hacer un cobro de $5.000 COP que se anula al instante para confirmar que la tarjeta funciona. Apagar si tu cuenta Wompi tiene anti-fraude estricto que rechaza estos cobros (WS02).",
+    group: "billing",
+    warning:
+      "Si lo apagás, las tarjetas se guardan sin verificación → renovaciones podrían fallar sin aviso.",
+  },
   // Email
   supportEmail: {
     type: "string",
