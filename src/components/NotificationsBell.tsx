@@ -11,6 +11,8 @@ import {
   Clock,
   Inbox,
   Sparkles,
+  Trash2,
+  X,
   XCircle,
 } from "lucide-react";
 import MentionText from "./MentionText";
@@ -102,6 +104,9 @@ export default function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  // IDs en proceso de borrarse (animación slide-out antes de hacer DELETE)
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const wrapRef = useRef<HTMLDivElement>(null);
 
   async function load() {
@@ -210,6 +215,54 @@ export default function NotificationsBell() {
     setUnread((u) => Math.max(0, u - 1));
   }
 
+  // Borra una notif con animación slide-out → DELETE backend → quitar del state
+  async function deleteOne(id: string) {
+    setRemovingIds((s) => new Set(s).add(id));
+    // Esperar a que termine la animación CSS (180ms) antes de quitar del DOM
+    setTimeout(async () => {
+      const target = items.find((n) => n.id === id);
+      try {
+        await fetch(`/api/notifications?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+      } catch {}
+      setItems((arr) => arr.filter((n) => n.id !== id));
+      if (target && !target.read) setUnread((u) => Math.max(0, u - 1));
+      setRemovingIds((s) => {
+        const next = new Set(s);
+        next.delete(id);
+        return next;
+      });
+    }, 180);
+  }
+
+  // Borra todas las leídas en bloque (las no-leídas quedan)
+  async function deleteAllRead() {
+    const readIds = items.filter((n) => n.read).map((n) => n.id);
+    if (readIds.length === 0) return;
+    if (!confirm(`¿Borrar ${readIds.length} notificación${readIds.length === 1 ? "" : "es"} leída${readIds.length === 1 ? "" : "s"}?`)) return;
+    setRemovingIds((s) => {
+      const next = new Set(s);
+      for (const id of readIds) next.add(id);
+      return next;
+    });
+    setTimeout(async () => {
+      await Promise.all(
+        readIds.map((id) =>
+          fetch(`/api/notifications?id=${encodeURIComponent(id)}`, {
+            method: "DELETE",
+          }).catch(() => {}),
+        ),
+      );
+      setItems((arr) => arr.filter((n) => !readIds.includes(n.id)));
+      setRemovingIds(new Set());
+    }, 180);
+  }
+
+  const filteredItems =
+    filter === "unread" ? items.filter((n) => !n.read) : items;
+  const hasReadItems = items.some((n) => n.read);
+
   return (
     <div ref={wrapRef} className="relative">
       <button
@@ -226,7 +279,7 @@ export default function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-2xl">
+        <div className="absolute right-0 z-40 mt-2 w-[380px] max-w-[92vw] overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5">
             <div className="flex items-center gap-2">
@@ -249,21 +302,53 @@ export default function NotificationsBell() {
             )}
           </div>
 
+          {/* Filtros */}
+          {items.length > 0 && (
+            <div className="flex items-center gap-1 border-b border-zinc-100 bg-zinc-50/50 px-3 py-1.5">
+              <button
+                onClick={() => setFilter("all")}
+                className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+                  filter === "all"
+                    ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                Todas
+                <span className="ml-1 tabular-nums text-zinc-400">{items.length}</span>
+              </button>
+              <button
+                onClick={() => setFilter("unread")}
+                className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+                  filter === "unread"
+                    ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                No leídas
+                <span className="ml-1 tabular-nums text-zinc-400">{unread}</span>
+              </button>
+            </div>
+          )}
+
           {/* Lista */}
           <div className="max-h-[60vh] overflow-y-auto">
-            {items.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
                 <span className="grid h-10 w-10 place-items-center rounded-full bg-zinc-100">
                   <Inbox className="h-4 w-4 text-zinc-400" />
                 </span>
-                <p className="text-[13px] font-medium text-zinc-700">Todo al día ✨</p>
+                <p className="text-[13px] font-medium text-zinc-700">
+                  {filter === "unread" ? "Sin pendientes" : "Todo al día"} ✨
+                </p>
                 <p className="text-[11px] text-zinc-500">
-                  No tienes notificaciones nuevas.
+                  {filter === "unread"
+                    ? "No tenés notificaciones sin leer."
+                    : "No tenés notificaciones nuevas."}
                 </p>
               </div>
             ) : (
               <ul className="divide-y divide-zinc-100/80">
-                {items.map((n) => {
+                {filteredItems.map((n) => {
                   const visual = TYPE_VISUAL[n.type] ?? {
                     icon: Bell,
                     tint: "bg-zinc-50 text-zinc-600 ring-zinc-100",
@@ -275,15 +360,28 @@ export default function NotificationsBell() {
                       : n.brandId
                         ? `/brands/${n.brandId}`
                         : "#";
+                  const removing = removingIds.has(n.id);
                   return (
-                    <li key={n.id}>
+                    <li
+                      key={n.id}
+                      className={`group relative overflow-hidden transition-all duration-200 ease-out ${
+                        removing
+                          ? "max-h-0 -translate-x-full opacity-0"
+                          : "max-h-[120px] translate-x-0 opacity-100"
+                      }`}
+                    >
                       <Link
                         href={href}
-                        onClick={() => {
+                        onClick={(e) => {
+                          // No navegar si clickearon el botón de borrar
+                          if ((e.target as HTMLElement).closest("[data-notif-action]")) {
+                            e.preventDefault();
+                            return;
+                          }
                           if (!n.read) markOne(n.id);
                           setOpen(false);
                         }}
-                        className={`flex items-start gap-2.5 px-4 py-3 text-sm transition ${
+                        className={`flex items-start gap-2.5 px-4 py-3 pr-10 text-sm transition ${
                           n.read ? "bg-white hover:bg-zinc-50" : "bg-fuchsia-50/40 hover:bg-fuchsia-50"
                         }`}
                       >
@@ -318,6 +416,40 @@ export default function NotificationsBell() {
                           />
                         )}
                       </Link>
+
+                      {/* Acciones hover — botones absolutos en la esquina derecha.
+                          Visibles siempre en mobile (no hay hover), revelados con hover en desktop. */}
+                      <div
+                        data-notif-action
+                        className="absolute right-2 top-2 flex items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                      >
+                        {!n.read && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              markOne(n.id);
+                            }}
+                            className="grid h-6 w-6 place-items-center rounded-md bg-white/90 text-zinc-500 ring-1 ring-zinc-200 backdrop-blur transition hover:bg-zinc-100 hover:text-emerald-600"
+                            aria-label="Marcar como leída"
+                            title="Marcar como leída"
+                          >
+                            <Check className="h-3 w-3" />
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteOne(n.id);
+                          }}
+                          className="grid h-6 w-6 place-items-center rounded-md bg-white/90 text-zinc-500 ring-1 ring-zinc-200 backdrop-blur transition hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200"
+                          aria-label="Borrar notificación"
+                          title="Borrar"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
@@ -327,7 +459,19 @@ export default function NotificationsBell() {
 
           {/* Footer */}
           {items.length > 0 && (
-            <div className="border-t border-zinc-100 bg-zinc-50/50 px-4 py-2 text-center">
+            <div className="flex items-center justify-between gap-2 border-t border-zinc-100 bg-zinc-50/50 px-4 py-2">
+              {hasReadItems ? (
+                <button
+                  onClick={deleteAllRead}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600"
+                  title="Borrar todas las notificaciones leídas"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Borrar leídas
+                </button>
+              ) : (
+                <span />
+              )}
               <Link
                 href="/inbox"
                 onClick={() => setOpen(false)}
