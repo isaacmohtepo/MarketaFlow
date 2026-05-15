@@ -32,6 +32,8 @@ quien las pidió.
 - ✅ **Screenshot de sitios web en grid** — endpoint /api/screenshot con cache R2
 - ✅ **Notificaciones no auto-disparadas** — `excludeUserId` en todos los notify*
 - ✅ **Coupons (modelo + UI admin + redención)** — model Coupon + CouponRedemption
+- ✅ **Templates shared agency-wide** — toggle UI + filter en GET + badges visuales
+- ✅ **Onboarding contextual por rol** — `roleWelcomeScreens()` para CM/Designer/Copywriter/Strategist/Client
 
 ---
 
@@ -128,24 +130,6 @@ captions de referencia como few-shot examples.
 ---
 
 ## P2 — Pulir UX existente
-
-### Onboarding contextual por rol
-
-Cuando un Diseñador acepta invitación, ve el wizard genérico que asume
-CM. Adaptar steps según rol:
-- Designer → "subí tu primer creativo"
-- Copywriter → "elegí un post para escribir caption"
-- Estratega → "explorá el dashboard"
-- Cliente → "aprobá tu primer post"
-
-### Templates compartidos agency-wide
-
-Templates hoy son per-brand. Permitir compartir templates entre brands
-de la misma agency, o incluso públicamente (opt-in).
-
-Campo `sharedAgencyWide` ya existe en `PostTemplate`. Falta:
-- [ ] Toggle en `TemplatesManager` para activar
-- [ ] Tab "Toda la agencia" en library + fetch incluyendo siblings
 
 ### Calendar drag-drop reschedule
 
