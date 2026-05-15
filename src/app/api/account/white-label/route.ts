@@ -20,9 +20,39 @@ const hexColor = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "Color hex inválido (ej. #ff4d8f)");
 
+/**
+ * Valida que la URL del logo apunte a nuestro storage (R2 o local).
+ *
+ * SEGURIDAD: sin esta validación un atacante con `agency.settings` podía
+ * poner `logoUrl: "https://attacker.com/track.gif"` y como el logo se
+ * muestra en emails que abre el cliente externo, el atacante ve cada
+ * apertura del correo (IP, user agent, referer). Eso es tracking
+ * silencioso + fingerprint del cliente.
+ *
+ * Permitidos:
+ *  - URLs que empiezan con R2_PUBLIC_URL (storage propio)
+ *  - URLs relativas /uploads/... (modo dev local sin R2)
+ */
+function isAllowedLogoUrl(url: string): boolean {
+  // Relativa local (dev sin R2)
+  if (url.startsWith("/uploads/") || url.startsWith("/")) return true;
+  const r2Public = process.env.R2_PUBLIC_URL?.replace(/\/+$/, "");
+  if (r2Public && url.startsWith(r2Public + "/")) return true;
+  return false;
+}
+
 const patchSchema = z.object({
   brandName: z.string().trim().min(2).max(50).nullable().optional(),
-  logoUrl: z.string().url().max(500).nullable().optional(),
+  logoUrl: z
+    .string()
+    .url()
+    .max(500)
+    .refine(
+      isAllowedLogoUrl,
+      "El logo debe subirse desde el botón de arriba (no aceptamos URLs externas).",
+    )
+    .nullable()
+    .optional(),
   accentColor: hexColor.nullable().optional(),
   gradientFrom: hexColor.nullable().optional(),
   gradientTo: hexColor.nullable().optional(),

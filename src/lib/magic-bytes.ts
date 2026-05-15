@@ -88,11 +88,21 @@ export function validateMagicBytes(
   buf: Buffer,
   declaredMime: string,
 ): { ok: true } | { ok: false; reason: string } {
-  // Sniff defensivo para web payloads disfrazados (siempre se aplica)
+  // Sniff defensivo para web payloads disfrazados (siempre se aplica).
+  //
+  // SEGURIDAD: removemos chars que un parser HTML del navegador ignora
+  // pero que pueden engañar nuestra check:
+  //  - U+FEFF (UTF-8 BOM): typical bypass — el archivo empieza con
+  //    EF BB BF y luego `<svg...`. trimStart() solo strippea whitespace
+  //    ASCII; el BOM queda.
+  //  - Zero-width chars (U+200B/U+200C/U+200D/U+2060)
+  //  - Null bytes que algunos browsers tratan como invisibles
+  //  - Whitespace y newlines de cualquier tipo
   const head = buf
-    .slice(0, 64)
+    .slice(0, 128)
     .toString("utf8")
     .toLowerCase()
+    .replace(/[﻿​‌‍⁠\x00]/g, "")
     .trimStart();
   for (const pattern of FORBIDDEN_PATTERNS) {
     if (head.startsWith(pattern)) {
