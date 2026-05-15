@@ -171,6 +171,15 @@ export async function createPaymentLink(args: {
   currency?: "COP";
   description: string;
   customerEmail?: string;
+  /** Customer data pre-fills + ayuda al anti-fraude de Wompi a confiar
+   *  en la transacción. Más datos identificables = menos chance de WS02.
+   *  Cualquier campo opcional — si no lo tenés, Wompi muestra el form vacío. */
+  customerData?: {
+    fullName?: string | null;
+    phoneNumber?: string | null;
+    legalId?: string | null;
+    legalIdType?: "CC" | "CE" | "NIT" | "PP" | null;
+  };
   redirectUrl: string;
   /** Métodos de pago habilitados. Default: tarjeta + PSE + Nequi. */
   paymentMethods?: ("CARD" | "PSE" | "NEQUI" | "BANCOLOMBIA_TRANSFER")[];
@@ -180,7 +189,17 @@ export async function createPaymentLink(args: {
   const cfg = await getWompiConfig(env);
   const url = `${apiBase(env)}/payment_links`;
 
-  const body = {
+  // Customer data en el formato que pide Wompi. Solo incluimos campos
+  // presentes — Wompi rechaza si pasamos null/undefined explícitos.
+  const customerInfo: Record<string, string> = {};
+  if (args.customerEmail) customerInfo.email = args.customerEmail;
+  if (args.customerData?.fullName) customerInfo.full_name = args.customerData.fullName;
+  if (args.customerData?.phoneNumber) customerInfo.phone_number = args.customerData.phoneNumber;
+  if (args.customerData?.legalId) customerInfo.legal_id = args.customerData.legalId;
+  if (args.customerData?.legalIdType)
+    customerInfo.legal_id_type = args.customerData.legalIdType;
+
+  const body: Record<string, unknown> = {
     name: args.description,
     description: args.description,
     single_use: true,
@@ -190,6 +209,9 @@ export async function createPaymentLink(args: {
     payment_methods: args.paymentMethods ?? ["CARD", "PSE", "NEQUI"],
     redirect_url: args.redirectUrl,
   };
+  if (Object.keys(customerInfo).length > 0) {
+    body.customer_data = customerInfo;
+  }
 
   const res = await fetch(url, {
     method: "POST",

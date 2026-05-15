@@ -25,7 +25,18 @@ import { audit } from "@/lib/audit";
  *    API rechaza igual funcionan en el checkout de Wompi
  */
 
-const VALIDATION_AMOUNT_COP = 1_500_00; // $1.500 COP en centavos
+// $5.000 COP en centavos.
+// Antes era $1.500 pero Wompi anti-fraude lo flageaba como "fraudster
+// probando tarjetas" (montos muy chicos + comercio nuevo = WS02). $5.000
+// es más "creíble" — sigue siendo barato y se reembolsa/da crédito al
+// instante, pero pasa el filtro anti-fraude.
+const VALIDATION_AMOUNT_COP = 5_000_00;
+
+// Cooldown entre intentos fallidos por agencia. Si fallás dos veces,
+// bloqueamos por 15 min para no empeorar el velocity score en Wompi
+// (cada intento rechazado suma al device fingerprint flag).
+const COOLDOWN_AFTER_FAILS = 2;
+const COOLDOWN_MINUTES = 15;
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -48,6 +59,34 @@ export async function POST(req: Request) {
     where: { agencyId: m.agencyId },
   });
   if (!sub) return NextResponse.json({ error: "Sin suscripción" }, { status: 404 });
+
+  // Cooldown: si las últimas N validaciones fallaron consecutivamente,
+  // bloqueamos por 15 min. Esto evita que el user empeore el velocity
+  // score en Wompi reintentando una y otra vez después de un WS02.
+  const recentValidations = await prisma.invoice.findMany({
+    where: {
+      subscriptionId: sub.id,
+      addonType: "method_validation",
+      createdAt: { gte: new Date(Date.now() - COOLDOWN_MINUTES * 60_000) },
+    },
+    orderBy: { createdAt: "desc" },
+    take: COOLDOWN_AFTER_FAILS,
+  });
+  const recentFails = recentValidations.filter((i) => i.status === "failed").length;
+  if (
+    recentValidations.length >= COOLDOWN_AFTER_FAILS &&
+    recentFails >= COOLDOWN_AFTER_FAILS
+  ) {
+    const lastFailAt = recentValidations[0].createdAt.getTime();
+    const unlockAt = lastFailAt + COOLDOWN_MINUTES * 60_000;
+    const minsLeft = Math.ceil((unlockAt - Date.now()) / 60_000);
+    return NextResponse.json(
+      {
+        error: `Esperá ${minsLeft} min antes de volver a intentar. Wompi marca como sospechoso cuando hay muchos intentos seguidos. Mientras tanto: revisá que tu tarjeta tenga compras por internet activas, o probá con Nequi.`,
+      },
+      { status: 429 },
+    );
+  }
 
   if (!user.email || user.email.endsWith("@guest.local")) {
     return NextResponse.json(
@@ -93,12 +132,18 @@ export async function POST(req: Request) {
   const redirectUrl = `${appUrl}/billing/return?ref=${reference}&validation=1`;
 
   try {
+    // Customer data: mandamos lo más que podamos para que Wompi anti-fraude
+    // confíe en la transacción. full_name + email son los mínimos. phone y
+    // legal_id ayudan más pero no los tenemos en el schema actual.
     const link = await createPaymentLink({
       reference,
       amountInCents: VALIDATION_AMOUNT_COP,
       currency: "COP",
       description: "MarketaFlow — Validación de medio de pago",
       customerEmail: user.email,
+      customerData: {
+        fullName: user.name ?? null,
+      },
       redirectUrl,
       paymentMethods: ["CARD", "NEQUI"],
       environment,

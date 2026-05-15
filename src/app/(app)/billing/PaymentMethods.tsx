@@ -263,9 +263,10 @@ export default function PaymentMethods({
                 Agregá un método de pago via Wompi
               </p>
               <p className="text-[11px] text-zinc-500">
-                Wompi cobra $1.500 COP de validación que queda como{" "}
-                <strong>crédito en tu próxima factura</strong>. Es la forma
-                más segura — pagás en la página de Wompi.
+                Wompi cobra <strong>$5.000 COP de validación</strong> que se{" "}
+                <strong>anula automáticamente</strong> (o queda como crédito).
+                Es la forma más segura — pagás en la página de Wompi con su
+                certificado PCI Level 1.
               </p>
             </div>
             <button
