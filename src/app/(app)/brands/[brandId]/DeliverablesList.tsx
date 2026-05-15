@@ -61,18 +61,29 @@ function hostOf(url: string) {
   }
 }
 
+const VIDEO_EXT_RE = /\.(mp4|mov|webm|m4v|avi|mkv|ogv)(?:\?|#|$)/i;
+
 function CoverPreview({ d }: { d: Deliverable }) {
+  // Si videoUrl no vino pero el imageUrl tiene extensión de video, usalo igual.
+  // Cubre el caso legacy donde Post.imageUrl quedó apuntando al archivo de video
+  // (no había imagen real para cover).
+  const effectiveVideoUrl =
+    d.videoUrl ??
+    (d.assetType === "video" && d.imageUrl && VIDEO_EXT_RE.test(d.imageUrl)
+      ? d.imageUrl
+      : null);
+
   // Video file subido → renderizar <video preload="metadata"> que carga el
   // primer frame automáticamente como poster, sin necesidad de guardar una
   // thumbnail aparte. Overlay con play icon + gradient brand para identificarlo.
-  if (d.assetType === "video" && d.videoUrl) {
+  if (d.assetType === "video" && effectiveVideoUrl) {
     return (
       <div className="relative h-full w-full bg-zinc-900">
         <video
           // Fragment #t=0.5 fuerza al browser a renderizar el frame del segundo
           // 0.5 en lugar del primer frame (que en muchos videos sale negro/blanco).
           // R2 soporta byte-range requests → el browser solo descarga la cabecera.
-          src={`${d.videoUrl}#t=0.5`}
+          src={`${effectiveVideoUrl}#t=0.5`}
           preload="metadata"
           muted
           playsInline
@@ -88,8 +99,9 @@ function CoverPreview({ d }: { d: Deliverable }) {
       </div>
     );
   }
-  // Imagen disponible (cover) → mostrarla
-  if (d.imageUrl) {
+  // Imagen disponible (cover) → mostrarla. Excluimos el caso donde imageUrl
+  // es realmente un video (legacy) — eso ya se manejó en la rama de arriba.
+  if (d.imageUrl && !VIDEO_EXT_RE.test(d.imageUrl)) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img

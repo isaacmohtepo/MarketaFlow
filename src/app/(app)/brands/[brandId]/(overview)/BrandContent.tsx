@@ -117,23 +117,35 @@ export default async function BrandContent({
   const lastViewed = new Map<string, Date>();
   for (const row of viewRows) lastViewed.set(row.postId, row.lastViewedAt);
 
-  // Para video posts: traer el primer media file con mime video/* — lo usamos
-  // como source en un <video preload="metadata"> en el card para auto-generar
-  // un thumbnail del primer frame (no necesitamos guardar un poster fijo).
-  const videoFiles =
+  // Para video posts: traer TODOS los media files de los posts visibles y
+  // detectar el primer video — por mime O por extensión de URL (cubre PostImage
+  // rows viejas que se guardaron sin mime). Lo usamos como source en un
+  // <video preload="metadata"> para auto-generar thumbnail del primer frame.
+  const VIDEO_EXT_RE = /\.(mp4|mov|webm|m4v|avi|mkv|ogv)(?:\?|#|$)/i;
+  const isVideoFile = (mime: string | null, url: string) =>
+    (mime ?? "").startsWith("video/") || VIDEO_EXT_RE.test(url);
+
+  const allFiles =
     postIds.length > 0
       ? await prisma.postImage.findMany({
-          where: {
-            postId: { in: postIds },
-            mime: { startsWith: "video/" },
-          },
+          where: { postId: { in: postIds } },
           orderBy: { position: "asc" },
-          select: { postId: true, url: true },
+          select: { postId: true, url: true, mime: true },
         })
       : [];
   const videoUrlMap = new Map<string, string>();
-  for (const f of videoFiles) {
-    if (!videoUrlMap.has(f.postId)) videoUrlMap.set(f.postId, f.url);
+  for (const f of allFiles) {
+    if (videoUrlMap.has(f.postId)) continue;
+    if (isVideoFile(f.mime, f.url)) videoUrlMap.set(f.postId, f.url);
+  }
+  // Fallback adicional: si el post no tiene PostImage pero el Post.imageUrl
+  // termina con extensión de video (caso legacy donde el video se guardó como
+  // cover), lo capturamos para el grid de videos.
+  for (const p of visiblePosts) {
+    if (videoUrlMap.has(p.id)) continue;
+    if (p.imageUrl && VIDEO_EXT_RE.test(p.imageUrl)) {
+      videoUrlMap.set(p.id, p.imageUrl);
+    }
   }
 
   return (
