@@ -1,19 +1,18 @@
 /**
- * Overlay con marca de agua "BORRADOR" / "DRAFT" sobre imágenes de posts
- * que NO están aprobados todavía. Sirve para que el cliente entienda
- * "esto es preview, no se ha aprobado" — evita que screenshotee y publique
- * por su cuenta sin pasar por el flow de aprobación.
+ * Cinta diagonal "BORRADOR" en la esquina superior-izquierda de la imagen
+ * cuando el post NO está aprobado todavía. Visible pero no obstruye el
+ * contenido — el cliente puede ver bien la imagen y solo se da cuenta de
+ * que es borrador al notar la cinta.
  *
- * Se muestra cuando el post está en estos status:
+ * Reemplaza al overlay completo anterior (texto repetido en grid) que
+ * resultaba demasiado agresivo y tapaba la imagen.
+ *
+ * Se muestra cuando el post está en:
  *   - draft (borrador interno del equipo)
  *   - in_review (esperando aprobación del cliente)
  *   - changes_requested (cliente pidió cambios)
  *
- * Se oculta cuando el post está aprobado/programado/publicado.
- *
- * Visual: texto rotado -30° repetido en grilla, opacidad baja, blanco con
- * sombra. Pointer-events-none para no interferir con clicks/hovers de la
- * imagen padre (ej. carrusel, click para comentar).
+ * Se oculta cuando el post está approved/scheduled/published.
  */
 export function DraftWatermark({
   status,
@@ -23,11 +22,10 @@ export function DraftWatermark({
   status: string;
   /** Texto custom; default: "BORRADOR" */
   label?: string;
-  /** Tamaño del texto. sm=cards, md=post detail */
+  /** Tamaño de la cinta. sm=cards de grilla, md=post detail. */
   size?: "sm" | "md" | "lg";
 }) {
-  // Status finales (no mostrar watermark): el contenido ya fue validado por
-  // el cliente y va o ya salió a redes.
+  // Status finales — no mostrar.
   if (
     status === "approved" ||
     status === "scheduled" ||
@@ -37,36 +35,40 @@ export function DraftWatermark({
   }
 
   const text = label ?? "BORRADOR";
-  const textSizeCls =
-    size === "sm" ? "text-[10px]" : size === "lg" ? "text-2xl" : "text-base";
-  const gapCls =
-    size === "sm" ? "gap-3" : size === "lg" ? "gap-12" : "gap-6";
 
-  // Repetimos el texto 24 veces en una grilla rotada → cubre toda la imagen
-  // independiente del aspect ratio. El parent debe ser relative + overflow-hidden.
-  const tiles = Array.from({ length: 36 });
+  // Dimensiones según size: cinta más larga/gruesa en detail view, mini
+  // en cards. Calculadas para que el texto entre sin hacerse mocha.
+  const config =
+    size === "sm"
+      ? { width: 90, height: 18, fontSize: 9, offset: -22, textOffset: 28 }
+      : size === "lg"
+        ? { width: 160, height: 28, fontSize: 12, offset: -38, textOffset: 50 }
+        : { width: 120, height: 22, fontSize: 10, offset: -28, textOffset: 36 };
 
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-10 overflow-hidden select-none"
+      className="pointer-events-none absolute left-0 top-0 z-10 overflow-hidden select-none"
+      style={{
+        width: config.width + config.textOffset,
+        height: config.width + config.textOffset,
+      }}
     >
       <div
-        className={`absolute inset-[-25%] flex flex-wrap items-center justify-center ${gapCls}`}
-        style={{ transform: "rotate(-25deg)" }}
+        className="absolute flex items-center justify-center font-bold uppercase tracking-[0.18em] text-white shadow-md"
+        style={{
+          left: config.offset,
+          top: config.textOffset,
+          width: config.width,
+          height: config.height,
+          fontSize: config.fontSize,
+          background:
+            "linear-gradient(135deg, rgba(244, 63, 94, 0.95), rgba(217, 70, 239, 0.95))",
+          transform: "rotate(-45deg)",
+          transformOrigin: "center",
+        }}
       >
-        {tiles.map((_, i) => (
-          <span
-            key={i}
-            className={`whitespace-nowrap font-black uppercase tracking-[0.25em] text-white/30 ${textSizeCls}`}
-            style={{
-              textShadow:
-                "0 1px 2px rgba(0,0,0,0.35), 0 0 1px rgba(0,0,0,0.5)",
-            }}
-          >
-            {text}
-          </span>
-        ))}
+        {text}
       </div>
     </div>
   );
