@@ -22,6 +22,15 @@ function esc(value: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+/** Branding inyectable en cualquier email. Si se pasa `wl`, reemplaza
+ *  el header (logo + nombre) y el color del CTA. Si null/undefined,
+ *  usa el branding default de MarketaFlow. */
+export type EmailBranding = {
+  brandName: string;
+  logoUrl: string | null;
+  accentColor: string | null;
+} | null;
+
 function shell({
   preheader,
   title,
@@ -29,6 +38,7 @@ function shell({
   ctaLabel,
   ctaUrl,
   footer,
+  wl,
 }: {
   preheader: string;
   title: string;
@@ -36,7 +46,17 @@ function shell({
   ctaLabel: string;
   ctaUrl: string;
   footer?: string;
+  wl?: EmailBranding;
 }): string {
+  // Resolver branding: si la agency tiene white-label, usar su logo /
+  // nombre / color. Sino, mostrar el chip MarketaFlow default.
+  const headerBrand = wl
+    ? wl.logoUrl
+      ? `<img src="${esc(wl.logoUrl)}" alt="${esc(wl.brandName)}" width="24" height="24" style="display:inline-block;width:24px;height:24px;border-radius:6px;object-fit:contain;vertical-align:middle;" /> <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;vertical-align:middle;margin-left:6px;">${esc(wl.brandName)}</span>`
+      : `<span style="display:inline-block;width:24px;height:24px;border-radius:6px;background:${esc(wl.accentColor ?? "#8a2be2")};vertical-align:middle;"></span> <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;vertical-align:middle;margin-left:6px;">${esc(wl.brandName)}</span>`
+    : `<span style="display:inline-block;width:24px;height:24px;border-radius:6px;background:${BRAND_GRADIENT};vertical-align:middle;"></span> <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;vertical-align:middle;margin-left:6px;">MarketaFlow</span>`;
+  const ctaBg = wl?.accentColor ?? BRAND_GRADIENT;
+  const footerBrandName = wl?.brandName ?? "MarketaFlow";
   return `<!doctype html>
 <html>
   <head>
@@ -52,10 +72,7 @@ function shell({
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid rgba(0,0,0,0.08);border-radius:14px;overflow:hidden;">
             <tr>
               <td style="padding:24px 28px 0;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="display:inline-block;width:24px;height:24px;border-radius:6px;background:${BRAND_GRADIENT};"></span>
-                  <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;">MarketaFlow</span>
-                </div>
+                ${headerBrand}
               </td>
             </tr>
             <tr>
@@ -66,7 +83,7 @@ function shell({
             </tr>
             <tr>
               <td style="padding:20px 28px 28px;">
-                <a href="${ctaUrl}" style="display:inline-block;background:${BRAND_GRADIENT};color:#ffffff;text-decoration:none;font-weight:600;font-size:13px;padding:11px 22px;border-radius:9999px;">
+                <a href="${ctaUrl}" style="display:inline-block;background:${ctaBg};color:#ffffff;text-decoration:none;font-weight:600;font-size:13px;padding:11px 22px;border-radius:9999px;">
                   ${ctaLabel}
                 </a>
               </td>
@@ -80,6 +97,7 @@ function shell({
           <p style="margin:18px 0 0;font-size:11px;color:#86868b;line-height:1.4;">
             Recibiste este correo porque tu cuenta tiene notificaciones activas.<br/>
             <a href="${appUrl("/account")}" style="color:#86868b;text-decoration:underline;">Cambiar preferencias</a>
+            ${wl ? `<br/><span style="color:#a8a8ad;">Powered by ${esc(footerBrandName)}</span>` : ""}
           </p>
         </td>
       </tr>
@@ -94,6 +112,7 @@ export function tplPostInReview(opts: {
   actorName: string;
   postUrl: string;
   caption?: string | null;
+  wl?: EmailBranding;
 }) {
   const captionTrunc = opts.caption
     ? opts.caption.slice(0, 140) + (opts.caption.length > 140 ? "…" : "")
@@ -101,13 +120,15 @@ export function tplPostInReview(opts: {
   const captionLine = opts.caption
     ? `<p style="margin:14px 0 0;font-size:13px;color:#6e6e73;font-style:italic;border-left:2px solid #e4e4e7;padding-left:10px;">"${esc(captionTrunc)}"</p>`
     : "";
+  const footerBrand = opts.wl?.brandName ?? "MarketaFlow";
   return shell({
     preheader: `${esc(opts.actorName)} subió un post de ${esc(opts.brandName)} para tu revisión`,
     title: `Hay un post de ${esc(opts.brandName)} para revisar`,
     intro: `${esc(opts.actorName)} acaba de enviarte un post para que apruebes o pidas cambios.${captionLine}`,
     ctaLabel: "Ver y aprobar →",
     ctaUrl: opts.postUrl,
-    footer: `Si lo apruebas, MarketaFlow lo programa automáticamente. Si pides cambios, ${esc(opts.agencyName)} recibirá tu nota.`,
+    footer: `Si lo apruebas, ${esc(footerBrand)} lo programa automáticamente. Si pides cambios, ${esc(opts.agencyName)} recibirá tu nota.`,
+    wl: opts.wl,
   });
 }
 
@@ -115,6 +136,7 @@ export function tplPostApproved(opts: {
   brandName: string;
   clientName: string;
   postUrl: string;
+  wl?: EmailBranding;
 }) {
   return shell({
     preheader: `${esc(opts.clientName)} aprobó un post de ${esc(opts.brandName)}`,
@@ -122,6 +144,7 @@ export function tplPostApproved(opts: {
     intro: `Buenas noticias — el post de <strong>${esc(opts.brandName)}</strong> está listo para programarse.`,
     ctaLabel: "Ver post",
     ctaUrl: opts.postUrl,
+    wl: opts.wl,
   });
 }
 
@@ -130,6 +153,7 @@ export function tplChangesRequested(opts: {
   clientName: string;
   note?: string | null;
   postUrl: string;
+  wl?: EmailBranding;
 }) {
   const noteBlock = opts.note
     ? `<p style="margin:14px 0 0;font-size:13px;color:#1d1d1f;background:#fff5f5;border-left:3px solid #ff4d8f;padding:10px 12px;border-radius:6px;">"${esc(opts.note)}"</p>`
@@ -140,6 +164,7 @@ export function tplChangesRequested(opts: {
     intro: `Hay un post de <strong>${esc(opts.brandName)}</strong> que necesita correcciones.${noteBlock}`,
     ctaLabel: "Ver comentarios",
     ctaUrl: opts.postUrl,
+    wl: opts.wl,
   });
 }
 

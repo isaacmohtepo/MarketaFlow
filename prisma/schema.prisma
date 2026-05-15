@@ -98,6 +98,12 @@ model Agency {
   /// resuelve via hasFeature(agencyId, "flag"). Lo que está acá sobrescribe
   /// los defaults del plan. Ej: { "beta_analytics": true, "white_label": false }.
   featureFlags     Json?
+  /// Branding white-label. Solo se aplica si la agency tiene el add-on
+  /// `whiteLabelAddon` activo (o un plan que lo incluya como Agency).
+  /// Si está vacío y el add-on activo, se muestra el branding default.
+  wlBrandName       String?
+  wlLogoUrl         String?
+  wlAccentColor     String?
   createdAt    DateTime          @default(now())
   brands       Brand[]
   members      Membership[]

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Building2, Users, Loader2, Plus, Check } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, Building2, Users, Loader2, Plus, Check, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 type SavedMethod = {
@@ -195,27 +196,37 @@ export default function Addons({
                 </span>
               </p>
             </div>
-            <button
-              onClick={() => buy(a.id)}
-              disabled={busy === a.id || alreadyOwned}
-              className="btn-secondary inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold disabled:opacity-60"
-              title={
-                alreadyOwned
-                  ? "Ya activo"
-                  : isToggle
-                    ? "Comprar"
-                    : "Agregar 1 unidad"
-              }
-            >
-              {busy === a.id ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : alreadyOwned ? (
-                <Check className="h-3.5 w-3.5" />
-              ) : (
-                <Plus className="h-3.5 w-3.5" />
-              )}
-              {alreadyOwned ? "Activo" : "Comprar"}
-            </button>
+            {alreadyOwned && a.id === "whiteLabel" ? (
+              <Link
+                href="/account/white-label"
+                className="btn-gradient inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Configurar
+              </Link>
+            ) : (
+              <button
+                onClick={() => buy(a.id)}
+                disabled={busy === a.id || alreadyOwned}
+                className="btn-secondary inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold disabled:opacity-60"
+                title={
+                  alreadyOwned
+                    ? "Ya activo"
+                    : isToggle
+                      ? "Comprar"
+                      : "Agregar 1 unidad"
+                }
+              >
+                {busy === a.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : alreadyOwned ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                {alreadyOwned ? "Activo" : "Comprar"}
+              </button>
+            )}
           </li>
         );
       })}

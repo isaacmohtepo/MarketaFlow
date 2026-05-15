@@ -32,6 +32,18 @@ async function buildEmail(opts: {
   const post = await prisma.post.findUnique({ where: { id: opts.postId } });
   const postUrl = appUrl(`/brands/${opts.brandId}/posts/${opts.postId}`);
 
+  // Branding white-label de la agency (si está activo). null = usar default
+  // de MarketaFlow.
+  const { getWhiteLabel } = await import("./white-label");
+  const wlRaw = await getWhiteLabel(brand.agencyId);
+  const wl = wlRaw.enabled
+    ? {
+        brandName: wlRaw.brandName,
+        logoUrl: wlRaw.logoUrl,
+        accentColor: wlRaw.accentColor,
+      }
+    : null;
+
   switch (opts.type as NotifType) {
     case "post_in_review":
       return {
@@ -42,6 +54,7 @@ async function buildEmail(opts: {
           actorName: opts.actorName,
           postUrl,
           caption: post?.caption,
+          wl,
         }),
       };
     case "post_approved":
@@ -51,6 +64,7 @@ async function buildEmail(opts: {
           brandName: brand.name,
           clientName: opts.actorName,
           postUrl,
+          wl,
         }),
       };
     case "post_changes_requested": {
@@ -63,6 +77,7 @@ async function buildEmail(opts: {
           clientName: opts.actorName,
           note: noteMatch?.[1] ?? null,
           postUrl,
+          wl,
         }),
       };
     }

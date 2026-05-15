@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canInviteClient } from "@/lib/billing";
+import { getWhiteLabel } from "@/lib/white-label";
 import GuestForm from "./GuestForm";
 
 export default async function SharePage({
@@ -61,10 +62,26 @@ export default async function SharePage({
     redirect(`/brands/${brand.id}`);
   }
 
+  const wl = await getWhiteLabel(brand.agencyId);
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
       <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm card p-7">
+          {/* Header con branding (logo + nombre) */}
+          {wl.enabled && wl.logoUrl ? (
+            <div className="mb-5 flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={wl.logoUrl}
+                alt={wl.brandName}
+                className="h-7 w-7 rounded object-contain"
+              />
+              <span className="text-[13px] font-bold text-zinc-900">
+                {wl.brandName}
+              </span>
+            </div>
+          ) : null}
+
           <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Te invitan a revisar
           </p>
@@ -80,6 +97,14 @@ export default async function SharePage({
           <div className="mt-5">
             <GuestForm token={token} />
           </div>
+
+          {/* Footer: si white-label activo, "Powered by <brand>".
+              Si no, footer default de MarketaFlow. */}
+          <p className="mt-6 text-center text-[10px] text-zinc-400">
+            {wl.enabled
+              ? `Hecho con ${wl.brandName}`
+              : "Hecho con MarketaFlow"}
+          </p>
         </div>
       </div>
     </div>
