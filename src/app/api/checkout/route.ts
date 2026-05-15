@@ -289,11 +289,12 @@ export async function POST(req: Request) {
           instant: true,
           status: "approved",
           reference,
-          redirectUrl: `/billing/return?ref=${reference}`,
+          redirectUrl: `/billing/return?ref=${reference}&id=${tx.id}`,
         });
       }
-      // PENDING (típico Nequi): el webhook se va a encargar. Mandamos a
-      // /billing/return que ya tiene polling de estado.
+      // PENDING (típico Nequi, o tarjeta con 3DS / risk check): incluir
+      // el transaction id en el URL para que la return page lo pueda
+      // consultar directo si el webhook se demora.
       if (tx.status === "PENDING") {
         await prisma.invoice.update({
           where: { wompiReference: reference },
@@ -303,7 +304,7 @@ export async function POST(req: Request) {
           instant: true,
           status: "pending",
           reference,
-          redirectUrl: `/billing/return?ref=${reference}`,
+          redirectUrl: `/billing/return?ref=${reference}&id=${tx.id}`,
           note: pm.type === "NEQUI"
             ? "Te llegó un push a tu app Nequi. Aprobalo en los próximos 5 minutos."
             : "Pago en proceso, esperando confirmación.",

@@ -7,6 +7,7 @@ import { resolveWompiEnvironment } from "@/lib/integrations";
 import { getTransaction } from "@/lib/wompi";
 import { nextInvoiceNumber, splitIva } from "@/lib/invoice-number";
 import type { PlanId } from "@/lib/plans";
+import PendingPoller from "./PendingPoller";
 
 /**
  * Página a la que Wompi redirige después del checkout. El webhook se
@@ -83,59 +84,116 @@ export default async function BillingReturnPage({
   }
 
   // Fallback: si el invoice está pending y tenemos el transaction id en la
-  // URL, consultamos a Wompi directo. Esto evita que el user se quede en
+  // URL (o lo tenemos guardado en el invoice por un cobro directo), le
+  // preguntamos a Wompi directo. Esto evita que el user se quede en
   // "Procesando..." infinito si el webhook falla (firma inválida, env
-  // mismatch, o simplemente no configurado en Wompi sandbox).
-  if (invoice.status === "pending" && wompiTransactionId) {
+  // mismatch, o no configurado en Wompi sandbox).
+  const effectiveTxId = wompiTransactionId ?? invoice.wompiTransactionId;
+  if (invoice.status === "pending" && effectiveTxId) {
     try {
       const env = await resolveWompiEnvironment();
       if (env) {
-        const tx = await getTransaction(wompiTransactionId, env);
+        const tx = await getTransaction(effectiveTxId, env);
         if (tx?.status === "APPROVED") {
-          const periodEnd = invoice.periodEnd ?? new Date();
-          const nextChargeAt = new Date(periodEnd);
-          nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+          const isAddon = !!invoice.addonType;
           const invoiceNumber =
             invoice.invoiceNumber ?? (await nextInvoiceNumber());
           const breakdown = splitIva(invoice.amount, 0.19);
-          await prisma.$transaction([
-            prisma.invoice.update({
-              where: { id: invoice.id },
-              data: {
-                status: "paid",
-                invoiceNumber,
-                subtotal: breakdown.subtotal,
-                taxAmount: breakdown.tax,
-                taxRate: breakdown.rate,
-                wompiTransactionId: tx.id,
-                paidAt: tx.finalized_at
-                  ? new Date(tx.finalized_at)
-                  : new Date(),
-              },
-            }),
-            prisma.subscription.update({
-              where: { id: invoice.subscriptionId },
-              data: {
-                status: "active",
-                currentPeriodStart: invoice.periodStart ?? new Date(),
-                currentPeriodEnd: periodEnd,
-                nextChargeAt,
-                trialEndsAt: null,
-                // Aplicar el plan/cycle pendiente (el checkout dejó la
-                // intencion en pendingPlan en lugar de tocar plan
-                // directamente). Si no hay pending, mantenemos el
-                // plan actual (cobro de renovacion).
-                ...(invoice.subscription.pendingPlan
-                  ? { plan: invoice.subscription.pendingPlan as PlanId }
-                  : {}),
-                ...(invoice.subscription.pendingBillingCycle
-                  ? { billingCycle: invoice.subscription.pendingBillingCycle }
-                  : {}),
-                pendingPlan: null,
-                pendingBillingCycle: null,
-              },
-            }),
-          ]);
+
+          // Rama 1: invoice de ADD-ON → no tocar plan/period, solo
+          // incrementar extraBrands/extraSeats/whiteLabelAddon.
+          if (isAddon) {
+            const qty = invoice.addonQuantity ?? 1;
+            const addonUpdates: Record<string, unknown> = {};
+            if (invoice.addonType === "extraBrand") {
+              addonUpdates.extraBrands = { increment: qty };
+            } else if (invoice.addonType === "extraSeat") {
+              addonUpdates.extraSeats = { increment: qty };
+            } else if (invoice.addonType === "whiteLabel") {
+              addonUpdates.whiteLabelAddon = true;
+            }
+            await prisma.$transaction([
+              prisma.invoice.update({
+                where: { id: invoice.id },
+                data: {
+                  status: "paid",
+                  invoiceNumber,
+                  subtotal: breakdown.subtotal,
+                  taxAmount: breakdown.tax,
+                  taxRate: breakdown.rate,
+                  wompiTransactionId: tx.id,
+                  paidAt: tx.finalized_at
+                    ? new Date(tx.finalized_at)
+                    : new Date(),
+                },
+              }),
+              prisma.subscription.update({
+                where: { id: invoice.subscriptionId },
+                data: addonUpdates,
+              }),
+            ]);
+          } else {
+            // Rama 2: invoice de plan (upgrade / renovación) → flujo viejo
+            const periodEnd = invoice.periodEnd ?? new Date();
+            const nextChargeAt = new Date(periodEnd);
+            nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+            await prisma.$transaction([
+              prisma.invoice.update({
+                where: { id: invoice.id },
+                data: {
+                  status: "paid",
+                  invoiceNumber,
+                  subtotal: breakdown.subtotal,
+                  taxAmount: breakdown.tax,
+                  taxRate: breakdown.rate,
+                  wompiTransactionId: tx.id,
+                  paidAt: tx.finalized_at
+                    ? new Date(tx.finalized_at)
+                    : new Date(),
+                },
+              }),
+              prisma.subscription.update({
+                where: { id: invoice.subscriptionId },
+                data: {
+                  status: "active",
+                  currentPeriodStart: invoice.periodStart ?? new Date(),
+                  currentPeriodEnd: periodEnd,
+                  nextChargeAt,
+                  trialEndsAt: null,
+                  pastDueSinceAt: null,
+                  lastDunningSentAt: null,
+                  lastDunningStage: null,
+                  // Aplicar plan/cycle pendiente si hay
+                  ...(invoice.subscription.pendingPlan
+                    ? { plan: invoice.subscription.pendingPlan as PlanId }
+                    : {}),
+                  ...(invoice.subscription.pendingBillingCycle
+                    ? {
+                        billingCycle: invoice.subscription.pendingBillingCycle,
+                      }
+                    : {}),
+                  pendingPlan: null,
+                  pendingBillingCycle: null,
+                },
+              }),
+            ]);
+          }
+
+          // Registrar redención de cupón si aplicaba
+          if (invoice.couponCode && invoice.discountCents != null) {
+            try {
+              const { recordRedemption } = await import("@/lib/coupons");
+              await recordRedemption({
+                code: invoice.couponCode,
+                agencyId: invoice.subscription.agencyId,
+                invoiceId: invoice.id,
+                amountSavedCents: invoice.discountCents,
+              });
+            } catch (e) {
+              console.error("coupon redemption (fallback) failed", e);
+            }
+          }
+
           // Re-fetch para reflejar el nuevo status en la UI
           invoice = await prisma.invoice.findUnique({
             where: { id: invoice.id },
@@ -206,8 +264,9 @@ export default async function BillingReturnPage({
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
             Wompi está confirmando la transacción. Esto puede tardar unos
-            segundos. Refrescá la página en un momento.
+            segundos.
           </p>
+          <PendingPoller intervalSec={4} maxAttempts={60} />
         </>
       )}
       <Link
