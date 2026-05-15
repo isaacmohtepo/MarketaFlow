@@ -7,7 +7,6 @@ import { usePermissions } from "./PermissionsProvider";
 import {
   LayoutDashboard,
   Layers,
-  Calendar,
   Inbox,
   BarChart3,
   Sparkles,
@@ -76,24 +75,6 @@ function buildSections({
           href: "/inbox",
           icon: Inbox,
           match: (p) => p.startsWith("/inbox"),
-        },
-      ],
-    },
-    {
-      title: "Producción",
-      items: [
-        {
-          label: "Calendario",
-          href: "/calendar",
-          icon: Calendar,
-          match: (p) => p.startsWith("/calendar"),
-        },
-        { label: "Plantillas", href: "/templates", icon: Sparkles, match: (p) => p.startsWith("/templates") },
-        {
-          label: "Métricas",
-          href: "/metrics",
-          icon: BarChart3,
-          match: (p) => p === "/metrics",
         },
       ],
     },
