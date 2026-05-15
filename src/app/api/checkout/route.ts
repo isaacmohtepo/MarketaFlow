@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { getOrCreateSubscription } from "@/lib/billing";
-import { createPaymentLink, generateReference } from "@/lib/wompi";
+import { createPaymentLink, chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { hasPermission } from "@/lib/permissions";
 import { cancelPriorPendingInvoices } from "@/lib/invoice-cleanup";
@@ -15,6 +15,10 @@ const schema = z.object({
   cycle: z.enum(["monthly", "yearly"]).default("monthly"),
   agencyId: z.string().optional(), // si no se provee, usamos la primera agency del user
   couponCode: z.string().min(1).max(50).optional(),
+  /** Si está set, cobramos con el payment_source guardado en vez de mandar
+   *  al user a Wompi. Si el cobro falla, devolvemos error con
+   *  fallbackToWompi=true para que la UI ofrezca reintentarlo via link. */
+  usePaymentMethodId: z.string().optional(),
 });
 
 /**
@@ -187,6 +191,161 @@ export async function POST(req: Request) {
       },
       { status: 503 },
     );
+  }
+
+  // Si el user eligió pagar con un método guardado, cobramos contra el
+  // payment_source directamente — sin mandarlo a Wompi. Mucho mejor UX:
+  // el cobro pasa instantáneo y el webhook confirma a los pocos segundos.
+  if (body.usePaymentMethodId) {
+    const pm = await prisma.paymentMethod.findUnique({
+      where: { id: body.usePaymentMethodId },
+    });
+    if (!pm || pm.subscriptionId !== sub.id) {
+      return NextResponse.json(
+        { error: "Método de pago inválido", fallbackToWompi: true },
+        { status: 400 },
+      );
+    }
+    // Validaciones: env match + no expirada + tipo recurrente.
+    const pmEnv = pm.environment ?? "sandbox";
+    if (pmEnv !== environment) {
+      return NextResponse.json(
+        {
+          error: `Tu método guardado es de ${pmEnv} pero Wompi está en ${environment}. Pagá con un método nuevo.`,
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    }
+    if (pm.type !== "CARD" && pm.type !== "NEQUI") {
+      return NextResponse.json(
+        {
+          error: "Este método no permite cobros automáticos. Usá uno nuevo.",
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    }
+    if (pm.type === "CARD" && pm.expMonth && pm.expYear) {
+      const expDate = new Date(pm.expYear, pm.expMonth, 1);
+      if (expDate <= new Date()) {
+        return NextResponse.json(
+          {
+            error: `Tu tarjeta venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agregá una nueva.`,
+            fallbackToWompi: true,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    try {
+      const tx = await chargeWithToken({
+        reference,
+        amountInCents,
+        currency: "COP",
+        customerEmail: user.email,
+        paymentSourceId: parseInt(pm.wompiSourceId, 10),
+        paymentMethodType: pm.type === "NEQUI" ? "NEQUI" : "CARD",
+        description: `MarketaFlow ${plan.name}`,
+        environment,
+      });
+
+      // APPROVED: el webhook se va a disparar y aplicar el pendingPlan,
+      // pero por velocidad de UX también aplicamos acá. Idempotente: el
+      // webhook detecta paid+mismo transactionId y skip.
+      if (tx.status === "APPROVED") {
+        const periodStart2 = periodStart;
+        const periodEnd2 = periodEnd;
+        const nextChargeAt = new Date(periodEnd2.getTime() - 24 * 60 * 60 * 1000);
+        await prisma.$transaction([
+          prisma.invoice.update({
+            where: { wompiReference: reference },
+            data: {
+              status: "paid",
+              wompiTransactionId: tx.id,
+              paidAt: new Date(),
+            },
+          }),
+          prisma.subscription.update({
+            where: { id: sub.id },
+            data: {
+              status: "active",
+              plan: body.planId,
+              billingCycle: body.cycle,
+              currentPeriodStart: periodStart2,
+              currentPeriodEnd: periodEnd2,
+              nextChargeAt,
+              trialEndsAt: null,
+              pendingPlan: null,
+              pendingBillingCycle: null,
+              pastDueSinceAt: null,
+              lastDunningSentAt: null,
+              lastDunningStage: null,
+            },
+          }),
+        ]);
+        return NextResponse.json({
+          instant: true,
+          status: "approved",
+          reference,
+          redirectUrl: `/billing/return?ref=${reference}`,
+        });
+      }
+      // PENDING (típico Nequi): el webhook se va a encargar. Mandamos a
+      // /billing/return que ya tiene polling de estado.
+      if (tx.status === "PENDING") {
+        await prisma.invoice.update({
+          where: { wompiReference: reference },
+          data: { wompiTransactionId: tx.id },
+        });
+        return NextResponse.json({
+          instant: true,
+          status: "pending",
+          reference,
+          redirectUrl: `/billing/return?ref=${reference}`,
+          note: pm.type === "NEQUI"
+            ? "Te llegó un push a tu app Nequi. Aprobalo en los próximos 5 minutos."
+            : "Pago en proceso, esperando confirmación.",
+        });
+      }
+      // DECLINED / ERROR / VOIDED: marcar invoice failed y ofrecer fallback
+      await prisma.invoice.update({
+        where: { wompiReference: reference },
+        data: {
+          status: "failed",
+          wompiTransactionId: tx.id,
+          failedAt: new Date(),
+          failedReason: tx.status_message ?? `Wompi devolvió ${tx.status}`,
+        },
+      });
+      return NextResponse.json(
+        {
+          error:
+            tx.status_message ??
+            `Tu método guardado fue rechazado (${tx.status}). Probá con otro.`,
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    } catch (err) {
+      console.error("instant charge failed", err);
+      await prisma.invoice.updateMany({
+        where: { wompiReference: reference },
+        data: {
+          status: "failed",
+          failedAt: new Date(),
+          failedReason: err instanceof Error ? err.message : "Error de red",
+        },
+      });
+      return NextResponse.json(
+        {
+          error: "No pudimos contactar Wompi. Probá pagando con otro método.",
+          fallbackToWompi: true,
+        },
+        { status: 502 },
+      );
+    }
   }
 
   try {
