@@ -475,26 +475,147 @@ async function handleTransactionUpdated(
       }
     }
 
-    // VALIDACIÓN DE MÉTODO DE PAGO: intentar anular el cobro inmediato.
-    // Si la void funciona (CARD dentro de ventana 24h), el user no ve cargo
-    // real en el extracto. Si falla (NEQUI no soporta void, o ventana
-    // cerrada), aplicamos como crédito en la próxima factura.
+    // VALIDACIÓN DE MÉTODO DE PAGO:
+    // 1. Crear payment_source desde el token (Wompi Payment Links no crean
+    //    source auto — pero sí devuelven payment_method.token que sirve
+    //    para POST /payment_sources).
+    // 2. Anular el cobro de \$1.500 (si CARD, dentro de ventana 24h).
+    // 3. Si la anulación falla → fallback a crédito.
     if (invoice.addonType === "method_validation") {
+      const env = await resolveWompiEnvironment();
+
+      // Paso 1: si todavía no se guardó el PaymentMethod (porque
+      // payment_source_id vino null en la transacción), crearlo manualmente
+      // usando el token de la tarjeta.
+      try {
+        const existingPm = await prisma.paymentMethod.findFirst({
+          where: {
+            subscriptionId: invoice.subscriptionId,
+            isDefault: true,
+            wompiSourceId: { not: null },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        const alreadyHasSourceForThisTx =
+          existingPm &&
+          existingPm.environment === env &&
+          // Heurística: si el method default fue creado en los últimos 5 minutos
+          // probablemente corresponde a esta transacción (no creamos uno nuevo).
+          Date.now() - existingPm.createdAt.getTime() < 5 * 60_000;
+
+        if (!alreadyHasSourceForThisTx && env) {
+          const cfg = await getWompiConfig(env);
+          const apiBase =
+            env === "production"
+              ? "https://production.wompi.co/v1"
+              : "https://sandbox.wompi.co/v1";
+
+          // Re-fetch transacción para obtener payment_method.token fresh
+          const fullTx = await getTransaction(transaction.id, env);
+          const cardToken = fullTx?.payment_method?.token;
+          const cardExtra = fullTx?.payment_method?.extra;
+
+          if (cardToken && fullTx?.payment_method?.type === "CARD") {
+            // Necesitamos un acceptance_token fresh para crear el source
+            const mRes = await fetch(
+              `${apiBase}/merchants/${encodeURIComponent(cfg.publicKey)}`,
+              { cache: "no-store" },
+            );
+            const mJson = (await mRes.json()) as {
+              data?: {
+                presigned_acceptance?: { acceptance_token?: string };
+                presigned_personal_data_auth?: { acceptance_token?: string };
+              };
+            };
+            const acceptanceToken =
+              mJson.data?.presigned_acceptance?.acceptance_token;
+            const personalAuth =
+              mJson.data?.presigned_personal_data_auth?.acceptance_token;
+
+            if (acceptanceToken) {
+              const sRes = await fetch(`${apiBase}/payment_sources`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${cfg.privateKey}`,
+                },
+                body: JSON.stringify({
+                  type: "CARD",
+                  token: cardToken,
+                  customer_email:
+                    fullTx.customer_email ?? invoice.subscription.agency.name,
+                  acceptance_token: acceptanceToken,
+                  ...(personalAuth && { accept_personal_auth: personalAuth }),
+                }),
+              });
+              const sJson = (await sRes.json()) as {
+                data?: { id?: string | number; status?: string };
+                error?: { reason?: string };
+              };
+              if (sRes.ok && sJson.data?.id) {
+                const newSourceId = String(sJson.data.id);
+                // Desmarcar defaults previos
+                await prisma.paymentMethod.updateMany({
+                  where: {
+                    subscriptionId: invoice.subscriptionId,
+                    isDefault: true,
+                  },
+                  data: { isDefault: false },
+                });
+                await prisma.paymentMethod.upsert({
+                  where: { wompiSourceId: newSourceId },
+                  create: {
+                    subscriptionId: invoice.subscriptionId,
+                    wompiSourceId: newSourceId,
+                    type: "CARD",
+                    isDefault: true,
+                    environment: env,
+                    wompiStatus: sJson.data.status ?? "AVAILABLE",
+                    wompiStatusCheckedAt: new Date(),
+                    brand: cardExtra?.brand ?? null,
+                    last4: cardExtra?.last_four ?? null,
+                    expMonth: cardExtra?.exp_month
+                      ? parseInt(cardExtra.exp_month, 10)
+                      : null,
+                    expYear: cardExtra?.exp_year
+                      ? (() => {
+                          const y = parseInt(cardExtra.exp_year!, 10);
+                          return y < 100 ? 2000 + y : y;
+                        })()
+                      : null,
+                    holderName: cardExtra?.card_holder ?? null,
+                  },
+                  update: {
+                    subscriptionId: invoice.subscriptionId,
+                    isDefault: true,
+                    environment: env,
+                  },
+                });
+              } else {
+                console.warn("validation: payment_source create failed", {
+                  status: sRes.status,
+                  error: sJson.error,
+                });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        safeLogError("validation: failed to create payment_source from token", err);
+      }
+
+      // Paso 2: anular el cobro
       let voided = false;
       try {
-        const env = await resolveWompiEnvironment();
         if (env) {
           await voidTransaction(transaction.id, env);
           voided = true;
         }
       } catch (err) {
-        // Void falló — esperado para NEQUI y cuando pasó la ventana.
-        // Loggear pero no romper el handler.
         console.warn("validation void failed (fallback to credit)", err);
       }
 
       if (voided) {
-        // Anulación exitosa: invoice queda "refunded", no aplicamos crédito.
         await prisma.invoice.update({
           where: { id: invoice.id },
           data: {
@@ -503,14 +624,11 @@ async function handleTransactionUpdated(
           },
         });
       } else {
-        // Void no se pudo: aplicar como crédito futuro.
         await prisma.subscription.update({
           where: { id: invoice.subscriptionId },
           data: { creditCents: { increment: invoice.amount } },
         });
       }
-      // No mandamos "payment-success email" para validaciones — no es un
-      // cobro real para el user.
       return;
     }
 

@@ -42,6 +42,9 @@ export type WompiTransaction = {
   /** Detalle del método usado (cuando GET /transactions/{id}). */
   payment_method?: {
     type?: string;
+    /** Token reusable de la tarjeta (Payment Links no crean payment_source
+     *  pero sí devuelven este token que sirve para POST /payment_sources). */
+    token?: string;
     /** Solo NEQUI: teléfono enmascarado del titular. */
     phone_number?: string;
     /** Solo CARD: detalles para display (last4, brand, exp, holder). */
