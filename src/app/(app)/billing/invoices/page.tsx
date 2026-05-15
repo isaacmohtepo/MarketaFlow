@@ -105,7 +105,7 @@ export default async function BillingInvoicesPage({
       </div>
       <BillingTabs />
 
-      <section>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <InvoiceFilters years={years} exportUrl={exportUrl} />
 
         {invoices.length === 0 ? (

@@ -147,8 +147,8 @@ export default async function BillingPage() {
         </div>
       )}
 
-      {/* Hero numérico: plan + total + próximo cobro */}
-      <div className="mb-14 grid gap-10 sm:grid-cols-3">
+      {/* Hero numérico en card unificada — 3 columnas con separadores */}
+      <div className="mb-6 grid divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <Metric
           label="Plan actual"
           value={plan.name}
@@ -186,11 +186,16 @@ export default async function BillingPage() {
       </div>
 
       {/* Uso del plan */}
-      <section className="mb-14">
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="text-[15px] font-semibold text-zinc-900">
-            Uso del plan
-          </h2>
+      <section className="mb-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex items-baseline justify-between">
+          <div>
+            <h2 className="text-[15px] font-semibold text-zinc-900">
+              Uso del plan
+            </h2>
+            <p className="mt-0.5 text-[11.5px] text-zinc-500">
+              Cuánto consumiste vs. el límite de tu plan.
+            </p>
+          </div>
           {hasLockedBrands && (
             <span className="text-[11px] font-medium text-rose-600">
               {lockedBrands.length}{" "}
@@ -198,7 +203,7 @@ export default async function BillingPage() {
             </span>
           )}
         </div>
-        <div className="grid gap-10 sm:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-3">
           <UsageRow
             label="Posts este mes"
             used={postsThisMonth}
@@ -242,11 +247,16 @@ export default async function BillingPage() {
       </section>
 
       {/* Últimas facturas */}
-      <section>
-        <div className="mb-4 flex items-baseline justify-between">
-          <h2 className="text-[15px] font-semibold text-zinc-900">
-            Últimas facturas
-          </h2>
+      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
+          <div>
+            <h2 className="text-[15px] font-semibold text-zinc-900">
+              Últimas facturas
+            </h2>
+            <p className="mt-0.5 text-[11.5px] text-zinc-500">
+              Las 5 más recientes.
+            </p>
+          </div>
           {recentInvoices.length > 0 && (
             <Link
               href="/billing/invoices"
@@ -259,7 +269,7 @@ export default async function BillingPage() {
         </div>
 
         {recentInvoices.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-200 px-6 py-12 text-center">
+          <div className="px-6 py-12 text-center">
             <p className="text-[13px] font-medium text-zinc-700">
               Aún no hay facturas
             </p>
@@ -273,7 +283,7 @@ export default async function BillingPage() {
               <li key={inv.id}>
                 <Link
                   href={`/billing/invoices/${inv.id}`}
-                  className="group flex items-center gap-3 py-4 transition"
+                  className="group flex items-center gap-3 px-6 py-3.5 transition hover:bg-zinc-50/60"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium text-zinc-900">
@@ -325,7 +335,7 @@ function NoOwner() {
   );
 }
 
-/** Métrica grande sin chrome — solo label arriba, valor enorme, sub abajo. */
+/** Métrica dentro de la card unificada — padding propio. */
 function Metric({
   label,
   value,
@@ -336,11 +346,11 @@ function Metric({
   sub: string;
 }) {
   return (
-    <div>
+    <div className="px-6 py-5">
       <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
         {label}
       </p>
-      <p className="mt-1.5 text-[26px] font-bold leading-none tracking-tight tabular-nums text-zinc-900">
+      <p className="mt-2 text-[26px] font-bold leading-none tracking-tight tabular-nums text-zinc-900">
         {value}
       </p>
       <p className="mt-2 text-[12px] text-zinc-500">{sub}</p>
@@ -348,7 +358,7 @@ function Metric({
   );
 }
 
-/** Uso minimalista: label arriba (ratio), número grande, barra fina. */
+/** Uso: label (con ratio a la derecha), número grande, barra de progreso. */
 function UsageRow({
   label,
   used,
@@ -360,14 +370,14 @@ function UsageRow({
 }) {
   const isUnlimited = limit === -1;
   const pct = isUnlimited
-    ? 0
+    ? 100
     : limit > 0
       ? Math.min(100, Math.round((used / limit) * 100))
       : 0;
   const tone = isUnlimited || pct < 60 ? "ok" : pct < 90 ? "warn" : "alert";
   const barColor =
     tone === "ok"
-      ? "bg-zinc-900"
+      ? "bg-gradient-to-r from-fuchsia-500 to-violet-500"
       : tone === "warn"
         ? "bg-amber-500"
         : "bg-rose-500";
@@ -388,17 +398,19 @@ function UsageRow({
           </span>
         )}
       </div>
-      <p className="mt-1.5 text-[22px] font-bold leading-none tabular-nums text-zinc-900">
+      <p className="mt-2 text-[24px] font-bold leading-none tabular-nums text-zinc-900">
         {used.toLocaleString()}
       </p>
-      {!isUnlimited && (
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-100">
-          <div
-            className={`h-full transition-all ${barColor}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      )}
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div
+          className={`h-full transition-all ${
+            isUnlimited
+              ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+              : barColor
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }
