@@ -85,8 +85,6 @@ export default function AddPaymentMethodModal({
       .catch((e: Error) => setCfgError(e.message));
   }, [open]);
 
-  if (!open) return null;
-
   function reset() {
     setCardNumber("");
     setCardHolder("");
@@ -169,6 +167,12 @@ export default function AddPaymentMethodModal({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nequiState]);
+
+  // Early return DESPUÉS de todos los hooks — sino React tira error #310
+  // ("rendered more hooks than during the previous render") cuando open
+  // pasa de true a false: el segundo useEffect dejaría de ejecutarse,
+  // alterando el conteo de hooks entre renders.
+  if (!open) return null;
 
   async function submitCard(e: React.FormEvent) {
     e.preventDefault();
