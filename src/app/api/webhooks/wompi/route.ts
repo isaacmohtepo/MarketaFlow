@@ -287,6 +287,13 @@ async function handleTransactionUpdated(
           addonUpdates.extraSeats = { increment: qty };
         } else if (invoice.addonType === "whiteLabel") {
           addonUpdates.whiteLabelAddon = true;
+        } else if (invoice.addonType === "method_validation") {
+          // Validación de método de pago: el user pagó $X solo para
+          // probar la tarjeta. No es un addon real. Acumulamos como
+          // crédito en la suscripción → se descuenta del próximo cobro
+          // mensual. El payment_source resultante se guarda más abajo
+          // (mismo código de siempre).
+          addonUpdates.creditCents = { increment: invoice.amount };
         }
         if (Object.keys(addonUpdates).length > 0) {
           await tx.subscription.update({

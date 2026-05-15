@@ -111,6 +111,12 @@ export default async function BillingReturnPage({
               addonUpdates.extraSeats = { increment: qty };
             } else if (invoice.addonType === "whiteLabel") {
               addonUpdates.whiteLabelAddon = true;
+            } else if (invoice.addonType === "method_validation") {
+              // Validación de método de pago: el cargo queda como crédito
+              // para la próxima factura. El payment_source se guarda en
+              // el webhook (que también puede haber corrido — mismo update
+              // es idempotente).
+              addonUpdates.creditCents = { increment: invoice.amount };
             }
             await prisma.$transaction([
               prisma.invoice.update({
@@ -232,21 +238,35 @@ export default async function BillingReturnPage({
   return (
     <div className="mx-auto max-w-md py-20 text-center">
       {invoice.status === "paid" ? (
-        <>
-          <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-          <h1 className="mt-4 text-2xl font-bold text-zinc-900">
-            ¡Pago confirmado! 🎉
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            Tu suscripción {invoice.subscription.plan} está activa hasta el{" "}
-            {invoice.periodEnd?.toLocaleDateString("es", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-            .
-          </p>
-        </>
+        invoice.addonType === "method_validation" ? (
+          <>
+            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+            <h1 className="mt-4 text-2xl font-bold text-zinc-900">
+              ¡Método de pago guardado! 🎉
+            </h1>
+            <p className="mt-2 text-sm text-zinc-500">
+              Tu tarjeta o Nequi quedó guardada para los cobros recurrentes.
+              Los <strong>${(invoice.amount / 100).toLocaleString("es-CO")} COP</strong>{" "}
+              de validación se aplican como crédito en tu próxima factura.
+            </p>
+          </>
+        ) : (
+          <>
+            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+            <h1 className="mt-4 text-2xl font-bold text-zinc-900">
+              ¡Pago confirmado! 🎉
+            </h1>
+            <p className="mt-2 text-sm text-zinc-500">
+              Tu suscripción {invoice.subscription.plan} está activa hasta el{" "}
+              {invoice.periodEnd?.toLocaleDateString("es", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+              .
+            </p>
+          </>
+        )
       ) : invoice.status === "failed" ? (
         <>
           <AlertCircle className="mx-auto h-12 w-12 text-rose-500" />
@@ -270,10 +290,16 @@ export default async function BillingReturnPage({
         </>
       )}
       <Link
-        href="/dashboard"
+        href={
+          invoice.addonType === "method_validation"
+            ? "/billing/payment-methods"
+            : "/dashboard"
+        }
         className="btn-gradient mt-8 inline-block rounded-full px-6 py-2.5 text-[13px] font-semibold"
       >
-        Ir al dashboard
+        {invoice.addonType === "method_validation"
+          ? "Ver mis métodos de pago"
+          : "Ir al dashboard"}
       </Link>
     </div>
   );

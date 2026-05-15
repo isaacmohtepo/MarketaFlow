@@ -50,10 +50,12 @@ export default function PaymentMethods({
   currentPlan,
   currentCycle,
   isFree,
+  creditCents = 0,
 }: {
   currentPlan: string;
   currentCycle: string;
   isFree: boolean;
+  creditCents?: number;
 }) {
   const router = useRouter();
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
@@ -139,6 +141,28 @@ export default function PaymentMethods({
     setAddOpen(true);
   }
 
+  async function addViaWompi() {
+    if (isFree) {
+      toast.error("Suscribite a un plan pago primero para guardar un método.");
+      return;
+    }
+    setBusy("validate");
+    try {
+      const r = await fetch("/api/billing/payment-methods/validate-link", {
+        method: "POST",
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        toast.error(j.error ?? "No se pudo iniciar la validación");
+        return;
+      }
+      // Redirect al checkout de Wompi
+      window.location.href = j.checkoutUrl;
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (methods === null) {
     return (
       <div className="flex items-center gap-2 text-[12px] text-zinc-500">
@@ -154,6 +178,17 @@ export default function PaymentMethods({
 
   return (
     <div>
+      {/* Banner: saldo a favor por validaciones de método */}
+      {creditCents > 0 && (
+        <div className="mb-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-[12px] text-emerald-900">
+          <p className="font-semibold">
+            Tenés ${(creditCents / 100).toLocaleString("es-CO")} COP de crédito.
+          </p>
+          <p className="mt-1 text-emerald-800">
+            Se descuentan automáticamente de tu próxima factura mensual.
+          </p>
+        </div>
+      )}
       {/* Banner: hay tarjetas vencidas */}
       {expiredCount > 0 && (
         <div className="mb-3 rounded-lg border border-rose-300 bg-rose-50 p-3 text-[12px] text-rose-900">
@@ -221,17 +256,39 @@ export default function PaymentMethods({
         </ul>
       )}
       {!isFree && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] text-zinc-500">
-            Agregá una tarjeta o Nequi sin cobrar nada — queda guardada para
-            cobros recurrentes futuros.
-          </p>
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-medium text-zinc-700">
+                Agregá un método de pago via Wompi
+              </p>
+              <p className="text-[11px] text-zinc-500">
+                Wompi cobra $1.500 COP de validación que queda como{" "}
+                <strong>crédito en tu próxima factura</strong>. Es la forma
+                más segura — pagás en la página de Wompi.
+              </p>
+            </div>
+            <button
+              onClick={addViaWompi}
+              disabled={busy === "validate"}
+              className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12.5px] font-semibold disabled:opacity-60"
+            >
+              {busy === "validate" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              Agregar via Wompi
+            </button>
+          </div>
+          {/* Fallback: agregar sin cobrar via tokenize directo (UX más rápida
+              pero menos branded). Útil si el user prefiere no hacer el cargo
+              de validación. */}
           <button
             onClick={openAdd}
-            className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+            className="text-[11px] font-medium text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline"
           >
-            <Plus className="h-3.5 w-3.5" />
-            Agregar método
+            o agregar manualmente sin cobro de validación
           </button>
         </div>
       )}

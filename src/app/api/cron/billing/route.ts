@@ -354,7 +354,13 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     (sub.billingCycle === "yearly" ? 12 : 1);
   const addonsAmount = extraBrandsCost + extraSeatsCost;
 
-  const amount = planAmount + addonsAmount;
+  // Crédito acumulado (validaciones de método de pago, ajustes manuales).
+  // Lo descontamos del total facturado. Si el crédito cubre todo, igual
+  // generamos invoice por $0 (registro contable). Wompi rechaza cargos
+  // por $0 — para esos casos, marcamos invoice paid sin cobrar.
+  const grossAmount = planAmount + addonsAmount;
+  const creditApplied = Math.min(sub.creditCents ?? 0, grossAmount);
+  const amount = Math.max(0, grossAmount - creditApplied);
   const reference = generateReference(sub.id);
 
   const periodStart = new Date();
@@ -382,6 +388,10 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     `${plan.name} (renovación ${sub.billingCycle === "yearly" ? "anual" : "mensual"})` +
     (addonsDesc.length > 0 ? ` + ${addonsDesc.join(" + ")}` : "");
 
+  const finalDescription =
+    creditApplied > 0
+      ? `${description} − $${(creditApplied / 100).toLocaleString("es-CO")} crédito aplicado`
+      : description;
   const invoice = await prisma.invoice.create({
     data: {
       subscriptionId: sub.id,
@@ -391,9 +401,45 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
       wompiReference: reference,
       periodStart,
       periodEnd,
-      description,
+      description: finalDescription,
     },
   });
+
+  // Descontar el crédito usado del balance de la suscripción.
+  if (creditApplied > 0) {
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: { creditCents: { decrement: creditApplied } },
+    });
+  }
+
+  // Si el crédito cubrió todo, marcamos invoice paid sin pasar por Wompi.
+  if (amount === 0) {
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: "paid",
+        paidAt: now,
+      },
+    });
+    const periodEndDate = invoice.periodEnd ?? periodEnd;
+    const nextChargeAt = new Date(periodEndDate);
+    nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        status: "active",
+        currentPeriodStart: invoice.periodStart ?? periodStart,
+        currentPeriodEnd: periodEndDate,
+        nextChargeAt,
+        trialEndsAt: null,
+        pastDueSinceAt: null,
+        lastDunningSentAt: null,
+        lastDunningStage: null,
+      },
+    });
+    return true;
+  }
 
   // Resolvé environment dinámico (production si está habilitado en
   // /admin/integrations, sino sandbox). ANTES estaba hardcoded a

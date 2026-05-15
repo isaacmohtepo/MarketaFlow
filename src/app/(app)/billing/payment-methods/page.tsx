@@ -25,6 +25,7 @@ export default async function BillingPaymentMethodsPage() {
       currentPlan={plan.id}
       currentCycle={summary.billingCycle}
       isFree={isFree}
+      creditCents={summary.creditCents}
     />
   );
 }

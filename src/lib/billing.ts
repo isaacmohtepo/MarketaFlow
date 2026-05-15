@@ -301,6 +301,7 @@ export async function getBillingSummary(agencyId: string) {
     extraBrands: sub.extraBrands,
     extraSeats: sub.extraSeats,
     whiteLabelAddon: sub.whiteLabelAddon,
+    creditCents: sub.creditCents ?? 0,
     limits,
   };
 }

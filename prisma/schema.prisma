@@ -330,6 +330,12 @@ model Subscription {
   extraBrands        Int             @default(0)
   extraSeats         Int             @default(0)
   whiteLabelAddon    Boolean         @default(false)
+  /// Saldo a favor acumulado en centavos COP. Lo descuenta el cron de
+  /// billing en el próximo cobro mensual. Lo cargan los pagos de
+  /// validación de método de pago (ej: $1.000 que paga el user para
+  /// guardar la tarjeta queda como crédito acá, se descuenta de su
+  /// siguiente factura).
+  creditCents        Int             @default(0)
 
   /// Customer ID en Wompi (para reusar entre cobros). Opcional porque
   /// algunos plans (free/trialing) nunca crean customer.
