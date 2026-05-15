@@ -2,7 +2,6 @@ import Link from "next/link";
 import { CreditCard } from "lucide-react";
 import { requireBillingShell } from "@/lib/billing-shell";
 import PlanSwitcher from "../PlanSwitcher";
-import BillingTabs from "../BillingTabs";
 import type { PlanId } from "@/lib/plans";
 
 /**
@@ -20,26 +19,14 @@ export default async function BillingPlanPage() {
   const plan = summary.plan;
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
-          Plan
-        </h1>
-        <p className="mt-1 text-[13px] text-zinc-500">
-          Mejorá para crecer o bajá si necesitás menos. Cambios hacia arriba
-          se aplican al instante; downgrades, al fin del período.
-        </p>
-      </div>
-      <BillingTabs />
-      <PlanSwitcher
-        currentPlanId={plan.id as PlanId}
-        currentCycle={summary.billingCycle as "monthly" | "yearly"}
-        pendingPlanId={summary.pendingPlan ?? null}
-        pendingCycle={summary.pendingBillingCycle ?? null}
-        cancelAtPeriodEnd={summary.cancelAtPeriodEnd ?? false}
-        currentPeriodEnd={summary.currentPeriodEnd?.toISOString() ?? null}
-      />
-    </div>
+    <PlanSwitcher
+      currentPlanId={plan.id as PlanId}
+      currentCycle={summary.billingCycle as "monthly" | "yearly"}
+      pendingPlanId={summary.pendingPlan ?? null}
+      pendingCycle={summary.pendingBillingCycle ?? null}
+      cancelAtPeriodEnd={summary.cancelAtPeriodEnd ?? false}
+      currentPeriodEnd={summary.currentPeriodEnd?.toISOString() ?? null}
+    />
   );
 }
 

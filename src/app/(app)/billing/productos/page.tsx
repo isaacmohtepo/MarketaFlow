@@ -3,7 +3,6 @@ import { CreditCard } from "lucide-react";
 import { requireBillingShell } from "@/lib/billing-shell";
 import { ADDONS } from "@/lib/plans";
 import Addons from "../Addons";
-import BillingTabs from "../BillingTabs";
 
 /**
  * /billing/productos
@@ -24,35 +23,21 @@ export default async function BillingProductosPage() {
   const isFree = plan.id === "free";
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
-          Productos
-        </h1>
-        <p className="mt-1 text-[13px] text-zinc-500">
-          Sumá capacidad encima de tu plan actual. Cada add-on se cobra
-          mensual y se activa al instante.
-        </p>
-      </div>
-      <BillingTabs />
-      <section>
-        <Addons
-          available={Object.values(ADDONS).map((a) => ({
-            id: a.id,
-            label: a.label,
-            description: a.description,
-            priceCopMonthly: a.priceCopMonthly,
-          }))}
-          current={{
-            extraBrands: summary.extraBrands,
-            extraSeats: summary.extraSeats,
-            whiteLabelAddon: summary.whiteLabelAddon,
-          }}
-          isFree={isFree}
-          isPro={plan.id === "pro"}
-        />
-      </section>
-    </div>
+    <Addons
+      available={Object.values(ADDONS).map((a) => ({
+        id: a.id,
+        label: a.label,
+        description: a.description,
+        priceCopMonthly: a.priceCopMonthly,
+      }))}
+      current={{
+        extraBrands: summary.extraBrands,
+        extraSeats: summary.extraSeats,
+        whiteLabelAddon: summary.whiteLabelAddon,
+      }}
+      isFree={isFree}
+      isPro={plan.id === "pro"}
+    />
   );
 }
 

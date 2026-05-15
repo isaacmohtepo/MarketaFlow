@@ -5,7 +5,6 @@ import { requireBillingShell } from "@/lib/billing-shell";
 import { expireStalePendingInvoices } from "@/lib/invoice-cleanup";
 import { formatCop } from "@/lib/plans";
 import type { Prisma } from "@/generated/prisma";
-import BillingTabs from "../BillingTabs";
 import InvoiceFilters from "../InvoiceFilters";
 
 const PAGE_SIZE = 15;
@@ -92,21 +91,8 @@ export default async function BillingInvoicesPage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
-          Facturas
-        </h1>
-        <p className="mt-1 text-[13px] text-zinc-500">
-          {totalCount === 0
-            ? "Aún no tenés facturas. Cuando hagas un pago vas a verlas acá."
-            : `${totalCount} ${totalCount === 1 ? "factura" : "facturas"} en total — filtrá por estado, año o buscá por número.`}
-        </p>
-      </div>
-      <BillingTabs />
-
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <InvoiceFilters years={years} exportUrl={exportUrl} />
+    <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <InvoiceFilters years={years} exportUrl={exportUrl} />
 
         {invoices.length === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-8 text-center">
@@ -208,8 +194,7 @@ export default async function BillingInvoicesPage({
             )}
           </>
         )}
-      </section>
-    </div>
+    </section>
   );
 }
 

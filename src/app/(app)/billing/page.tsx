@@ -12,7 +12,6 @@ import { getEffectiveLimits } from "@/lib/billing";
 import { syncBrandLocks } from "@/lib/brand-lock";
 import { expireStalePendingInvoices } from "@/lib/invoice-cleanup";
 import { formatCop } from "@/lib/plans";
-import BillingTabs from "./BillingTabs";
 import BrandLockToggle from "./BrandLockToggle";
 
 /**
@@ -105,18 +104,12 @@ export default async function BillingPage() {
       ? plan.priceCopYearly / 12
       : plan.priceCopMonthly;
 
+  // void: para que ESLint no se queje del unused destructure de
+  // `agency` (lo dejamos por si futuras secciones lo necesitan).
+  void agency;
+
   return (
-    <div className="mx-auto max-w-5xl">
-      {/* Hero header */}
-      <div className="mb-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
-          Facturación
-        </h1>
-        <p className="mt-1 text-[13px] text-zinc-500">{agency.name}</p>
-      </div>
-
-      <BillingTabs />
-
+    <>
       {/* Banners contextuales (solo si hay action items) */}
       {(isPastDue || (isTrialing && trialDaysLeft !== null) || willCancel) && (
         <div className="mb-10 space-y-2.5">
@@ -308,7 +301,7 @@ export default async function BillingPage() {
           </ul>
         )}
       </section>
-    </div>
+    </>
   );
 }
 

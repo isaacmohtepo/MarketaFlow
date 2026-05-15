@@ -2,7 +2,6 @@ import Link from "next/link";
 import { CreditCard } from "lucide-react";
 import { requireBillingShell } from "@/lib/billing-shell";
 import PaymentMethods from "../PaymentMethods";
-import BillingTabs from "../BillingTabs";
 
 /**
  * /billing/payment-methods
@@ -22,23 +21,11 @@ export default async function BillingPaymentMethodsPage() {
   const isFree = plan.id === "free";
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-2">
-        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
-          Métodos de pago
-        </h1>
-        <p className="mt-1 text-[13px] text-zinc-500">
-          Tarjeta o Nequi guardados para cobros recurrentes. El principal es
-          el que usamos cada renovación.
-        </p>
-      </div>
-      <BillingTabs />
-      <PaymentMethods
-        currentPlan={plan.id}
-        currentCycle={summary.billingCycle}
-        isFree={isFree}
-      />
-    </div>
+    <PaymentMethods
+      currentPlan={plan.id}
+      currentCycle={summary.billingCycle}
+      isFree={isFree}
+    />
   );
 }
 
