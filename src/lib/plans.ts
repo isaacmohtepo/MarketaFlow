@@ -161,12 +161,22 @@ export const PLANS_LIST: Plan[] = PLAN_IDS.map((id) => PLANS[id]);
 
 /** Add-ons disponibles encima de Pro/Agency. Precios en centavos COP. */
 export type AddonId = "extraBrand" | "extraSeat" | "whiteLabel";
+/**
+ * Tipo de facturación del add-on:
+ *  - "monthly": se cobra cada mes mientras el add-on esté activo
+ *    (extraBrand, extraSeat — suman capacidad mensual al plan).
+ *  - "one-time": pago único, queda activo de por vida sin renovación
+ *    (whiteLabel — flip de un flag, no consume recursos recurrentes).
+ */
+export type AddonBillingType = "monthly" | "one-time";
 export const ADDONS: Record<AddonId, {
   id: AddonId;
   label: string;
   description: string;
-  priceCopMonthly: number;
-  priceUsdMonthly: number;
+  /** Precio en centavos COP. Si billingType=monthly = por mes; si one-time = único. */
+  priceCop: number;
+  priceUsd: number;
+  billingType: AddonBillingType;
   /** Plans donde el add-on tiene sentido. */
   availableOn: PlanId[];
 }> = {
@@ -174,24 +184,27 @@ export const ADDONS: Record<AddonId, {
     id: "extraBrand",
     label: "Marca extra",
     description: "Suma 1 marca al límite de tu plan.",
-    priceCopMonthly: 1_900_000, // $19.000 COP
-    priceUsdMonthly: 5,
+    priceCop: 1_900_000, // $19.000 COP
+    priceUsd: 5,
+    billingType: "monthly",
     availableOn: ["pro"], // Agency ya es ilimitado
   },
   extraSeat: {
     id: "extraSeat",
     label: "Miembro extra de equipo",
     description: "Suma 1 espacio al equipo de tu plan.",
-    priceCopMonthly: 1_500_000, // $15.000 COP
-    priceUsdMonthly: 4,
+    priceCop: 1_500_000, // $15.000 COP
+    priceUsd: 4,
+    billingType: "monthly",
     availableOn: ["pro"],
   },
   whiteLabel: {
     id: "whiteLabel",
     label: "White-label",
     description: "Tu logo en lugar de MarketaFlow en links públicos y emails.",
-    priceCopMonthly: 5_900_000, // $59.000 COP
-    priceUsdMonthly: 15,
+    priceCop: 5_900_000, // $59.000 COP — pago único de por vida
+    priceUsd: 15,
+    billingType: "one-time",
     availableOn: ["pro"], // Agency ya lo incluye
   },
 };

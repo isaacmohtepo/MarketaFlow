@@ -84,13 +84,21 @@ export async function POST(req: Request) {
     body.quantity = 1;
   }
 
-  const amountInCents = addon.priceCopMonthly * body.quantity;
+  const amountInCents = addon.priceCop * body.quantity;
   const reference = generateReference(sub.id);
 
   const periodStart = new Date();
+  // Para add-ons monthly seteamos periodEnd a +1 mes (sirve para mostrar el
+  // período facturado en la factura). Para one-time (white-label) el "período"
+  // no aplica — usamos periodStart=periodEnd para indicar "pago único, sin
+  // renovación".
   const periodEnd = new Date(periodStart);
-  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  if (addon.billingType === "monthly") {
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+  }
 
+  const descriptionSuffix =
+    addon.billingType === "one-time" ? " (pago único)" : "";
   await prisma.invoice.create({
     data: {
       subscriptionId: sub.id,
@@ -100,7 +108,7 @@ export async function POST(req: Request) {
       wompiReference: reference,
       periodStart,
       periodEnd,
-      description: `Add-on: ${addon.label}${body.quantity > 1 ? ` × ${body.quantity}` : ""}`,
+      description: `Add-on: ${addon.label}${body.quantity > 1 ? ` × ${body.quantity}` : ""}${descriptionSuffix}`,
       addonType: addonId,
       addonQuantity: body.quantity,
     },

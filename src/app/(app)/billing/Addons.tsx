@@ -21,7 +21,8 @@ type AddonDef = {
   id: AddonId;
   label: string;
   description: string;
-  priceCopMonthly: number;
+  priceCop: number;
+  billingType: "monthly" | "one-time";
 };
 
 /**
@@ -190,9 +191,12 @@ export default function Addons({
               <p className="text-[11px] text-zinc-500">
                 {a.description}{" "}
                 <span className="font-semibold text-zinc-700">
-                  {formatCop(a.priceCopMonthly)}
-                  {!isToggle && " /mes c/u"}
-                  {isToggle && " /mes"}
+                  {formatCop(a.priceCop)}
+                  {a.billingType === "one-time"
+                    ? " pago único"
+                    : isToggle
+                      ? " /mes"
+                      : " /mes c/u"}
                 </span>
               </p>
             </div>

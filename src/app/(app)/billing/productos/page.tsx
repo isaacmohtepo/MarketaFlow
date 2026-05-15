@@ -28,7 +28,8 @@ export default async function BillingProductosPage() {
         id: a.id,
         label: a.label,
         description: a.description,
-        priceCopMonthly: a.priceCopMonthly,
+        priceCop: a.priceCop,
+        billingType: a.billingType,
       }))}
       current={{
         extraBrands: summary.extraBrands,
