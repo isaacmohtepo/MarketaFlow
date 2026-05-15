@@ -5,72 +5,76 @@ features acordados pero todavía no implementados. Se ordena por prioridad
 real (bloqueantes para escalar primero), no por orden alfabético ni por
 quien las pidió.
 
+> Last audit: 2026-05-15 — verificado contra código real, no contra promesas.
+
+---
+
+## ✅ Hechas recientemente (no tocar — quedan para referencia)
+
+- ✅ **Encriptar `igAccessToken` en DB** — `igAccessTokenEnc` + `lib/instagram-token.ts` (AES-GCM)
+- ✅ **Token refresh automático IG** — cron diario en `jobs/refresh-ig-tokens.ts`
+- ✅ **Sentry error monitoring** — `instrumentation.ts` + DSN vars en Vercel
+- ✅ **Validar tarjetas vencidas antes de cobrar** — check en cron billing
+- ✅ **Dunning escalonado (día 1/3/7)** — `runDunning()` en cron billing
+- ✅ **Trial reminders pre-end** — d3/d1/ended emails (`jobs/trial-emails.ts`)
+- ✅ **Invitar clientes con link mágico** — endpoint + UI en `/team` tab "Clientes"
+- ✅ **White-label en email de invitación** — usa `tplClientInvite` con branding agency
+- ✅ **@mentions con autocomplete** — `MentionInput` + `/api/brands/[id]/mentionables`
+- ✅ **Multi-stage approval interno** — status `internal_review` + `posts.approve_internal`
+- ✅ **Audit log viewer** — tab `/team → Auditoría` con AuditViewer
+- ✅ **Auto-resume past_due al actualizar tarjeta** — `runRetryPastDue()` inline
+- ✅ **Cupón de retención al bajar a Free** — endpoint + modal en PlanSwitcher
+- ✅ **Toggle bypass validación tarjeta** — setting `paymentValidationEnabled`
+- ✅ **Watermark BORRADOR en previews** — `DraftWatermark` overlay
+- ✅ **Add-ons mensuales con +/-** — UI con quantity selector + retiro sin reembolso
+- ✅ **White-label como pago único** — $59k de por vida (no recurring)
+- ✅ **Auto-thumbnail de videos en grid** — `<video preload=metadata #t=0.5>`
+- ✅ **Screenshot de sitios web en grid** — endpoint /api/screenshot con cache R2
+- ✅ **Notificaciones no auto-disparadas** — `excludeUserId` en todos los notify*
+- ✅ **Coupons (modelo + UI admin + redención)** — model Coupon + CouponRedemption
+
 ---
 
 ## P0 — Bloqueantes para escalar el SaaS a producción real
 
-Sin estos, no podés invitar clientes pagos con confianza.
-
-### Meta / Instagram — pre-requisitos para que cualquiera conecte sin fricción
-
-El OAuth está implementado en el código (`/api/instagram/oauth/start` +
-`callback`), pero hay gaps críticos para que sea un flujo "1 click" real
-para clientes no técnicos:
-
-- [ ] **Encriptar `igAccessToken` en DB**.
-      Schema dice explícito `// TODO: encriptar`. Si la DB se filtra, todos
-      los tokens IG quedan expuestos — incidente regulatorio + ataque
-      directo a las cuentas de los clientes.
-      **Acción**: usar `crypto.subtle` con master key en SystemConfig (ya
-      hay infra `getSystemSetting()`); migrar tokens existentes con script
-      one-shot. Estimado: 1 día.
-
-- [ ] **Token refresh automático (long-lived 60d → renovar a >30d)**.
-      Tokens de Meta caducan a los 60 días. Sin refresh, día 61 las
-      publicaciones fallan para todos los clientes activos. Comentario
-      explícito en `lib/publishers/instagram.ts:26`.
-      **Acción**: agregar job al cron diario `/api/cron/billing` (ya
-      unificado por límite Vercel Hobby) que llame `fb_exchange_token` para
-      tokens con < 30 días de vida. Estimado: medio día.
+### Meta / Instagram — pre-requisitos para conectar sin fricción
 
 - [ ] **App Review de Meta** ⚠️ trámite, no código.
       Para usar `instagram_content_publish`, `pages_show_list`,
       `business_management`, `pages_read_engagement` con cualquier user
       (no solo developers/testers), Meta exige App Review:
-      - Business verification (pruebas legales de la empresa).
-      - Screencast del flujo completo (login → conectar → publicar).
-      - Privacy policy + ToS públicas (verificar URLs accesibles).
-      - Casos de uso por escrito para cada permiso solicitado.
-      - Tiempo total: 1-4 semanas con Meta.
-      **Acción**: arrancar el trámite en paralelo a desarrollo de otras
-      cosas. **No bloquea código**.
+      - Business verification (pruebas legales de la empresa)
+      - Screencast del flujo completo (login → conectar → publicar)
+      - Privacy policy + ToS públicas (verificar URLs accesibles)
+      - Casos de uso por escrito para cada permiso solicitado
+      - Tiempo total: 1-4 semanas con Meta
+      **Acción**: arrancar en paralelo a desarrollo. No bloquea código.
 
-- [ ] **Multi-page picker en el callback**.
+- [ ] **Multi-page picker en el callback OAuth IG**
       Hoy `oauth/callback` toma automáticamente la primera página con IG
       asociado (`pagesJson.data?.find(...)`). Si el user es admin de varias
       páginas, debería poder elegir. Sino conecta una equivocada.
-      **Acción**: callback intermedio que muestra lista de páginas con
-      checkbox y confirma antes de guardar. Estimado: 1 día.
+      **Estimado**: 1 día.
 
-- [ ] **Pre-requisitos del cliente final documentados en UI**.
+- [ ] **Pre-requisitos del cliente final documentados en UI**
       Antes de "Conectar con Instagram", mostrar checklist:
       1. ¿Tu IG es Business/Creator? (link a settings IG)
       2. ¿Está vinculado a una página de Facebook?
       3. ¿Sos admin de la página en Business Manager?
       Sin esto, los clientes hacen click y se chocan con error genérico
-      `no_ig_account`. **Acción**: componente `<IgPrereqsChecklist />` en
-      la pantalla de connect. Estimado: medio día.
+      `no_ig_account`. **Estimado**: medio día.
 
-### Seguridad / infra
+### Infra / calidad
 
-- [ ] **Sentry o equivalente** — error monitoring en prod. Hoy si algo
-      explota te enterás por reporte del usuario.
-- [ ] **Tests de integración para `hasPermission` + routes RBAC** — sweep
-      grande de gates sin red de seguridad. Una regresión en
+- [ ] **Tests de integración para `hasPermission` + routes RBAC**
+      Sweep grande de gates sin red de seguridad. Una regresión en
       `permissions.ts` rompe la app silenciosamente.
-- [ ] **DB indexes audit** — varias queries `where: { agencyId, brandId }`
-      sin índices compuestos. No se siente todavía pero va a doler en
-      escala.
+      Smoke test existe (`scripts/smoke-test.mjs`, 47 asserts) pero no
+      es comprehensive — falta cobertura por route.
+
+- [ ] **DB indexes audit**
+      Varias queries `where: { agencyId, brandId }` sin índices compuestos.
+      No se siente todavía pero va a doler a 1k+ posts por agency.
 
 ---
 
@@ -79,48 +83,47 @@ para clientes no técnicos:
 ### Inbox real (DMs y comments de Instagram)
 
 Los permisos `inbox.read` / `inbox.reply` ya existen en el catálogo RBAC
-pero el feature no está. Hoy "Inbox" en el sidebar es solo cola de
-revisión de posts.
+pero el feature no está. Hoy "Inbox" es solo cola de revisión de posts.
 
-**Bloqueado por**: Meta App Review aprobada con scope
-`instagram_manage_messages` + `pages_messaging` (ambos requieren review
-adicional separado del initial).
+**Bloqueado por**: Meta App Review con scope `instagram_manage_messages` +
+`pages_messaging` (review adicional separado del initial).
 
 **Plan técnico** cuando esté desbloqueado:
-- Webhook receiver en `/api/webhooks/instagram` con verificación de firma
-  HMAC-SHA1 contra `META_APP_SECRET`.
+- Webhook receiver en `/api/webhooks/instagram` con verificación HMAC-SHA1
 - Modelo `InboxMessage` (postId opcional, threadId, externalMessageId,
-  fromUserId, fromUsername, body, mediaUrl, sentAt, direction in/out).
-- UI en `/inbox` con lista de threads + detail view tipo chat.
-- Reply via Graph API `POST /{ig_user_id}/messages` con scope
-  `instagram_manage_messages`.
+  fromUserId, fromUsername, body, mediaUrl, sentAt, direction)
+- UI en `/inbox` con lista de threads + detail view tipo chat
+- Reply via Graph API `POST /{ig_user_id}/messages`
 
-### Audit log viewer del equipo
+### Reportes PDF auto-enviados
 
-Auditás todo (`role.created`, `membership.role_changed`,
-`system_role.overridden`, etc.) pero nadie los ve. Crítico para agencias
-con compliance.
+`/brands/[id]/report` tiene infra. Completar:
+- [ ] Diseño imprimible polished (CSS @page rules)
+- [ ] Generación server-side con `puppeteer-core` + `@sparticuz/chromium`
+      (ambos ya instalados para el feature de screenshot)
+- [ ] Schedule mensual auto: cron del 1ro de cada mes → genera + email
+      al owner con white-label aplicado
 
-- [ ] Pestaña en `/team → Auditoría` mostrando últimos 50 eventos.
-- [ ] Filtros por categoría + actor + target.
-- [ ] Export CSV (paralelo a `/api/billing/invoices/export`).
+### Aprobación por WhatsApp
 
-### Multi-stage approval
+Link público con token único que el cliente abre desde el celu sin login.
 
-Hoy es flujo de un paso (cliente aprueba o pide cambios). Para agencias
-grandes con review interna previa:
+**Plan técnico**:
+- Modelo `PublicReviewLink` (token, postId, expiresAt, createdById)
+- Página `/r/[token]/page.tsx` mobile-first sin login
+- Endpoint público para approve/comment con CSRF via token
+- Botón "Compartir por WhatsApp" → `wa.me/?text=...` con link pre-cargado
 
-- [ ] Agregar columna `Post.internalApprovalAt` + `internalApprovalBy`.
-- [ ] Permiso `posts.approve_internal` (Manager + custom).
-- [ ] UI: status `internal_review` antes de `in_review`.
-- [ ] Solo cuando un Manager aprueba internamente, el cliente recibe
-      notificación.
+Ventaja CO: WhatsApp es el canal real de comunicación con clientes.
+Diferenciación de mercado.
 
-### @mentions en comentarios
+### Caption AI con tono de marca
 
-Backend de comentarios existe, falta UX:
-- Tiptap mention extension con autocomplete sobre miembros del agency.
-- Notificar email al mencionado.
+User pega 3-5 captions viejos → IA aprende tono → genera nuevos en
+ese estilo. Mejora del caption AI genérico actual.
+
+**Plan técnico**: usar Claude/GPT con system prompt que incluye los
+captions de referencia como few-shot examples.
 
 ---
 
@@ -135,60 +138,59 @@ CM. Adaptar steps según rol:
 - Estratega → "explorá el dashboard"
 - Cliente → "aprobá tu primer post"
 
-### Templates marketplace
+### Templates compartidos agency-wide
 
 Templates hoy son per-brand. Permitir compartir templates entre brands
 de la misma agency, o incluso públicamente (opt-in).
 
-### Reportes PDF
+Campo `sharedAgencyWide` ya existe en `PostTemplate`. Falta:
+- [ ] Toggle en `TemplatesManager` para activar
+- [ ] Tab "Toda la agencia" en library + fetch incluyendo siblings
 
-`/brands/[id]/report` tiene infra. Completar:
-- Diseño imprimible polished.
-- Botón "Exportar PDF" con generación server-side (Playwright o jsPDF).
-- Schedule mensual automático por email al cliente.
+### Calendar drag-drop reschedule
 
-### Calendar drag-drop
-
-`/calendar` muestra posts. Permitir arrastrar para reprogramar fecha
-sin abrir el post.
+`/calendar` standalone fue removido del sidebar (no se usaba). Pero la
+**vista calendar dentro de cada brand** (`?view=calendar`) sigue activa.
+Falta:
+- [ ] Wrapper con `@dnd-kit/core` (instalar si no está)
+- [ ] Cada post draggable, cada celda droppable
+- [ ] `PATCH /api/posts/[id]` { scheduledAt } al drop
+- [ ] Optimistic update + toast "deshacer" 5s
 
 ---
 
 ## P3 — Features grandes a futuro
+
+### Multi-plataforma publishing
+
+Hoy solo IG. Agregar:
+- TikTok Business API (reels)
+- LinkedIn Pages
+- Twitter/X
+- Threads (cuando Meta abra API pública)
+- Facebook Pages (mismo grupo Meta, ya tenemos OAuth)
 
 ### PWA / mobile push
 
 Mobile responsive está OK pero un wrapper PWA con push notifications
 cambia la experiencia para el CM en la calle.
 
-### Integraciones adicionales
+### AI features avanzados
 
-- TikTok Business API (publicar reels)
-- LinkedIn Pages
-- Twitter/X
-- Threads (cuando Meta abra la API pública)
+- Generación de imágenes (Stability / DALL-E) para drafts rápidos
+- Análisis de tono de comentarios en Inbox
+- Recomendación de mejor hora para publicar (basada en analytics)
+- Hashtag suggestions inteligentes basadas en performance histórica
 
-### AI features
+### Dominio custom para white-label
 
-- Generación de imágenes (Stability / DALL-E) para drafts rápidos.
-- Análisis de tono de comentarios en Inbox.
-- Recomendación de mejor hora para publicar (basada en analytics).
-
-### Marketplace de roles
-
-Roles personalizados pre-armados que se pueden importar entre agencies
-(ej. "Editor de Reels", "Aprobador Junior").
-
-### White-label / dominio custom
-
-Para agencies que quieren su propio branding. Implica subdomains, SSL,
-y cambios en URLs públicas (`/share/[token]` → `cliente.agencia.com`).
+Para agencies que quieren su propio branding completo. Implica subdomains,
+SSL automático, y cambios en URLs públicas (`/share/[token]` →
+`cliente.agencia.com`).
 
 ---
 
-## Decisiones tomadas
-
-Cosas que se evaluaron pero NO se hacen, con razón:
+## Decisiones tomadas (NO hacer)
 
 - **Custom roles globales (compartibles entre agencies)**: complejidad
   mayor que valor; mejor que cada agency cree los suyos.
@@ -197,6 +199,9 @@ Cosas que se evaluaron pero NO se hacen, con razón:
 - **`prisma migrate` workflow**: usamos `db push` directo a Neon. Para
   cambios destructivos en el futuro habrá que migrar a migrations
   versionadas.
+- **Standalone /calendar, /templates, /metrics**: removidos del sidebar
+  por no usarse. La funcionalidad sigue accesible desde brand-level views
+  (templates picker en new post, calendar tab en brand overview, etc).
 
 ---
 
@@ -210,6 +215,8 @@ Cosas que se evaluaron pero NO se hacen, con razón:
   override.
 - **DB push**: `cd marketaflow-app && npx prisma db push` después de cambios
   de schema. Migraciones one-shot van en `scripts/migrate-*.mjs`.
+- **System settings**: configurables desde `/admin/settings` via
+  `lib/system-settings.ts`. Cascada: DB → env var → default hardcoded.
 
 ## R2 CORS — requerido para upload de videos
 
@@ -242,17 +249,7 @@ contexto.
 
 ## Sentry — error monitoring
 
-Sentry está instalado y wired pero **dormido sin DSN**. El SDK detecta si
-`SENTRY_DSN` (server) o `NEXT_PUBLIC_SENTRY_DSN` (client) están seteados;
-si no, no inicializa nada (cero overhead).
-
-Archivos:
-- `instrumentation.ts` — server + edge runtime (Sentry.init si DSN)
-- `instrumentation-client.ts` — browser runtime
-- `next.config.ts` — wrapping con `withSentryConfig` solo si están las
-  3 vars (`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`)
-
-Para activarlo en prod, en Vercel agregá:
+Activado en producción. Vars necesarias en Vercel:
 ```
 SENTRY_DSN=<dsn server-side>
 NEXT_PUBLIC_SENTRY_DSN=<mismo dsn, expuesto al client>
@@ -276,18 +273,9 @@ templates marketplace + audit log + cross-tenant isolation. 47 asserts.
 Cómo correr:
 
 ```bash
-# Terminal 1
-cd marketaflow-app && npm run dev
+# Terminal 1: dev server
+npm run dev
 
-# Terminal 2 (cuando el dev server esté listo)
-cd marketaflow-app && npm run test:smoke
+# Terminal 2: smoke test
+npm run test:smoke
 ```
-
-Crea data con prefijo `__smoke_<timestamp>__` y limpia al final. Idempotente.
-Si algún test falla, exit code 1 (CI-friendly).
-
-Notas:
-- Bypassea HTTP login creando User + Session directo via Prisma.
-- Manda `Origin` header para pasar el middleware CSRF.
-- Crea agencies con plan "agency" para esquivar límites del free.
-- Pollea hasta 3s para eventos de audit (fire-and-forget).
