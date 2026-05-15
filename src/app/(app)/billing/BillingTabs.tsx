@@ -2,48 +2,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Receipt,
-  Sparkles,
-  Package,
-  Wallet,
-  FileText,
-} from "lucide-react";
 
-/**
- * Nav superior compartido entre todas las páginas /billing/*. Funciona
- * como tabs: muestra cuál sub-página estás viendo y permite saltar a
- * las demás sin ir al sidebar.
- *
- * Layout: scroll horizontal en mobile, fila normal en desktop.
- */
 const TABS = [
-  { id: "resumen", label: "Resumen", icon: Receipt, href: "/billing" },
-  { id: "plan", label: "Plan", icon: Sparkles, href: "/billing/plan" },
-  { id: "productos", label: "Productos", icon: Package, href: "/billing/productos" },
-  { id: "metodos", label: "Métodos de pago", icon: Wallet, href: "/billing/payment-methods" },
-  { id: "facturas", label: "Facturas", icon: FileText, href: "/billing/invoices" },
+  { id: "resumen", label: "Resumen", href: "/billing" },
+  { id: "plan", label: "Plan", href: "/billing/plan" },
+  { id: "productos", label: "Productos", href: "/billing/productos" },
+  { id: "metodos", label: "Métodos de pago", href: "/billing/payment-methods" },
+  { id: "facturas", label: "Facturas", href: "/billing/invoices" },
 ] as const;
 
+/**
+ * Tabs estilo underline minimalista: subraya el activo con un border-bottom
+ * gradient en vez de un pill con fondo. Mucho más limpio visualmente que el
+ * estilo anterior tipo "segmented control".
+ */
 export default function BillingTabs() {
   const pathname = usePathname() ?? "/billing";
   return (
-    <nav className="mb-5 flex gap-1 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-50/60 p-1">
+    <nav className="mb-8 -mx-1 flex gap-6 overflow-x-auto border-b border-zinc-100 px-1">
       {TABS.map((t) => {
         const active = isActive(pathname, t.href);
-        const Icon = t.icon;
         return (
           <Link
             key={t.id}
             href={t.href}
-            className={`inline-flex flex-shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition ${
+            className={`relative flex-shrink-0 whitespace-nowrap px-0.5 pb-3 text-[13px] transition ${
               active
-                ? "bg-white text-zinc-900 shadow-sm"
-                : "text-zinc-600 hover:text-zinc-900"
+                ? "font-semibold text-zinc-900"
+                : "font-medium text-zinc-500 hover:text-zinc-900"
             }`}
           >
-            <Icon className="h-3.5 w-3.5" />
             {t.label}
+            {active && (
+              <span className="absolute -bottom-px left-0 right-0 h-0.5 rounded-full brand-gradient" />
+            )}
           </Link>
         );
       })}
@@ -53,7 +45,6 @@ export default function BillingTabs() {
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/billing") {
-    // Resumen: solo activo en la raíz exacta + páginas de flow (checkout/return)
     return (
       pathname === "/billing" ||
       pathname === "/billing/" ||

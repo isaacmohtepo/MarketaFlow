@@ -25,16 +25,17 @@ export default async function BillingProductosPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-        Productos
-      </h1>
-      <p className="mt-0.5 text-[13px] text-zinc-500">
-        Sumá capacidad encima de tu plan actual sin tener que cambiar a uno
-        más caro. Cada add-on se cobra mensual y se activa al instante.
-      </p>
+      <div className="mb-2">
+        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
+          Productos
+        </h1>
+        <p className="mt-1 text-[13px] text-zinc-500">
+          Sumá capacidad encima de tu plan actual. Cada add-on se cobra
+          mensual y se activa al instante.
+        </p>
+      </div>
       <BillingTabs />
-
-      <section className="card p-6">
+      <section>
         <Addons
           available={Object.values(ADDONS).map((a) => ({
             id: a.id,

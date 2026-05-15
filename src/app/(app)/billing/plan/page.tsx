@@ -21,25 +21,24 @@ export default async function BillingPlanPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-        Plan
-      </h1>
-      <p className="mt-0.5 text-[13px] text-zinc-500">
-        Mejorá tu plan para crecer o bajá si necesitás menos. Los cambios
-        hacia arriba se aplican inmediato; los downgrades, al fin del período.
-      </p>
+      <div className="mb-2">
+        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
+          Plan
+        </h1>
+        <p className="mt-1 text-[13px] text-zinc-500">
+          Mejorá para crecer o bajá si necesitás menos. Cambios hacia arriba
+          se aplican al instante; downgrades, al fin del período.
+        </p>
+      </div>
       <BillingTabs />
-
-      <section className="card p-6">
-        <PlanSwitcher
-          currentPlanId={plan.id as PlanId}
-          currentCycle={summary.billingCycle as "monthly" | "yearly"}
-          pendingPlanId={summary.pendingPlan ?? null}
-          pendingCycle={summary.pendingBillingCycle ?? null}
-          cancelAtPeriodEnd={summary.cancelAtPeriodEnd ?? false}
-          currentPeriodEnd={summary.currentPeriodEnd?.toISOString() ?? null}
-        />
-      </section>
+      <PlanSwitcher
+        currentPlanId={plan.id as PlanId}
+        currentCycle={summary.billingCycle as "monthly" | "yearly"}
+        pendingPlanId={summary.pendingPlan ?? null}
+        pendingCycle={summary.pendingBillingCycle ?? null}
+        cancelAtPeriodEnd={summary.cancelAtPeriodEnd ?? false}
+        currentPeriodEnd={summary.currentPeriodEnd?.toISOString() ?? null}
+      />
     </div>
   );
 }

@@ -23,23 +23,21 @@ export default async function BillingPaymentMethodsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-        Métodos de pago
-      </h1>
-      <p className="mt-0.5 text-[13px] text-zinc-500">
-        Tarjeta o Nequi guardados para los cobros recurrentes mensuales o
-        anuales. El método marcado como principal es el que usamos cada
-        renovación.
-      </p>
+      <div className="mb-2">
+        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
+          Métodos de pago
+        </h1>
+        <p className="mt-1 text-[13px] text-zinc-500">
+          Tarjeta o Nequi guardados para cobros recurrentes. El principal es
+          el que usamos cada renovación.
+        </p>
+      </div>
       <BillingTabs />
-
-      <section className="card p-6">
-        <PaymentMethods
-          currentPlan={plan.id}
-          currentCycle={summary.billingCycle}
-          isFree={isFree}
-        />
-      </section>
+      <PaymentMethods
+        currentPlan={plan.id}
+        currentCycle={summary.billingCycle}
+        isFree={isFree}
+      />
     </div>
   );
 }

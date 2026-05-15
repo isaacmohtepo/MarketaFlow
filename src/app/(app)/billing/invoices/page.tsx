@@ -93,17 +93,19 @@ export default async function BillingInvoicesPage({
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-        Facturas
-      </h1>
-      <p className="mt-0.5 text-[13px] text-zinc-500">
-        {totalCount === 0
-          ? "Aún no tenés facturas. Cuando hagas un pago vas a verlas acá."
-          : `${totalCount} ${totalCount === 1 ? "factura" : "facturas"} en total — filtrá por estado, año o buscá por número.`}
-      </p>
+      <div className="mb-2">
+        <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
+          Facturas
+        </h1>
+        <p className="mt-1 text-[13px] text-zinc-500">
+          {totalCount === 0
+            ? "Aún no tenés facturas. Cuando hagas un pago vas a verlas acá."
+            : `${totalCount} ${totalCount === 1 ? "factura" : "facturas"} en total — filtrá por estado, año o buscá por número.`}
+        </p>
+      </div>
       <BillingTabs />
 
-      <section className="card p-6">
+      <section>
         <InvoiceFilters years={years} exportUrl={exportUrl} />
 
         {invoices.length === 0 ? (
