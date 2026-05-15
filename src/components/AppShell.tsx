@@ -21,6 +21,7 @@ export default function AppShell({
   agencyName,
   brandName,
   brandLogoUrl,
+  brandLogoMode,
   title,
   isAdmin = false,
   isOwner = false,
@@ -35,6 +36,8 @@ export default function AppShell({
   brandName?: string | null;
   /** URL del logo custom. Si null, se usa el ícono Zap default. */
   brandLogoUrl?: string | null;
+  /** Cómo renderizar el logo: "logo_and_text" (default), "logo_only", "text_only". */
+  brandLogoMode?: "logo_and_text" | "logo_only" | "text_only" | null;
   title?: string;
   isAdmin?: boolean;
   isOwner?: boolean;
@@ -56,6 +59,7 @@ export default function AppShell({
         agencyName={agencyName}
         brandName={brandName}
         brandLogoUrl={brandLogoUrl}
+        brandLogoMode={brandLogoMode}
         isAdmin={isAdmin}
         isOwner={isOwner}
         planCard={planCard}
@@ -74,6 +78,7 @@ export default function AppShell({
               agencyName={agencyName}
               brandName={brandName}
               brandLogoUrl={brandLogoUrl}
+              brandLogoMode={brandLogoMode}
               isMobile
               isAdmin={isAdmin}
               isOwner={isOwner}

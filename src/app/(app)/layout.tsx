@@ -189,6 +189,7 @@ export default async function AppLayout({
       agencyName={agencyName}
       brandName={wl?.enabled ? wl.brandName : null}
       brandLogoUrl={wl?.enabled ? wl.logoUrl : null}
+      brandLogoMode={wl?.enabled ? wl.logoMode : null}
       isAdmin={isAdmin}
       isOwner={isOwner}
       planCard={planCard}

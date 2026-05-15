@@ -26,6 +26,10 @@ const patchSchema = z.object({
   accentColor: hexColor.nullable().optional(),
   gradientFrom: hexColor.nullable().optional(),
   gradientTo: hexColor.nullable().optional(),
+  logoMode: z
+    .enum(["logo_and_text", "logo_only", "text_only"])
+    .nullable()
+    .optional(),
 });
 
 async function resolveAgencyId(userId: string): Promise<string | null> {
@@ -52,6 +56,7 @@ export async function GET() {
         wlAccentColor: true,
         wlGradientFrom: true,
         wlGradientTo: true,
+        wlLogoMode: true,
       },
     }),
     getEffectiveLimits(agencyId),
@@ -65,6 +70,7 @@ export async function GET() {
     accentColor: agency?.wlAccentColor ?? null,
     gradientFrom: agency?.wlGradientFrom ?? null,
     gradientTo: agency?.wlGradientTo ?? null,
+    logoMode: agency?.wlLogoMode ?? "logo_and_text",
   });
 }
 
@@ -108,6 +114,7 @@ export async function PATCH(req: Request) {
   if (body.accentColor !== undefined) updates.wlAccentColor = body.accentColor;
   if (body.gradientFrom !== undefined) updates.wlGradientFrom = body.gradientFrom;
   if (body.gradientTo !== undefined) updates.wlGradientTo = body.gradientTo;
+  if (body.logoMode !== undefined) updates.wlLogoMode = body.logoMode;
 
   await prisma.agency.update({
     where: { id: agencyId },

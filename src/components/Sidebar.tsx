@@ -188,6 +188,7 @@ export default function Sidebar({
   agencyName,
   brandName,
   brandLogoUrl,
+  brandLogoMode,
   isMobile = false,
   onNavigate,
   isAdmin = false,
@@ -199,6 +200,8 @@ export default function Sidebar({
   brandName?: string | null;
   /** Si está set, reemplaza el ícono Zap del header con el logo custom. */
   brandLogoUrl?: string | null;
+  /** Modo de display: logo+texto / solo logo (grande) / solo texto. */
+  brandLogoMode?: "logo_and_text" | "logo_only" | "text_only" | null;
   isMobile?: boolean;
   onNavigate?: () => void;
   isAdmin?: boolean;
@@ -270,31 +273,50 @@ export default function Sidebar({
       style={{ background: "var(--bg-sidebar)", borderRight: DARK_LINE }}
     >
       <div
-        className="flex h-14 items-center gap-2.5 px-4"
+        className={`flex items-center px-4 ${
+          // Cuando es "solo logo" damos más alto + centramos el logo grande
+          brandLogoUrl && brandLogoMode === "logo_only"
+            ? "h-16 justify-center"
+            : "h-14 gap-2.5"
+        }`}
         style={{ borderBottom: DARK_LINE }}
       >
-        {brandLogoUrl ? (
-          <span className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg bg-white/5 shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={brandLogoUrl}
-              alt={brandName ?? "Logo"}
-              className="h-full w-full object-contain"
-            />
-          </span>
-        ) : (
-          <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg brand-gradient text-white shadow-sm">
-            <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
-          </span>
+        {/* Logo (oculto si modo = text_only) */}
+        {brandLogoMode !== "text_only" && (
+          <>
+            {brandLogoUrl ? (
+              <span
+                className={`flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm ${
+                  brandLogoMode === "logo_only"
+                    ? "grid h-10 w-full max-w-[200px] bg-white/5"
+                    : "grid h-7 w-7 bg-white/5"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brandLogoUrl}
+                  alt={brandName ?? "Logo"}
+                  className="h-full w-full object-contain p-0.5"
+                />
+              </span>
+            ) : (
+              <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg brand-gradient text-white shadow-sm">
+                <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
+              </span>
+            )}
+          </>
         )}
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold tracking-tight text-white">
-            {brandName ?? "MarketaFlow"}
-          </p>
-          {agencyName && agencyName !== brandName && (
-            <p className="truncate text-[11px] text-zinc-500">{agencyName}</p>
-          )}
-        </div>
+        {/* Texto (oculto si modo = logo_only) */}
+        {brandLogoMode !== "logo_only" && (
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold tracking-tight text-white">
+              {brandName ?? "MarketaFlow"}
+            </p>
+            {agencyName && agencyName !== brandName && (
+              <p className="truncate text-[11px] text-zinc-500">{agencyName}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <nav className="scroll-dark flex-1 overflow-y-auto px-2 pb-3">

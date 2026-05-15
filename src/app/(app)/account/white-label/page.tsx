@@ -33,6 +33,7 @@ export default async function WhiteLabelPage() {
         wlAccentColor: true,
         wlGradientFrom: true,
         wlGradientTo: true,
+        wlLogoMode: true,
       },
     }),
     getEffectiveLimits(m.agencyId),
@@ -80,6 +81,7 @@ export default async function WhiteLabelPage() {
               accentColor: agency.wlAccentColor,
               gradientFrom: agency.wlGradientFrom,
               gradientTo: agency.wlGradientTo,
+              logoMode: agency.wlLogoMode,
             }}
           />
         </div>

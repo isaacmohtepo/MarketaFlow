@@ -2,8 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, X, Eye, RotateCcw } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  X,
+  Eye,
+  RotateCcw,
+  Image as ImageIcon,
+  Type,
+  LayoutGrid,
+} from "lucide-react";
 import { toast } from "sonner";
+
+type LogoMode = "logo_and_text" | "logo_only" | "text_only";
 
 const DEFAULT_FROM = "#3b5fff";
 const DEFAULT_VIA = "#8a2be2";
@@ -29,6 +40,7 @@ export default function WhiteLabelEditor({
     accentColor: string | null;
     gradientFrom: string | null;
     gradientTo: string | null;
+    logoMode: string | null;
   };
 }) {
   const router = useRouter();
@@ -43,8 +55,15 @@ export default function WhiteLabelEditor({
   const [gradientTo, setGradientTo] = useState(
     initial.gradientTo ?? DEFAULT_TO,
   );
+  const [logoMode, setLogoMode] = useState<LogoMode>(
+    (initial.logoMode as LogoMode | null) ?? "logo_and_text",
+  );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Si quitan el logo, el modo "solo logo" no tiene sentido — caemos a text_only
+  const effectiveMode: LogoMode =
+    !logoUrl && logoMode === "logo_only" ? "text_only" : logoMode;
 
   async function uploadLogo(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -83,6 +102,7 @@ export default function WhiteLabelEditor({
           accentColor: accentColor === DEFAULT_VIA ? null : accentColor,
           gradientFrom: gradientFrom === DEFAULT_FROM ? null : gradientFrom,
           gradientTo: gradientTo === DEFAULT_TO ? null : gradientTo,
+          logoMode: effectiveMode,
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -170,6 +190,42 @@ export default function WhiteLabelEditor({
               <X className="h-3.5 w-3.5" />
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Modo de display */}
+      <div className="card p-5">
+        <label className="block text-[12px] font-semibold uppercase tracking-wide text-zinc-500">
+          Cómo se muestra en el sidebar
+        </label>
+        <p className="mt-0.5 text-[11.5px] text-zinc-500">
+          Si tu logo ya incluye el nombre, elegí &quot;Solo logo&quot; para
+          evitar que aparezca duplicado.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <ModeOption
+            active={effectiveMode === "logo_and_text"}
+            onClick={() => setLogoMode("logo_and_text")}
+            icon={<LayoutGrid className="h-3.5 w-3.5" />}
+            label="Logo + nombre"
+            description="Logo chico al lado del nombre del brand"
+          />
+          <ModeOption
+            active={effectiveMode === "logo_only"}
+            onClick={() => setLogoMode("logo_only")}
+            icon={<ImageIcon className="h-3.5 w-3.5" />}
+            label="Solo logo"
+            description="Logo más grande, sin texto al lado"
+            disabled={!logoUrl}
+            disabledHint={!logoUrl ? "Subí un logo primero" : undefined}
+          />
+          <ModeOption
+            active={effectiveMode === "text_only"}
+            onClick={() => setLogoMode("text_only")}
+            icon={<Type className="h-3.5 w-3.5" />}
+            label="Solo nombre"
+            description="Sin logo, solo tipografía"
+          />
         </div>
       </div>
 
@@ -266,32 +322,46 @@ export default function WhiteLabelEditor({
 
         {/* Preview Sidebar (estilo dashboard interno) */}
         <div className="mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm">
-          <div className="flex items-center gap-2.5 border-b border-zinc-800 px-4 py-3">
-            <span
-              className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm"
-              style={{ background: logoUrl ? "#fff" : previewGradient }}
-            >
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoUrl}
-                  alt=""
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <span className="text-[11px] font-bold text-white">
-                  {effectiveBrandName.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-semibold tracking-tight text-white">
-                {effectiveBrandName}
-              </p>
-              <p className="truncate text-[10px] text-zinc-500">
-                Vista interna del equipo
-              </p>
-            </div>
+          <div
+            className={`flex items-center border-b border-zinc-800 px-4 ${
+              effectiveMode === "logo_only" ? "py-4" : "gap-2.5 py-3"
+            }`}
+          >
+            {effectiveMode !== "text_only" && (
+              <span
+                className={`flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm ${
+                  effectiveMode === "logo_only"
+                    ? "grid h-10 w-full max-w-[180px]"
+                    : "grid h-7 w-7"
+                }`}
+                style={{
+                  background: logoUrl ? "#fff" : previewGradient,
+                }}
+              >
+                {logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={logoUrl}
+                    alt=""
+                    className="h-full w-full object-contain p-0.5"
+                  />
+                ) : (
+                  <span className="text-[11px] font-bold text-white">
+                    {effectiveBrandName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </span>
+            )}
+            {effectiveMode !== "logo_only" && (
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-semibold tracking-tight text-white">
+                  {effectiveBrandName}
+                </p>
+                <p className="truncate text-[10px] text-zinc-500">
+                  Vista interna del equipo
+                </p>
+              </div>
+            )}
           </div>
           <div className="space-y-1 px-4 py-3">
             <div className="flex items-center gap-2 text-[11px] text-white">
@@ -351,6 +421,46 @@ export default function WhiteLabelEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+function ModeOption({
+  active,
+  onClick,
+  icon,
+  label,
+  description,
+  disabled,
+  disabledHint,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  disabled?: boolean;
+  disabledHint?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={disabled ? disabledHint : undefined}
+      className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        active
+          ? "border-fuchsia-400 bg-fuchsia-50/50 ring-1 ring-fuchsia-400"
+          : "border-zinc-200 bg-white hover:border-zinc-300"
+      }`}
+    >
+      <span className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-900">
+        {icon}
+        {label}
+      </span>
+      <span className="text-[10.5px] leading-tight text-zinc-500">
+        {description}
+      </span>
+    </button>
   );
 }
 

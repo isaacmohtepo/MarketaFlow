@@ -21,6 +21,8 @@
 import { prisma } from "./db";
 import { getEffectiveLimits } from "./billing";
 
+export type LogoMode = "logo_and_text" | "logo_only" | "text_only";
+
 export type WhiteLabel = {
   enabled: boolean;
   brandName: string;
@@ -30,6 +32,8 @@ export type WhiteLabel = {
    *  null, se usa el gradiente azul→violeta→rosa default. */
   gradientFrom: string | null;
   gradientTo: string | null;
+  /** Cómo mostrar la marca: logo+texto, solo logo (más grande), o solo texto. */
+  logoMode: LogoMode;
 };
 
 /** Branding default de MarketaFlow (cuando no hay white-label activo). */
@@ -40,6 +44,7 @@ export const DEFAULT_BRANDING: WhiteLabel = {
   accentColor: null,
   gradientFrom: null,
   gradientTo: null,
+  logoMode: "logo_and_text",
 };
 
 export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
@@ -52,6 +57,7 @@ export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
       wlAccentColor: true,
       wlGradientFrom: true,
       wlGradientTo: true,
+      wlLogoMode: true,
     },
   });
   if (!agency) return DEFAULT_BRANDING;
@@ -60,6 +66,12 @@ export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
   const enabled = limits.whiteLabelEnabled === true;
   if (!enabled) return { ...DEFAULT_BRANDING };
 
+  // Si no hay logo, forzamos "text_only" — sino el modo "solo logo"
+  // dejaría un hueco vacío.
+  const rawMode = (agency.wlLogoMode as LogoMode | null) ?? "logo_and_text";
+  const logoMode: LogoMode =
+    !agency.wlLogoUrl && rawMode === "logo_only" ? "text_only" : rawMode;
+
   return {
     enabled: true,
     brandName: agency.wlBrandName?.trim() || agency.name,
@@ -67,6 +79,7 @@ export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
     accentColor: agency.wlAccentColor ?? null,
     gradientFrom: agency.wlGradientFrom ?? null,
     gradientTo: agency.wlGradientTo ?? null,
+    logoMode,
   };
 }
 
