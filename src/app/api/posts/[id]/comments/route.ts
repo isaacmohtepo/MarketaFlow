@@ -173,6 +173,7 @@ export async function POST(
         postId: id,
         body: body.body,
         actorName: user.name ?? user.email,
+        excludeUserId: user.id,
       }),
     )
     .catch((err) => console.error("notifyMentions failed", err));
@@ -212,6 +213,7 @@ export async function POST(
       type: "post_changes_requested",
       body: `El cliente solicitó cambios: "${body.body.slice(0, 120)}"`,
       actorName: user.name ?? user.email,
+      excludeUserId: user.id,
     }).catch((err) => console.error("notifyBrandAgency failed", err));
     invalidateBrandKpis(ctx.post.brandId);
   }
@@ -240,6 +242,7 @@ export async function POST(
         type: isReply ? "comment_reply_from_agency" : "comment_new_from_agency",
         body: `${actorName}: "${preview}"`,
         actorName,
+        excludeUserId: user.id,
       }).catch((err) => console.error("notifyBrandClients (comment) failed", err));
     }
   }

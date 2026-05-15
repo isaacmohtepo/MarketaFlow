@@ -207,6 +207,7 @@ export async function POST(req: Request) {
       type: "post_in_review",
       body: "Hay un nuevo post para revisar",
       actorName: user.name ?? user.email,
+      excludeUserId: user.id,
     });
   }
 

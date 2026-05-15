@@ -68,6 +68,7 @@ export async function POST(
         ? "El cliente aprobó un post"
         : `El cliente solicitó cambios${body.note ? `: "${body.note}"` : ""}`,
     actorName: user.name ?? user.email,
+    excludeUserId: user.id,
   });
 
   invalidateBrandKpis(ctx.post.brandId);

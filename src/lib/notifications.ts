@@ -130,13 +130,20 @@ export async function notifyBrandClients(opts: {
   type: string;
   body: string;
   actorName: string;
+  // Si el actor también está en este pool (raro pero posible si un user
+  // tiene rol "client" en su propia brand), lo excluimos para que no se
+  // mande notificaciones a sí mismo.
+  excludeUserId?: string;
 }) {
   const clients = await prisma.membership.findMany({
     where: { brandId: opts.brandId, role: "client" },
     select: { userId: true },
   });
   if (clients.length === 0) return;
-  const userIds = clients.map((c) => c.userId);
+  const userIds = clients
+    .map((c) => c.userId)
+    .filter((id) => id !== opts.excludeUserId);
+  if (userIds.length === 0) return;
   await prisma.notification.createMany({
     data: userIds.map((userId) => ({
       userId,
@@ -160,10 +167,13 @@ export async function notifyMentionedUsers(opts: {
   postId: string;
   body: string;
   actorName: string;
+  // Defensa por si el caller no filtró: nunca notificar al propio actor.
+  excludeUserId?: string;
 }) {
-  if (opts.userIds.length === 0) return;
+  const userIds = opts.userIds.filter((id) => id !== opts.excludeUserId);
+  if (userIds.length === 0) return;
   await prisma.notification.createMany({
-    data: opts.userIds.map((userId) => ({
+    data: userIds.map((userId) => ({
       userId,
       type: "comment_mention",
       body: `${opts.actorName} te mencionó: "${opts.body.slice(0, 120)}"`,
@@ -172,7 +182,7 @@ export async function notifyMentionedUsers(opts: {
       actorName: opts.actorName,
     })),
   });
-  dispatchEmails(opts.userIds, {
+  dispatchEmails(userIds, {
     type: "comment_mention",
     brandId: opts.brandId,
     postId: opts.postId,
