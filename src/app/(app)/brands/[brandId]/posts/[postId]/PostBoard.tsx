@@ -12,7 +12,6 @@ import VideoCommenter, {
 } from "./VideoCommenter";
 import { VideoEmbed } from "@/components/AssetPreview";
 import MentionInput from "@/components/MentionInput";
-import { DraftWatermark } from "@/components/DraftWatermark";
 import MentionText from "@/components/MentionText";
 import { useMentionedRoles } from "@/lib/useMentionedRoles";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -799,15 +798,17 @@ export default function PostBoard({
           }`}
         >
           {currentSlide ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={currentSlide}
-                alt=""
-                className="h-full w-full rounded-lg object-cover pointer-events-none"
-              />
-              <DraftWatermark status={liveStatus} size="lg" />
-            </>
+            // En el post detail NO ponemos watermark sobre la imagen para
+            // que el área esté libre para comentarios anclados (cualquier
+            // pixel puede ser punto de un comment con coords x/y).
+            // El status chip "En revisión" / "Borrador" en el header del
+            // post ya comunica claramente que no está aprobado.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentSlide}
+              alt=""
+              className="h-full w-full rounded-lg object-cover pointer-events-none"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-sm text-zinc-500">
               sin imagen
