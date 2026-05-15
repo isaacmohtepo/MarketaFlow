@@ -1,6 +1,8 @@
-import { Database, HardDrive, Activity, Mail, AlertTriangle, Image as ImageIcon, FileVideo, Camera, Folder } from "lucide-react";
+import { Database, HardDrive, Activity, AlertTriangle, Image as ImageIcon, FileVideo, Camera, Folder } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { r2UsageByPrefix, isR2Configured } from "@/lib/storage";
+import { getUsagePlans } from "@/lib/usage-plans";
+import PlansEditor from "./PlansEditor";
 
 /**
  * Admin → Uso e infraestructura.
@@ -17,15 +19,6 @@ import { r2UsageByPrefix, isR2Configured } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// Límites tier free (referencia para barras de progreso)
-const FREE_LIMITS = {
-  r2_storage_gb: 10,
-  neon_storage_gb: 0.5,
-  vercel_function_gb_hours: 100,
-  sentry_errors_month: 5_000,
-  upstash_commands_day: 10_000,
-  resend_emails_month: 3_000,
-};
 
 function fmtBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -53,6 +46,7 @@ export default async function AdminUsagePage() {
     activeSubs,
     postsLast30d,
     commentsLast30d,
+    plans,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.agency.count(),
@@ -75,6 +69,7 @@ export default async function AdminUsagePage() {
         createdAt: { gte: new Date(Date.now() - 30 * 86400_000) },
       },
     }),
+    getUsagePlans(),
   ]);
 
   // R2 stats — paralelo por prefix
@@ -87,7 +82,16 @@ export default async function AdminUsagePage() {
 
   const r2TotalBytes = r2Uploads.bytes + r2Screenshots.bytes;
   const r2UsedGB = r2TotalBytes / 1024 ** 3;
-  const r2PctOfFree = (r2UsedGB / FREE_LIMITS.r2_storage_gb) * 100;
+  const r2PctOfFree = (r2UsedGB / plans.r2.limit) * 100;
+
+  // Total mensual estimado sumando todos los planes configurados
+  const totalMonthlyCost =
+    plans.r2.monthlyCostUsd +
+    plans.neon.monthlyCostUsd +
+    plans.vercel.monthlyCostUsd +
+    plans.sentry.monthlyCostUsd +
+    plans.upstash.monthlyCostUsd +
+    plans.resend.monthlyCostUsd;
 
   return (
     <div className="space-y-6">
@@ -126,12 +130,12 @@ export default async function AdminUsagePage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                Usado del tier free
+                Usado del plan {plans.r2.tier}
               </p>
               <p className="mt-1 text-3xl font-bold text-zinc-900 tabular-nums">
                 {fmtBytes(r2TotalBytes)}
                 <span className="ml-2 text-[14px] font-medium text-zinc-400">
-                  / {FREE_LIMITS.r2_storage_gb} GB
+                  / {plans.r2.limit} GB
                 </span>
               </p>
             </div>
@@ -224,48 +228,66 @@ export default async function AdminUsagePage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <ExternalRow
             name="Neon Postgres"
-            tier="Free"
-            limit="0.5 GB storage · 190 compute hours/mes"
+            tier={plans.neon.tier}
+            cost={plans.neon.monthlyCostUsd}
+            limit={`${plans.neon.limit} GB storage · 190 compute hours/mes`}
             href="https://console.neon.tech"
             note="Storage actual visible en su dashboard. Auto-suspend cuando no hay queries activas."
           />
           <ExternalRow
             name="Vercel"
-            tier="Hobby"
-            limit="100 GB-hours funciones · 1M invocations/mes"
+            tier={plans.vercel.tier}
+            cost={plans.vercel.monthlyCostUsd}
+            limit={`${fmtN(plans.vercel.limit)} GB-hours funciones · 1M invocations/mes`}
             href="https://vercel.com/dashboard/usage"
             note="Cada screenshot nuevo ≈ 0.085 GB-hours. Después de cacheado = costo 0."
           />
           <ExternalRow
             name="Sentry"
-            tier="Developer"
-            limit={`${fmtN(FREE_LIMITS.sentry_errors_month)} errores/mes`}
+            tier={plans.sentry.tier}
+            cost={plans.sentry.monthlyCostUsd}
+            limit={`${fmtN(plans.sentry.limit)} errores/mes`}
             href="https://sentry.io/organizations/marketaflow/stats/"
-            note="Si pasamos 5k errores, upgrade a Team ($26/mes)."
+            note="Si pasamos el límite, upgrade a Team ($26/mes)."
           />
           <ExternalRow
             name="Upstash Redis"
-            tier="Free"
-            limit={`${fmtN(FREE_LIMITS.upstash_commands_day)} commands/día`}
+            tier={plans.upstash.tier}
+            cost={plans.upstash.monthlyCostUsd}
+            limit={`${fmtN(plans.upstash.limit)} commands/día`}
             href="https://console.upstash.com"
             note="Rate limiting distribuido. Cada request a la app ≈ 1-2 commands."
           />
           <ExternalRow
             name="Resend"
-            tier="Free"
-            limit={`${fmtN(FREE_LIMITS.resend_emails_month)} emails/mes`}
+            tier={plans.resend.tier}
+            cost={plans.resend.monthlyCostUsd}
+            limit={`${fmtN(plans.resend.limit)} emails/mes`}
             href="https://resend.com/emails"
-            note="Notifs por mail + magic links + facturas. Upgrade a Pro $20/mes a 3k/mes."
+            note="Notifs por mail + magic links + facturas."
           />
           <ExternalRow
             name="Cloudflare R2"
-            tier="Free"
-            limit={`${FREE_LIMITS.r2_storage_gb} GB storage · egress ilimitado`}
+            tier={plans.r2.tier}
+            cost={plans.r2.monthlyCostUsd}
+            limit={`${plans.r2.limit} GB storage · egress ilimitado`}
             href="https://dash.cloudflare.com/?to=/:account/r2/buckets"
             note="Egress siempre gratis — esa es la magia de R2 vs S3."
           />
         </div>
+        {totalMonthlyCost > 0 && (
+          <p className="mt-3 text-right text-[11.5px] text-zinc-500">
+            Costo total estimado de infra:{" "}
+            <span className="font-semibold text-zinc-900">
+              ${totalMonthlyCost.toFixed(2)} USD/mes
+            </span>
+          </p>
+        )}
       </section>
+
+      {/* Editor de planes — collapsado por default. Si upgradeás un servicio,
+          venís acá y actualizas el tier + límite + costo */}
+      <PlansEditor initial={plans} />
 
       {/* Alertas si algo se está acercando al límite */}
       {r2PctOfFree > 75 && (
@@ -310,12 +332,14 @@ function StatCard({
 function ExternalRow({
   name,
   tier,
+  cost,
   limit,
   href,
   note,
 }: {
   name: string;
   tier: string;
+  cost: number;
   limit: string;
   href: string;
   note: string;
@@ -329,9 +353,16 @@ function ExternalRow({
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-[13.5px] font-bold text-zinc-900">{name}</p>
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-          {tier}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+            {tier}
+          </span>
+          {cost > 0 && (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-700 ring-1 ring-emerald-200">
+              ${cost}/mes
+            </span>
+          )}
+        </div>
       </div>
       <p className="text-[11.5px] font-medium text-zinc-700">{limit}</p>
       <p className="text-[11px] text-zinc-500">{note}</p>
