@@ -11,10 +11,15 @@ import {
   Image as ImageIcon,
   Type,
   LayoutGrid,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type LogoMode = "logo_and_text" | "logo_only" | "text_only";
+type HeaderAlign = "left" | "center" | "right";
+const DEFAULT_LOGO_HEIGHT = 32;
 
 const DEFAULT_FROM = "#3b5fff";
 const DEFAULT_VIA = "#8a2be2";
@@ -41,6 +46,8 @@ export default function WhiteLabelEditor({
     gradientFrom: string | null;
     gradientTo: string | null;
     logoMode: string | null;
+    logoHeight: number | null;
+    headerAlign: string | null;
   };
 }) {
   const router = useRouter();
@@ -57,6 +64,13 @@ export default function WhiteLabelEditor({
   );
   const [logoMode, setLogoMode] = useState<LogoMode>(
     (initial.logoMode as LogoMode | null) ?? "logo_and_text",
+  );
+  const [logoHeight, setLogoHeight] = useState<number>(
+    initial.logoHeight ?? DEFAULT_LOGO_HEIGHT,
+  );
+  const [headerAlign, setHeaderAlign] = useState<HeaderAlign>(
+    (initial.headerAlign as HeaderAlign | null) ??
+      ((initial.logoMode === "logo_only" ? "center" : "left") as HeaderAlign),
   );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -103,6 +117,8 @@ export default function WhiteLabelEditor({
           gradientFrom: gradientFrom === DEFAULT_FROM ? null : gradientFrom,
           gradientTo: gradientTo === DEFAULT_TO ? null : gradientTo,
           logoMode: effectiveMode,
+          logoHeight,
+          headerAlign,
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -227,6 +243,62 @@ export default function WhiteLabelEditor({
             description="Sin logo, solo tipografía"
           />
         </div>
+
+        {/* Tamaño del logo — solo aplica en modo logo_only */}
+        {effectiveMode === "logo_only" && (
+          <div className="mt-5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                Tamaño del logo
+              </label>
+              <span className="font-mono text-[11px] tabular-nums text-zinc-600">
+                {logoHeight}px
+              </span>
+            </div>
+            <input
+              type="range"
+              min={20}
+              max={56}
+              step={1}
+              value={logoHeight}
+              onChange={(e) =>
+                setLogoHeight(parseInt(e.target.value, 10))
+              }
+              className="mt-2 w-full"
+            />
+            <div className="mt-1 flex justify-between text-[10px] text-zinc-400">
+              <span>chico</span>
+              <span>grande</span>
+            </div>
+          </div>
+        )}
+
+        {/* Alineación */}
+        <div className="mt-5">
+          <label className="block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            Alineación
+          </label>
+          <div className="mt-2 inline-flex rounded-md border border-zinc-200 bg-white p-0.5">
+            <AlignButton
+              active={headerAlign === "left"}
+              onClick={() => setHeaderAlign("left")}
+              icon={<AlignLeft className="h-3.5 w-3.5" />}
+              label="Izquierda"
+            />
+            <AlignButton
+              active={headerAlign === "center"}
+              onClick={() => setHeaderAlign("center")}
+              icon={<AlignCenter className="h-3.5 w-3.5" />}
+              label="Centro"
+            />
+            <AlignButton
+              active={headerAlign === "right"}
+              onClick={() => setHeaderAlign("right")}
+              icon={<AlignRight className="h-3.5 w-3.5" />}
+              label="Derecha"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Nombre */}
@@ -323,21 +395,25 @@ export default function WhiteLabelEditor({
         {/* Preview Sidebar (estilo dashboard interno) */}
         <div className="mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm">
           <div
-            className={`flex h-14 items-center border-b border-zinc-800 px-4 ${
-              effectiveMode === "logo_only" ? "justify-center" : "gap-2.5"
+            className={`flex h-14 items-center border-b border-zinc-800 px-4 gap-2.5 ${
+              headerAlign === "center"
+                ? "justify-center"
+                : headerAlign === "right"
+                  ? "justify-end"
+                  : "justify-start"
             }`}
           >
             {effectiveMode !== "text_only" && (
               <>
                 {logoUrl ? (
                   effectiveMode === "logo_only" ? (
-                    // Modo logo grande: aspect ratio natural, max-height fijo,
-                    // ancho automático. Sin caja de fondo.
+                    // Modo logo grande: respeta aspect ratio + altura custom
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={logoUrl}
                       alt=""
-                      className="h-8 w-auto max-w-[160px] object-contain"
+                      style={{ height: `${logoHeight}px` }}
+                      className="w-auto max-w-[160px] object-contain"
                     />
                   ) : (
                     <span
@@ -366,10 +442,26 @@ export default function WhiteLabelEditor({
             )}
             {effectiveMode !== "logo_only" && (
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold tracking-tight text-white">
+                <p
+                  className={`truncate text-[12px] font-semibold tracking-tight text-white ${
+                    headerAlign === "center"
+                      ? "text-center"
+                      : headerAlign === "right"
+                        ? "text-right"
+                        : "text-left"
+                  }`}
+                >
                   {effectiveBrandName}
                 </p>
-                <p className="truncate text-[10px] text-zinc-500">
+                <p
+                  className={`truncate text-[10px] text-zinc-500 ${
+                    headerAlign === "center"
+                      ? "text-center"
+                      : headerAlign === "right"
+                        ? "text-right"
+                        : "text-left"
+                  }`}
+                >
                   Vista interna del equipo
                 </p>
               </div>
@@ -433,6 +525,34 @@ export default function WhiteLabelEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+function AlignButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-semibold transition ${
+        active
+          ? "bg-zinc-900 text-white"
+          : "text-zinc-600 hover:bg-zinc-100"
+      }`}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
   );
 }
 

@@ -22,6 +22,7 @@ import { prisma } from "./db";
 import { getEffectiveLimits } from "./billing";
 
 export type LogoMode = "logo_and_text" | "logo_only" | "text_only";
+export type HeaderAlign = "left" | "center" | "right";
 
 export type WhiteLabel = {
   enabled: boolean;
@@ -34,6 +35,10 @@ export type WhiteLabel = {
   gradientTo: string | null;
   /** Cómo mostrar la marca: logo+texto, solo logo (más grande), o solo texto. */
   logoMode: LogoMode;
+  /** Altura del logo en px en modo "logo_only" (range 20-56, default 32). */
+  logoHeight: number;
+  /** Alineación del header del sidebar (left/center/right). */
+  headerAlign: HeaderAlign;
 };
 
 /** Branding default de MarketaFlow (cuando no hay white-label activo). */
@@ -45,6 +50,8 @@ export const DEFAULT_BRANDING: WhiteLabel = {
   gradientFrom: null,
   gradientTo: null,
   logoMode: "logo_and_text",
+  logoHeight: 32,
+  headerAlign: "left",
 };
 
 export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
@@ -58,6 +65,8 @@ export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
       wlGradientFrom: true,
       wlGradientTo: true,
       wlLogoMode: true,
+      wlLogoHeight: true,
+      wlHeaderAlign: true,
     },
   });
   if (!agency) return DEFAULT_BRANDING;
@@ -72,6 +81,16 @@ export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
   const logoMode: LogoMode =
     !agency.wlLogoUrl && rawMode === "logo_only" ? "text_only" : rawMode;
 
+  // Logo height: clamp al range 20-56 con default 32
+  const rawHeight = agency.wlLogoHeight ?? 32;
+  const logoHeight = Math.max(20, Math.min(56, rawHeight));
+
+  // Align: si el user no configuró, usamos default por modo (centro para
+  // logo_only, izquierda para los otros).
+  const rawAlign = agency.wlHeaderAlign as HeaderAlign | null;
+  const headerAlign: HeaderAlign =
+    rawAlign ?? (logoMode === "logo_only" ? "center" : "left");
+
   return {
     enabled: true,
     brandName: agency.wlBrandName?.trim() || agency.name,
@@ -80,6 +99,8 @@ export async function getWhiteLabel(agencyId: string): Promise<WhiteLabel> {
     gradientFrom: agency.wlGradientFrom ?? null,
     gradientTo: agency.wlGradientTo ?? null,
     logoMode,
+    logoHeight,
+    headerAlign,
   };
 }
 

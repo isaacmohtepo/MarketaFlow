@@ -189,6 +189,8 @@ export default function Sidebar({
   brandName,
   brandLogoUrl,
   brandLogoMode,
+  brandLogoHeight,
+  brandHeaderAlign,
   isMobile = false,
   onNavigate,
   isAdmin = false,
@@ -202,6 +204,10 @@ export default function Sidebar({
   brandLogoUrl?: string | null;
   /** Modo de display: logo+texto / solo logo (grande) / solo texto. */
   brandLogoMode?: "logo_and_text" | "logo_only" | "text_only" | null;
+  /** Altura del logo en px (solo aplica en modo logo_only). */
+  brandLogoHeight?: number | null;
+  /** Alineación horizontal del header del sidebar. */
+  brandHeaderAlign?: "left" | "center" | "right" | null;
   isMobile?: boolean;
   onNavigate?: () => void;
   isAdmin?: boolean;
@@ -273,17 +279,17 @@ export default function Sidebar({
       style={{ background: "var(--bg-sidebar)", borderRight: DARK_LINE }}
     >
       <div
-        className={`flex h-14 items-center px-4 ${
-          brandLogoMode === "logo_only"
+        className={`flex h-14 items-center gap-2.5 px-4 ${
+          brandHeaderAlign === "center"
             ? "justify-center"
-            : "gap-2.5"
+            : brandHeaderAlign === "right"
+              ? "justify-end"
+              : "justify-start"
         }`}
         style={{ borderBottom: DARK_LINE }}
       >
-        {/* Logo (oculto si modo = text_only). En logo_only dejamos que el
-            aspect ratio natural mande: max-height fijo, ancho automático.
-            Sin caja de fondo — el logo se ve "limpio" sobre el sidebar
-            oscuro. */}
+        {/* Logo (oculto si modo = text_only). En logo_only respetamos el
+            aspect ratio natural — altura configurable, ancho automático. */}
         {brandLogoMode !== "text_only" && (
           <>
             {brandLogoUrl ? (
@@ -292,7 +298,8 @@ export default function Sidebar({
                 <img
                   src={brandLogoUrl}
                   alt={brandName ?? "Logo"}
-                  className="h-8 w-auto max-w-[160px] object-contain"
+                  style={{ height: `${brandLogoHeight ?? 32}px` }}
+                  className="w-auto max-w-[160px] object-contain"
                 />
               ) : (
                 <span className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg bg-white/5 shadow-sm">
@@ -314,11 +321,29 @@ export default function Sidebar({
         {/* Texto (oculto si modo = logo_only) */}
         {brandLogoMode !== "logo_only" && (
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold tracking-tight text-white">
+            <p
+              className={`truncate text-[13px] font-semibold tracking-tight text-white ${
+                brandHeaderAlign === "center"
+                  ? "text-center"
+                  : brandHeaderAlign === "right"
+                    ? "text-right"
+                    : "text-left"
+              }`}
+            >
               {brandName ?? "MarketaFlow"}
             </p>
             {agencyName && agencyName !== brandName && (
-              <p className="truncate text-[11px] text-zinc-500">{agencyName}</p>
+              <p
+                className={`truncate text-[11px] text-zinc-500 ${
+                  brandHeaderAlign === "center"
+                    ? "text-center"
+                    : brandHeaderAlign === "right"
+                      ? "text-right"
+                      : "text-left"
+                }`}
+              >
+                {agencyName}
+              </p>
             )}
           </div>
         )}

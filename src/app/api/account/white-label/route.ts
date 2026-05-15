@@ -30,6 +30,8 @@ const patchSchema = z.object({
     .enum(["logo_and_text", "logo_only", "text_only"])
     .nullable()
     .optional(),
+  logoHeight: z.number().int().min(20).max(56).nullable().optional(),
+  headerAlign: z.enum(["left", "center", "right"]).nullable().optional(),
 });
 
 async function resolveAgencyId(userId: string): Promise<string | null> {
@@ -57,6 +59,8 @@ export async function GET() {
         wlGradientFrom: true,
         wlGradientTo: true,
         wlLogoMode: true,
+        wlLogoHeight: true,
+        wlHeaderAlign: true,
       },
     }),
     getEffectiveLimits(agencyId),
@@ -71,6 +75,8 @@ export async function GET() {
     gradientFrom: agency?.wlGradientFrom ?? null,
     gradientTo: agency?.wlGradientTo ?? null,
     logoMode: agency?.wlLogoMode ?? "logo_and_text",
+    logoHeight: agency?.wlLogoHeight ?? 32,
+    headerAlign: agency?.wlHeaderAlign ?? null,
   });
 }
 
@@ -108,13 +114,15 @@ export async function PATCH(req: Request) {
     );
   }
 
-  const updates: Record<string, string | null> = {};
+  const updates: Record<string, string | number | null> = {};
   if (body.brandName !== undefined) updates.wlBrandName = body.brandName;
   if (body.logoUrl !== undefined) updates.wlLogoUrl = body.logoUrl;
   if (body.accentColor !== undefined) updates.wlAccentColor = body.accentColor;
   if (body.gradientFrom !== undefined) updates.wlGradientFrom = body.gradientFrom;
   if (body.gradientTo !== undefined) updates.wlGradientTo = body.gradientTo;
   if (body.logoMode !== undefined) updates.wlLogoMode = body.logoMode;
+  if (body.logoHeight !== undefined) updates.wlLogoHeight = body.logoHeight;
+  if (body.headerAlign !== undefined) updates.wlHeaderAlign = body.headerAlign;
 
   await prisma.agency.update({
     where: { id: agencyId },

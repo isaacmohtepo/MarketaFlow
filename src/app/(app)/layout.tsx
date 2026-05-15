@@ -190,6 +190,8 @@ export default async function AppLayout({
       brandName={wl?.enabled ? wl.brandName : null}
       brandLogoUrl={wl?.enabled ? wl.logoUrl : null}
       brandLogoMode={wl?.enabled ? wl.logoMode : null}
+      brandLogoHeight={wl?.enabled ? wl.logoHeight : null}
+      brandHeaderAlign={wl?.enabled ? wl.headerAlign : null}
       isAdmin={isAdmin}
       isOwner={isOwner}
       planCard={planCard}

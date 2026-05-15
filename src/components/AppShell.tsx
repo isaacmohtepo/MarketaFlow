@@ -22,6 +22,8 @@ export default function AppShell({
   brandName,
   brandLogoUrl,
   brandLogoMode,
+  brandLogoHeight,
+  brandHeaderAlign,
   title,
   isAdmin = false,
   isOwner = false,
@@ -38,6 +40,10 @@ export default function AppShell({
   brandLogoUrl?: string | null;
   /** Cómo renderizar el logo: "logo_and_text" (default), "logo_only", "text_only". */
   brandLogoMode?: "logo_and_text" | "logo_only" | "text_only" | null;
+  /** Altura del logo en px en modo "logo_only" (20-56). */
+  brandLogoHeight?: number | null;
+  /** Alineación del header del sidebar. */
+  brandHeaderAlign?: "left" | "center" | "right" | null;
   title?: string;
   isAdmin?: boolean;
   isOwner?: boolean;
@@ -60,6 +66,8 @@ export default function AppShell({
         brandName={brandName}
         brandLogoUrl={brandLogoUrl}
         brandLogoMode={brandLogoMode}
+        brandLogoHeight={brandLogoHeight}
+        brandHeaderAlign={brandHeaderAlign}
         isAdmin={isAdmin}
         isOwner={isOwner}
         planCard={planCard}
@@ -79,6 +87,8 @@ export default function AppShell({
               brandName={brandName}
               brandLogoUrl={brandLogoUrl}
               brandLogoMode={brandLogoMode}
+              brandLogoHeight={brandLogoHeight}
+              brandHeaderAlign={brandHeaderAlign}
               isMobile
               isAdmin={isAdmin}
               isOwner={isOwner}

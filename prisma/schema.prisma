@@ -118,6 +118,12 @@ model Agency {
   ///  - "text_only": solo el nombre, sin logo (cuando no hay logo subido o
   ///    se prefiere tipografía limpia)
   wlLogoMode        String?
+  /// Altura del logo en px cuando modo = "logo_only". Range razonable 20-56.
+  /// Default 32. En otros modos no aplica (el logo chico es fijo a 28).
+  wlLogoHeight      Int?
+  /// Alineación del header del sidebar: "left" | "center" | "right".
+  /// Default "left" para logo_and_text y text_only, "center" para logo_only.
+  wlHeaderAlign     String?
   createdAt    DateTime          @default(now())
   brands       Brand[]
   members      Membership[]

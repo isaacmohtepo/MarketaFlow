@@ -34,6 +34,8 @@ export default async function WhiteLabelPage() {
         wlGradientFrom: true,
         wlGradientTo: true,
         wlLogoMode: true,
+        wlLogoHeight: true,
+        wlHeaderAlign: true,
       },
     }),
     getEffectiveLimits(m.agencyId),
@@ -82,6 +84,8 @@ export default async function WhiteLabelPage() {
               gradientFrom: agency.wlGradientFrom,
               gradientTo: agency.wlGradientTo,
               logoMode: agency.wlLogoMode,
+              logoHeight: agency.wlLogoHeight,
+              headerAlign: agency.wlHeaderAlign,
             }}
           />
         </div>
