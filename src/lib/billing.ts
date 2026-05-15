@@ -293,6 +293,11 @@ export async function getBillingSummary(agencyId: string) {
     currentPeriodEnd: sub.currentPeriodEnd,
     nextChargeAt: sub.nextChargeAt,
     cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+    /** Si está set y cancelAtPeriodEnd=true, hay un cambio de plan
+     *  programado para currentPeriodEnd (downgrade Agency→Pro por ej).
+     *  El cron lo activa al expirar el período. Null = bajada a Free. */
+    pendingPlan: sub.pendingPlan,
+    pendingBillingCycle: sub.pendingBillingCycle,
     extraBrands: sub.extraBrands,
     extraSeats: sub.extraSeats,
     whiteLabelAddon: sub.whiteLabelAddon,

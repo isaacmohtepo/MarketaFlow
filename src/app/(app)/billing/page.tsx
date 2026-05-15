@@ -21,6 +21,7 @@ import InvoiceFilters from "./InvoiceFilters";
 import BrandLockToggle from "./BrandLockToggle";
 import PaymentMethods from "./PaymentMethods";
 import Addons from "./Addons";
+import PlanSwitcher from "./PlanSwitcher";
 
 const PAGE_SIZE = 15;
 
@@ -479,27 +480,18 @@ export default async function BillingPage({
         </div>
       </section>
 
-      {/* Comparación de planes */}
-      {(isFree || isTrialing) && (
-        <section className="card p-6">
-          <h2 className="text-sm font-semibold text-zinc-900">
-            Cambiar de plan
-          </h2>
-          <p className="mt-1 text-[12px] text-zinc-500">
-            Elegí el plan que mejor se adapte a tu agencia.
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {PLANS_LIST.map((p) => (
-              <PlanCardCompact
-                key={p.id}
-                plan={p}
-                isCurrent={p.id === plan.id}
-                agencyId={agency.id}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Comparación de planes — siempre visible para que el user pueda
+          mejorar o bajar su plan cuando quiera. */}
+      <section className="card p-6">
+        <PlanSwitcher
+          currentPlanId={plan.id as PlanId}
+          currentCycle={summary.billingCycle as "monthly" | "yearly"}
+          pendingPlanId={summary.pendingPlan ?? null}
+          pendingCycle={summary.pendingBillingCycle ?? null}
+          cancelAtPeriodEnd={summary.cancelAtPeriodEnd ?? false}
+          currentPeriodEnd={summary.currentPeriodEnd?.toISOString() ?? null}
+        />
+      </section>
 
       {/* Métodos de pago — gestión completa (ver, marcar default, borrar,
           agregar/cambiar). El componente client se encarga de todo. */}

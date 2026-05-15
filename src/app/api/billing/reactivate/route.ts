@@ -43,6 +43,10 @@ export async function POST() {
       status: "active",
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      // Limpiamos cualquier downgrade programado — el user revierte y vuelve
+      // al plan/cycle actual.
+      pendingPlan: null,
+      pendingBillingCycle: null,
     },
   });
 

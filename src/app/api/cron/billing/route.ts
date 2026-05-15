@@ -71,12 +71,81 @@ export async function GET(req: Request) {
     }
   }
 
-  // 2. Subs canceladas cuyo período terminó → expired
+  // 2. Subs canceladas cuyo período terminó:
+  //    - Si tienen pendingPlan/pendingBillingCycle seteados, NO bajan a free.
+  //      En su lugar, activan ese plan y arrancan un nuevo período cobrando
+  //      con el método guardado (downgrade programado, ej. Agency → Pro).
+  //    - Si NO tienen pending, van a free + expired como siempre.
+  const scheduledDowngrades = await prisma.subscription.findMany({
+    where: {
+      status: "canceled",
+      cancelAtPeriodEnd: true,
+      currentPeriodEnd: { lt: now },
+      pendingPlan: { not: null },
+    },
+    include: { paymentMethods: { where: { isDefault: true }, take: 1 } },
+  });
+  for (const sub of scheduledDowngrades) {
+    // Aplicar el plan pendiente: lo movemos a sub.plan/sub.billingCycle y
+    // dejamos el sub activo. La próxima renovación va a cobrar con el
+    // nuevo plan/cycle. Si no hay payment method, va a free como fallback.
+    const hasPm = sub.paymentMethods.length > 0;
+    if (!hasPm) {
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          plan: "free",
+          status: "expired",
+          cancelAtPeriodEnd: false,
+          nextChargeAt: null,
+          pendingPlan: null,
+          pendingBillingCycle: null,
+        },
+      });
+      stats.canceledExpired++;
+      continue;
+    }
+    // Calcular nuevo período según el cycle pendiente
+    const newCycle =
+      (sub.pendingBillingCycle as "monthly" | "yearly" | null) ??
+      sub.billingCycle ??
+      "monthly";
+    const periodStart = new Date();
+    const periodEnd = new Date(periodStart);
+    if (newCycle === "yearly") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
+    // Próximo cobro = 1 día antes del fin del nuevo período. El cron va
+    // a cobrarlo cuando llegue ese momento (no ahora — el user ya pagó
+    // el período viejo, no le cobramos doble).
+    const nextChargeAt = new Date(periodEnd);
+    nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        plan: sub.pendingPlan!,
+        billingCycle: newCycle,
+        status: "active",
+        cancelAtPeriodEnd: false,
+        canceledAt: null,
+        currentPeriodStart: periodStart,
+        currentPeriodEnd: periodEnd,
+        nextChargeAt,
+        pendingPlan: null,
+        pendingBillingCycle: null,
+      },
+    });
+  }
+
+  // Las que NO tenían pendingPlan → siguen el flujo de siempre (free + expired)
   const canceledExpired = await prisma.subscription.updateMany({
     where: {
       status: "canceled",
       cancelAtPeriodEnd: true,
       currentPeriodEnd: { lt: now },
+      pendingPlan: null,
     },
     data: {
       plan: "free",
@@ -85,7 +154,7 @@ export async function GET(req: Request) {
       nextChargeAt: null,
     },
   });
-  stats.canceledExpired = canceledExpired.count;
+  stats.canceledExpired += canceledExpired.count;
 
   // 3. Renovaciones pendientes
   const pendingCharges = await prisma.subscription.findMany({
