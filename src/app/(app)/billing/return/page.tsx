@@ -111,14 +111,13 @@ export default async function BillingReturnPage({
               addonUpdates.extraSeats = { increment: qty };
             } else if (invoice.addonType === "whiteLabel") {
               addonUpdates.whiteLabelAddon = true;
-            } else if (invoice.addonType === "method_validation") {
-              // Validación de método de pago: el cargo queda como crédito
-              // para la próxima factura. El payment_source se guarda en
-              // el webhook (que también puede haber corrido — mismo update
-              // es idempotente).
-              addonUpdates.creditCents = { increment: invoice.amount };
             }
-            await prisma.$transaction([
+            // method_validation: lo manejamos abajo (try void → fallback credit).
+            // No aplicamos crédito acá porque el webhook intentará voiding primero.
+            // Para method_validation no aplicamos addon updates (queda
+            // para el webhook que intenta void primero). Solo marcamos
+            // invoice paid si todavía está pending.
+            const txOps: import("@/generated/prisma").Prisma.PrismaPromise<unknown>[] = [
               prisma.invoice.update({
                 where: { id: invoice.id },
                 data: {
@@ -133,11 +132,16 @@ export default async function BillingReturnPage({
                     : new Date(),
                 },
               }),
-              prisma.subscription.update({
-                where: { id: invoice.subscriptionId },
-                data: addonUpdates,
-              }),
-            ]);
+            ];
+            if (Object.keys(addonUpdates).length > 0) {
+              txOps.push(
+                prisma.subscription.update({
+                  where: { id: invoice.subscriptionId },
+                  data: addonUpdates,
+                }),
+              );
+            }
+            await prisma.$transaction(txOps);
           } else {
             // Rama 2: invoice de plan (upgrade / renovación) → flujo viejo
             const periodEnd = invoice.periodEnd ?? new Date();
@@ -237,7 +241,7 @@ export default async function BillingReturnPage({
 
   return (
     <div className="mx-auto max-w-md py-20 text-center">
-      {invoice.status === "paid" ? (
+      {invoice.status === "paid" || invoice.status === "refunded" ? (
         invoice.addonType === "method_validation" ? (
           <>
             <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
@@ -245,9 +249,18 @@ export default async function BillingReturnPage({
               ¡Método de pago guardado! 🎉
             </h1>
             <p className="mt-2 text-sm text-zinc-500">
-              Tu tarjeta o Nequi quedó guardada para los cobros recurrentes.
-              Los <strong>${(invoice.amount / 100).toLocaleString("es-CO")} COP</strong>{" "}
-              de validación se aplican como crédito en tu próxima factura.
+              Tu tarjeta o Nequi quedó guardada para los cobros recurrentes.{" "}
+              {invoice.status === "refunded" ? (
+                <>
+                  Los <strong>${(invoice.amount / 100).toLocaleString("es-CO")} COP</strong>{" "}
+                  de validación se anularon automáticamente — no verás cargo en tu extracto.
+                </>
+              ) : (
+                <>
+                  Los <strong>${(invoice.amount / 100).toLocaleString("es-CO")} COP</strong>{" "}
+                  de validación quedan como crédito en tu próxima factura.
+                </>
+              )}
             </p>
           </>
         ) : (

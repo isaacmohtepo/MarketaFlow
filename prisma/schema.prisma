@@ -475,6 +475,9 @@ model Invoice {
 
   paidAt             DateTime?
   failedAt           DateTime?
+  /// Si la transacción fue anulada (típico para validaciones de método
+  /// de pago donde no queremos cobrar realmente). Status="refunded".
+  refundedAt         DateTime?
   failedReason       String?
 
   createdAt          DateTime     @default(now())

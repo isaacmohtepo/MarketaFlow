@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getWompiConfig, resolveWompiEnvironment } from "@/lib/integrations";
-import { verifyEventSignature, getTransaction } from "@/lib/wompi";
+import { verifyEventSignature, getTransaction, voidTransaction } from "@/lib/wompi";
 import {
   sendPaymentSuccessEmail,
   sendPaymentFailedEmail,
@@ -289,11 +289,12 @@ async function handleTransactionUpdated(
           addonUpdates.whiteLabelAddon = true;
         } else if (invoice.addonType === "method_validation") {
           // Validación de método de pago: el user pagó $X solo para
-          // probar la tarjeta. No es un addon real. Acumulamos como
-          // crédito en la suscripción → se descuenta del próximo cobro
-          // mensual. El payment_source resultante se guarda más abajo
-          // (mismo código de siempre).
-          addonUpdates.creditCents = { increment: invoice.amount };
+          // guardar la tarjeta. Intentamos anular el cobro inmediato
+          // (ver más abajo, fuera del tx). Si la void falla (NEQUI no
+          // soporta void, o ventana cerrada después de 24h), caemos
+          // de fallback a crédito en la próxima factura. La decisión
+          // void-vs-credit la tomamos abajo.
+          // No tocamos creditCents acá — se decide post-void.
         }
         if (Object.keys(addonUpdates).length > 0) {
           await tx.subscription.update({
@@ -472,6 +473,45 @@ async function handleTransactionUpdated(
       } catch (err) {
         safeLogError("Failed to enrich payment method details", err);
       }
+    }
+
+    // VALIDACIÓN DE MÉTODO DE PAGO: intentar anular el cobro inmediato.
+    // Si la void funciona (CARD dentro de ventana 24h), el user no ve cargo
+    // real en el extracto. Si falla (NEQUI no soporta void, o ventana
+    // cerrada), aplicamos como crédito en la próxima factura.
+    if (invoice.addonType === "method_validation") {
+      let voided = false;
+      try {
+        const env = await resolveWompiEnvironment();
+        if (env) {
+          await voidTransaction(transaction.id, env);
+          voided = true;
+        }
+      } catch (err) {
+        // Void falló — esperado para NEQUI y cuando pasó la ventana.
+        // Loggear pero no romper el handler.
+        console.warn("validation void failed (fallback to credit)", err);
+      }
+
+      if (voided) {
+        // Anulación exitosa: invoice queda "refunded", no aplicamos crédito.
+        await prisma.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            status: "refunded",
+            refundedAt: new Date(),
+          },
+        });
+      } else {
+        // Void no se pudo: aplicar como crédito futuro.
+        await prisma.subscription.update({
+          where: { id: invoice.subscriptionId },
+          data: { creditCents: { increment: invoice.amount } },
+        });
+      }
+      // No mandamos "payment-success email" para validaciones — no es un
+      // cobro real para el user.
+      return;
     }
 
     // Email de confirmación al owner. No bloqueamos la respuesta del webhook
