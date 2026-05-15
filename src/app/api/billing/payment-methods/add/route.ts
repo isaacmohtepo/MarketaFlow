@@ -33,8 +33,11 @@ import { audit } from "@/lib/audit";
 const cardSchema = z.object({
   type: z.literal("CARD"),
   cardToken: z.string().min(1),
-  acceptanceToken: z.string().min(1),
-  acceptancePersonalDataAuthToken: z.string().min(1).optional(),
+  // Mantenemos los campos opcionales en el schema para no romper clientes
+  // viejos que todavía los mandan — el server los ignora y fetchea sus
+  // propios tokens frescos para evitar "token already used".
+  acceptanceToken: z.string().optional(),
+  acceptancePersonalDataAuthToken: z.string().optional(),
   // Display info (vienen del response de tokenize, los pasamos para evitar
   // un round-trip extra; el server igual los podría sacar de la tarjeta).
   last4: z.string().regex(/^\d{4}$/),
@@ -47,8 +50,9 @@ const cardSchema = z.object({
 const nequiSchema = z.object({
   type: z.literal("NEQUI"),
   phoneNumber: z.string().regex(/^3\d{9}$/, "Teléfono Nequi inválido — 10 dígitos empezando con 3"),
-  acceptanceToken: z.string().min(1),
-  acceptancePersonalDataAuthToken: z.string().min(1).optional(),
+  // Idem CARD: opcionales, el server fetchea los suyos siempre.
+  acceptanceToken: z.string().optional(),
+  acceptancePersonalDataAuthToken: z.string().optional(),
 });
 
 const schema = z.discriminatedUnion("type", [cardSchema, nequiSchema]);
@@ -98,16 +102,52 @@ export async function POST(req: Request) {
       ? "https://production.wompi.co/v1"
       : "https://sandbox.wompi.co/v1";
 
-  // Nequi requiere `accept_personal_auth` OBLIGATORIO (en sandbox y en
-  // producción). Si el browser no lo mandó es porque el endpoint
-  // /api/billing/wompi-public-config no lo devolvió (Wompi sin
-  // presigned_personal_data_auth). Cortamos temprano con error claro,
-  // sino Wompi devuelve un INPUT_VALIDATION_ERROR genérico que confunde.
-  if (body.type === "NEQUI" && !body.acceptancePersonalDataAuthToken) {
+  // Pedir acceptance_tokens FRESCOS justo antes de crear el payment_source.
+  // Antes recibíamos los tokens del browser (fetched al abrir el modal),
+  // pero esos tokens son single-use: si el primer intento fallaba o el
+  // modal se cerraba/abría, el segundo intento reusaba el mismo token y
+  // Wompi rechazaba con "El token de aceptación ya fue usado".
+  // Pidiéndolos server-side por cada request, garantizamos que siempre
+  // sean nuevos.
+  let acceptanceToken: string | null = null;
+  let acceptancePersonalDataAuthToken: string | null = null;
+  try {
+    const merchantRes = await fetch(
+      `${apiBase}/merchants/${encodeURIComponent(cfg.publicKey)}`,
+      { cache: "no-store" },
+    );
+    if (merchantRes.ok) {
+      const j = (await merchantRes.json()) as {
+        data?: {
+          presigned_acceptance?: { acceptance_token?: string };
+          presigned_personal_data_auth?: { acceptance_token?: string };
+        };
+      };
+      acceptanceToken = j.data?.presigned_acceptance?.acceptance_token ?? null;
+      acceptancePersonalDataAuthToken =
+        j.data?.presigned_personal_data_auth?.acceptance_token ?? null;
+    }
+  } catch (err) {
+    console.error("Failed to fetch fresh Wompi acceptance tokens", err);
+  }
+  if (!acceptanceToken) {
     return NextResponse.json(
       {
         error:
-          "No pudimos obtener el token de autorización de datos personales de Wompi. Refrescá la página y probá de nuevo, o contactá soporte si persiste.",
+          "No pudimos obtener el token de aceptación de Wompi. Probá de nuevo en unos segundos.",
+      },
+      { status: 503 },
+    );
+  }
+
+  // Nequi requiere `accept_personal_auth` OBLIGATORIO (en sandbox y en
+  // producción). Si Wompi no devolvió presigned_personal_data_auth en
+  // merchants/.., no podemos seguir con Nequi.
+  if (body.type === "NEQUI" && !acceptancePersonalDataAuthToken) {
+    return NextResponse.json(
+      {
+        error:
+          "Wompi no devolvió el token de autorización de datos personales. Probá de nuevo o contactá soporte.",
       },
       { status: 503 },
     );
@@ -126,15 +166,17 @@ export async function POST(req: Request) {
   }
 
   // Construir el body del payment_source según el tipo.
+  // Usamos los tokens fresh fetched arriba — NUNCA los del body, que
+  // pueden estar stale por reintentos.
   let sourceBody: Record<string, unknown>;
   if (body.type === "CARD") {
     sourceBody = {
       type: "CARD",
       token: body.cardToken,
       customer_email: user.email,
-      acceptance_token: body.acceptanceToken,
-      ...(body.acceptancePersonalDataAuthToken && {
-        accept_personal_auth: body.acceptancePersonalDataAuthToken,
+      acceptance_token: acceptanceToken,
+      ...(acceptancePersonalDataAuthToken && {
+        accept_personal_auth: acceptancePersonalDataAuthToken,
       }),
     };
   } else {
@@ -190,8 +232,8 @@ export async function POST(req: Request) {
         type: "NEQUI",
         token: tokenJson.data.id,
         customer_email: user.email,
-        acceptance_token: body.acceptanceToken,
-        accept_personal_auth: body.acceptancePersonalDataAuthToken,
+        acceptance_token: acceptanceToken,
+        accept_personal_auth: acceptancePersonalDataAuthToken,
       };
     } catch (err) {
       console.error("Wompi tokens/nequi network failed", err);
