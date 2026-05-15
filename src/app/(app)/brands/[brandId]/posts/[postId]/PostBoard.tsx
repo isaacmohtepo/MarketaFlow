@@ -79,6 +79,7 @@ export default function PostBoard({
   initialComments,
   versions,
   isAgency,
+  timelineSlot,
 }: {
   postId: string;
   imageUrl: string | null;
@@ -109,6 +110,10 @@ export default function PostBoard({
   initialComments: Comment[];
   versions: PostVersionLite[];
   isAgency: boolean;
+  /** Server-rendered <Timeline /> que se inserta en la columna izquierda
+   *  debajo del área de imagen — llena el espacio vacío y evita que la
+   *  página crezca verticalmente con muchos comments. */
+  timelineSlot?: React.ReactNode;
 }) {
   const router = useRouter();
   const params = useParams<{ brandId: string }>();
@@ -999,6 +1004,10 @@ export default function PostBoard({
           </p>
         )}
 
+        {/* Timeline / Historial — llena el espacio vacío debajo de la
+            imagen en lugar de quedar al final de la página. */}
+        {timelineSlot && <div className="mt-2">{timelineSlot}</div>}
+
         {/* Versions panel */}
         {versions.length > 0 && (
           <div className="card p-3">
@@ -1290,7 +1299,11 @@ export default function PostBoard({
               </button>
             )}
           </div>
-          <ul className="scroll-visible mt-2 max-h-[640px] space-y-2 pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
+          {/* Lista de comentarios con scroll interno. Antes lg:max-h-none
+              dejaba crecer la página al infinito (con 8+ comments la pag
+              quedaba enorme). Ahora limitamos a 70vh tanto en mobile
+              como desktop → scroll dentro del panel. */}
+          <ul className="scroll-visible mt-2 max-h-[70vh] space-y-2 overflow-y-auto pr-1">
             {visibleParents.length === 0 && (
               <li className="text-xs text-zinc-500">Sin comentarios aún.</li>
             )}

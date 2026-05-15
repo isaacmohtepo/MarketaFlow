@@ -247,6 +247,9 @@ export default async function PostPage({
             />
           ) : (
           <PostBoard
+            timelineSlot={
+              timeline.length > 0 ? <Timeline events={timeline} /> : null
+            }
             postId={post.id}
             imageUrl={post.imageUrl}
             images={images.map((i) => i.url)}
@@ -316,11 +319,9 @@ export default async function PostPage({
           </div>
         )}
 
-        {timeline.length > 0 && (
-          <div className="mt-6">
-            <Timeline events={timeline} />
-          </div>
-        )}
+        {/* Timeline ahora se renderiza DENTRO de PostBoard como timelineSlot
+            (debajo de la imagen, llena el espacio vacío en lugar de aparecer
+            al final de la página). */}
       </div>
     </>
   );
