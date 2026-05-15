@@ -146,6 +146,14 @@ export async function GET(req: Request) {
       error: err instanceof Error ? err.message : String(err),
     };
   }
+  try {
+    const { runIgTokenRefresh } = await import("./jobs/refresh-ig-tokens");
+    childResults.igTokenRefresh = await runIgTokenRefresh();
+  } catch (err) {
+    childResults.igTokenRefresh = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
   // Cleanup global de invoices pending abandonadas (>60min sin pago)
   try {
     const { expireStalePendingInvoices } = await import("@/lib/invoice-cleanup");

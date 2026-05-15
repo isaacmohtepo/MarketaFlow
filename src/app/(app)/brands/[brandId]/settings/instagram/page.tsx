@@ -24,10 +24,12 @@ export default async function BrandInstagramSettings({
       igUserId: true,
       igAccessToken: true,
       igAccessTokenEnc: true,
+      igConnectionStatus: true,
     },
   });
   if (!brand) notFound();
   const hasToken = !!(brand.igAccessToken || brand.igAccessTokenEnc);
+  const needsReconnect = brand.igConnectionStatus === "needs_reconnect";
 
   // Si la plataforma todavía no tiene OAuth de Meta configurado,
   // mostramos un placeholder "Próximamente" en vez del connector roto.
@@ -55,6 +57,7 @@ export default async function BrandInstagramSettings({
             brandId={brandId}
             connected={!!brand.igUserId && hasToken}
             currentIgUserId={brand.igUserId}
+            needsReconnect={needsReconnect}
           />
         </>
       ) : (

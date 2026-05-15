@@ -16,10 +16,12 @@ export default function InstagramConnector({
   brandId,
   connected,
   currentIgUserId,
+  needsReconnect,
 }: {
   brandId: string;
   connected: boolean;
   currentIgUserId: string | null;
+  needsReconnect?: boolean;
 }) {
   const router = useRouter();
   const { confirm } = useConfirm();
@@ -90,6 +92,19 @@ export default function InstagramConnector({
 
   return (
     <div className="space-y-4">
+      {/* Banner: token caducado, hay que reconectar */}
+      {needsReconnect && connected && (
+        <div className="card border-rose-300 bg-rose-50/60 p-4">
+          <p className="text-[13px] font-bold text-rose-900">
+            Reconectá Instagram
+          </p>
+          <p className="mt-1 text-[12px] text-rose-800">
+            El token de acceso caducó o fue revocado. Mientras no se
+            reconecte, los posts programados no se van a publicar. Click
+            en "Conectar con Instagram" abajo para arreglarlo.
+          </p>
+        </div>
+      )}
       {/* Estado actual */}
       {connected && (
         <div className="card flex items-center justify-between gap-3 border-emerald-200 bg-emerald-50/40 p-4">
