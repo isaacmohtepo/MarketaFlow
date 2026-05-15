@@ -17,6 +17,7 @@ import OnboardingTour from "./OnboardingTour";
  */
 export default function AppShell({
   userName,
+  userEmail,
   avatarUrl,
   agencyName,
   brandName,
@@ -32,6 +33,7 @@ export default function AppShell({
   children,
 }: {
   userName: string;
+  userEmail: string;
   avatarUrl?: string | null;
   agencyName: string | null;
   /** Nombre del brand a mostrar en sidebar/topbar. Si null, "MarketaFlow". */
@@ -105,8 +107,11 @@ export default function AppShell({
         {banners}
         <TopBar
           userName={userName}
+          userEmail={userEmail}
           avatarUrl={avatarUrl}
           title={title}
+          isOwner={isOwner}
+          isAdmin={isAdmin}
           onMobileMenu={() => setMobileOpen(true)}
         />
         <main className="flex-1 px-4 py-5 text-zinc-900 sm:px-6 sm:py-6">

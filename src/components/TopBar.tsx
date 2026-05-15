@@ -1,33 +1,27 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import NotificationsBell from "./NotificationsBell";
 import SearchBox from "./SearchBox";
-import { LogOut, Menu } from "lucide-react";
+import UserMenu from "./UserMenu";
+import { Menu } from "lucide-react";
 
 export default function TopBar({
   userName,
+  userEmail,
   avatarUrl,
   title,
+  isOwner = false,
+  isAdmin = false,
   onMobileMenu,
 }: {
   userName: string;
+  userEmail: string;
   avatarUrl?: string | null;
   title?: string;
+  isOwner?: boolean;
+  isAdmin?: boolean;
   onMobileMenu?: () => void;
 }) {
-  const router = useRouter();
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
-  }
-  const initials = userName
-    .split(/[ @]/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("");
   return (
     <header
       className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b divider px-3 sm:gap-3 sm:px-5"
@@ -48,30 +42,16 @@ export default function TopBar({
       <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
         <SearchBox />
         <NotificationsBell />
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={userName}
-            title={userName}
-            className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
-          />
-        ) : (
-          <span
-            className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold text-white brand-gradient"
-            title={userName}
-          >
-            {initials || "?"}
-          </span>
-        )}
-        <button
-          onClick={logout}
-          className="grid h-7 w-7 place-items-center rounded-md border border-[var(--line)] bg-white text-zinc-600 hover:bg-zinc-100"
-          aria-label="Salir"
-          title="Salir"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </button>
+        {/* Avatar ahora es un menú dropdown con mi-cuenta / billing /
+            white-label / admin / cerrar-sesión. Antes era solo una imagen
+            sin click + botón separado de logout. */}
+        <UserMenu
+          userName={userName}
+          userEmail={userEmail}
+          avatarUrl={avatarUrl}
+          isOwner={isOwner}
+          isAdmin={isAdmin}
+        />
       </div>
     </header>
   );

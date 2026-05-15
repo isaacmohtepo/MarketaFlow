@@ -185,6 +185,7 @@ export default async function AppLayout({
     )}
     <AppShell
       userName={user.name ?? user.email}
+      userEmail={user.email}
       avatarUrl={userRow?.avatarUrl ?? null}
       agencyName={agencyName}
       brandName={wl?.enabled ? wl.brandName : null}
