@@ -383,6 +383,15 @@ export default function AddPaymentMethodModal({
 
             {tab === "CARD" ? (
               <form onSubmit={submitCard} className="space-y-3 p-5">
+                <div className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-900">
+                  <p>
+                    <strong>Validación con cobro temporal:</strong> Wompi va a
+                    hacer un cargo de <strong>$5.000 COP</strong> a tu tarjeta
+                    para confirmar que funciona, y lo anula al instante. Si
+                    la anulación no llega a tiempo, queda como crédito en tu
+                    próxima factura.
+                  </p>
+                </div>
                 <Field label="Número de tarjeta">
                   <input
                     type="text"

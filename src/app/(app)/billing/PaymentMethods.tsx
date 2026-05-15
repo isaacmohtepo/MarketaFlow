@@ -260,36 +260,33 @@ export default function PaymentMethods({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-[12px] font-medium text-zinc-700">
-                Agregá un método de pago via Wompi
+                Agregá tarjeta o Nequi
               </p>
               <p className="text-[11px] text-zinc-500">
-                Wompi cobra <strong>$5.000 COP de validación</strong> que se{" "}
-                <strong>anula automáticamente</strong> (o queda como crédito).
-                Es la forma más segura — pagás en la página de Wompi con su
-                certificado PCI Level 1.
+                Wompi valida la tarjeta con un cobro temporal de{" "}
+                <strong>$5.000 COP que se anula al instante</strong>. Si la
+                anulación no llega a tiempo, queda como crédito en tu próxima
+                factura. <span className="text-zinc-400">🔒 Procesado por Wompi · PCI DSS Level 1</span>
               </p>
             </div>
             <button
-              onClick={addViaWompi}
-              disabled={busy === "validate"}
-              className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12.5px] font-semibold disabled:opacity-60"
+              onClick={openAdd}
+              className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12.5px] font-semibold"
             >
-              {busy === "validate" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Plus className="h-3.5 w-3.5" />
-              )}
-              Agregar via Wompi
+              <Plus className="h-3.5 w-3.5" />
+              Agregar método
             </button>
           </div>
-          {/* Fallback: agregar sin cobrar via tokenize directo (UX más rápida
-              pero menos branded). Útil si el user prefiere no hacer el cargo
-              de validación. */}
+          {/* Opción secundaria: pagar en la página de Wompi (full redirect).
+              Útil para users que quieran ver el branding completo de Wompi.
+              Cuidado: tiene problemas de anti-fraude WS02 que el modal no
+              tiene — por eso es secundario. */}
           <button
-            onClick={openAdd}
-            className="text-[11px] font-medium text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline"
+            onClick={addViaWompi}
+            disabled={busy === "validate"}
+            className="text-[11px] font-medium text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline disabled:opacity-60"
           >
-            o agregar manualmente sin cobro de validación
+            {busy === "validate" ? "Generando link…" : "o pagar en la página de Wompi"}
           </button>
         </div>
       )}

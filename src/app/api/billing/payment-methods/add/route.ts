@@ -4,7 +4,17 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { getWompiConfig, resolveWompiEnvironment } from "@/lib/integrations";
+import {
+  chargeWithToken,
+  voidTransaction,
+  generateReference,
+} from "@/lib/wompi";
 import { audit } from "@/lib/audit";
+
+// $5.000 COP de validación (igual que el flow Wompi-redirect). Va por
+// chargeWithToken (path tokenize, no Payment Link) que NO tiene el
+// problema de WS02 anti-fraude que tienen los Payment Links.
+const VALIDATION_AMOUNT_COP = 5_000_00;
 
 /**
  * POST /api/billing/payment-methods/add
@@ -356,6 +366,79 @@ export async function POST(req: Request) {
       },
       { status: 502 },
     );
+  }
+
+  // VALIDACIÓN CON COBRO: hacer un charge real de $5.000 contra el source
+  // recién creado. Si pasa → la tarjeta funciona de verdad (no solo es
+  // tokenizable). Si falla → la tarjeta no sirve para cobros recurrentes
+  // y eliminamos el source.
+  //
+  // Este charge va por POST /transactions (path tokenize) que NO tiene el
+  // problema de WS02 anti-fraude que tiene Payment Links. Misma API que
+  // usamos para renovaciones — si valida acá, las renovaciones también
+  // van a funcionar.
+  //
+  // Después de approved, hacemos void inmediato → el user no ve cargo real
+  // en su extracto. Si void falla (raro), aplicamos como crédito.
+  if (sourceId && sourceStatus === "AVAILABLE") {
+    const validationRef = generateReference(sub.id);
+    let chargeOk = false;
+    let chargeTxId: string | null = null;
+    try {
+      const tx = await chargeWithToken({
+        reference: validationRef,
+        amountInCents: VALIDATION_AMOUNT_COP,
+        currency: "COP",
+        customerEmail: user.email,
+        paymentSourceId: parseInt(sourceId, 10),
+        paymentMethodType: "CARD",
+        description: "MarketaFlow — Validación de tarjeta",
+        environment: env,
+      });
+      chargeTxId = tx.id;
+      if (tx.status === "APPROVED") {
+        chargeOk = true;
+      } else if (tx.status === "DECLINED" || tx.status === "ERROR") {
+        console.warn("validation charge declined", {
+          status: tx.status,
+          message: tx.status_message,
+        });
+      }
+    } catch (err) {
+      console.error("validation charge threw", err);
+    }
+
+    if (!chargeOk) {
+      // La tarjeta no pasó el cobro de validación. NO guardamos el source
+      // — no sirve para cobros recurrentes. Mostramos error al user para
+      // que pruebe otra tarjeta.
+      return NextResponse.json(
+        {
+          error:
+            "Tu tarjeta no pasó la validación. Probá con otra tarjeta o llamá a tu banco para habilitar compras online.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Charge APPROVED → intentar void inmediato para no cobrar realmente
+    // los \$5.000. Si void OK → ningún cargo aparece (o aparece y
+    // desaparece). Si void falla → aplicamos como crédito a próxima factura.
+    let voided = false;
+    if (chargeTxId) {
+      try {
+        await voidTransaction(chargeTxId, env);
+        voided = true;
+      } catch (err) {
+        console.warn("validation void failed (fallback to credit)", err);
+      }
+    }
+    if (!voided) {
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: { creditCents: { increment: VALIDATION_AMOUNT_COP } },
+      });
+    }
   }
 
   // Idempotencia: si por algún motivo este source ya existe en DB, no
