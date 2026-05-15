@@ -69,13 +69,15 @@ export default async function InvoiceDetailPage({
       </div>
 
       {/* Documento imprimible — print: el card pierde border/sombra/radius
-          y el padding interno se mantiene (px-2 vs px-8) para que el
-          contenido no quede pegado a los márgenes del @page. */}
+          pero MANTIENE el padding p-8 (32px) que tiene en pantalla para
+          que el contenido respire. Los márgenes externos del papel los
+          aporta @page { margin: 12mm 14mm } de globals.css.
+          Agregamos print:pt-10 extra arriba para separar del brand bar. */}
       <article className="card overflow-hidden bg-white print:rounded-none print:border-0 print:shadow-none">
         {/* Top brand bar */}
         <div className="brand-gradient h-2" />
 
-        <div className="p-8 print:px-2 print:py-6">
+        <div className="p-8 print:pt-10">
           {/* Header del documento — usamos <div> en lugar de <header>
               porque globals.css hide TODOS los <header> al imprimir
               (es para el chrome de la app), y necesitamos que el header

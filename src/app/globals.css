@@ -371,8 +371,10 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
   }
   /* Evita cortar imágenes y secciones a la mitad */
   img, section, article { break-inside: avoid; }
-  /* Configura márgenes razonables del papel */
-  @page { margin: 12mm 14mm; }
+  /* Márgenes del papel — generosos para documentos formales (facturas,
+     reportes). 18mm × 18mm da aproximadamente 0.7" de margen, estándar
+     para documentos imprimibles que se ven prolijos. */
+  @page { margin: 18mm 18mm; }
 }
 
 /* Scrollbar oscura para superficies dark (sidebar) */
