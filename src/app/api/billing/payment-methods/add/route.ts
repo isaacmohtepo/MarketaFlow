@@ -98,6 +98,33 @@ export async function POST(req: Request) {
       ? "https://production.wompi.co/v1"
       : "https://sandbox.wompi.co/v1";
 
+  // Nequi requiere `accept_personal_auth` OBLIGATORIO (en sandbox y en
+  // producción). Si el browser no lo mandó es porque el endpoint
+  // /api/billing/wompi-public-config no lo devolvió (Wompi sin
+  // presigned_personal_data_auth). Cortamos temprano con error claro,
+  // sino Wompi devuelve un INPUT_VALIDATION_ERROR genérico que confunde.
+  if (body.type === "NEQUI" && !body.acceptancePersonalDataAuthToken) {
+    return NextResponse.json(
+      {
+        error:
+          "No pudimos obtener el token de autorización de datos personales de Wompi. Refrescá la página y probá de nuevo, o contactá soporte si persiste.",
+      },
+      { status: 503 },
+    );
+  }
+
+  // Validación adicional del email: Wompi rechaza emails internos
+  // como "*@guest.local" que usamos para users guest.
+  if (!user.email || user.email.endsWith("@guest.local")) {
+    return NextResponse.json(
+      {
+        error:
+          "Tu cuenta no tiene email válido para usar como customer de Wompi. Configurá un email real en /account.",
+      },
+      { status: 400 },
+    );
+  }
+
   // Construir el body del payment_source según el tipo.
   let sourceBody: Record<string, unknown>;
   if (body.type === "CARD") {
@@ -111,14 +138,13 @@ export async function POST(req: Request) {
       }),
     };
   } else {
+    // Para NEQUI siempre incluimos accept_personal_auth (validado arriba).
     sourceBody = {
       type: "NEQUI",
       phone_number: body.phoneNumber,
       customer_email: user.email,
       acceptance_token: body.acceptanceToken,
-      ...(body.acceptancePersonalDataAuthToken && {
-        accept_personal_auth: body.acceptancePersonalDataAuthToken,
-      }),
+      accept_personal_auth: body.acceptancePersonalDataAuthToken,
     };
   }
 
@@ -135,13 +161,42 @@ export async function POST(req: Request) {
     });
     const json = (await res.json()) as {
       data?: { id?: string | number; status?: string };
-      error?: { type?: string; reason?: string; messages?: unknown };
+      error?: {
+        type?: string;
+        reason?: string;
+        // messages es un objeto { field: ["error 1", "error 2"], ... }
+        messages?: Record<string, string[]> | string;
+      };
     };
     if (!res.ok || !json.data?.id) {
+      // Wompi devuelve los errores granulares en error.messages como
+      // { campo: ["mensaje"] }. Lo expandimos para que el user vea
+      // exactamente qué falló (ej. "phone_number: formato inválido").
+      let detail = "";
+      if (json.error?.messages && typeof json.error.messages === "object") {
+        const entries = Object.entries(json.error.messages);
+        if (entries.length > 0) {
+          detail = entries
+            .map(([field, msgs]) => {
+              const list = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
+              return `${field}: ${list}`;
+            })
+            .join(" · ");
+        }
+      } else if (typeof json.error?.messages === "string") {
+        detail = json.error.messages;
+      }
       const errMsg =
-        json.error?.reason ??
-        json.error?.type ??
+        detail ||
+        json.error?.reason ||
+        json.error?.type ||
         `Wompi rechazó el método (${res.status})`;
+      // Loggear server-side para debug; el user solo ve el detail
+      console.warn("Wompi payment_source rejected", {
+        type: body.type,
+        status: res.status,
+        error: json.error,
+      });
       return NextResponse.json({ error: errMsg }, { status: 400 });
     }
     sourceId = String(json.data.id);
