@@ -174,7 +174,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
           así el user ve dónde está parado el video y entiende dónde
           va a aparecer un punto rosa cuando comente. */}
       {duration > 0 && (
-        <div className="border-t border-zinc-100 bg-zinc-50/60 px-4 py-3">
+        <div className="group/timeline border-t border-zinc-100 bg-zinc-50/60 px-4 py-3">
           <div className="mb-1.5 flex items-center justify-between text-[10.5px]">
             <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-zinc-500">
               Timeline
@@ -289,12 +289,12 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
           </div>
 
           {/* Strip de comentarios anclados, ordenados por timestamp.
-              Cada chip es clickeable → seek al momento + highlight del
-              comment en el panel lateral. Aparece debajo de la barra para
-              que el user vea de un vistazo TODOS los comments del video
-              sin tener que hover marker por marker. */}
+              Solo visible al hover sobre la timeline — para no romper
+              el layout cuando hay muchos comments. Animación smooth de
+              expansión (max-height) + fade-in. */}
           {markers.length > 0 && (
-            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:thin]">
+            <div className="grid max-h-0 grid-rows-[0fr] overflow-hidden opacity-0 transition-all duration-200 ease-out group-hover/timeline:max-h-32 group-hover/timeline:grid-rows-[1fr] group-hover/timeline:opacity-100">
+            <div className="mt-3 flex min-h-0 gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:thin]">
               {[...markers]
                 .sort((a, b) => a.time - b.time)
                 .map((m, idx) => (
@@ -326,6 +326,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                     </div>
                   </button>
                 ))}
+            </div>
             </div>
           )}
         </div>
