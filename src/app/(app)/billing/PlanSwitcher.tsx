@@ -82,6 +82,53 @@ export default function PlanSwitcher({
       currentCycle === "monthly";
 
     if (isDowngrade) {
+      // Si va a Free → es efectivamente una cancelación. Antes de
+      // confirmar, ofrecemos retención (descuento si se quedan).
+      if (targetPlanId === "free") {
+        try {
+          const offerRes = await fetch("/api/billing/retention-offer", {
+            cache: "no-store",
+          });
+          if (offerRes.ok) {
+            const offer = (await offerRes.json()) as {
+              eligible: boolean;
+              discountPct?: number;
+              months?: number;
+              planName?: string;
+              totalCreditCop?: number;
+            };
+            if (offer.eligible) {
+              const acceptRetention = await confirm({
+                title: `Antes de irte… ${offer.discountPct}% off los próximos ${offer.months} meses 🎁`,
+                description: `Sabemos que ${offer.planName} es una decisión. Si te quedás, te damos $${((offer.totalCreditCop ?? 0) / 100).toLocaleString("es-CO")} COP de crédito que se descuentan automáticamente de tus próximos ${offer.months} cobros. ¿Aceptás la oferta?`,
+                confirmLabel: "Aceptar oferta y quedarme",
+                cancelLabel: "No, seguir con bajar a Free",
+                variant: "default",
+              });
+              if (acceptRetention) {
+                const accRes = await fetch("/api/billing/retention-offer", {
+                  method: "POST",
+                });
+                const accJson = await accRes.json();
+                if (accRes.ok) {
+                  toast.success(
+                    accJson.message ?? "Crédito aplicado a tu cuenta",
+                  );
+                  router.refresh();
+                  return;
+                }
+                toast.error(accJson.error ?? "No pudimos aplicar la oferta");
+                return;
+              }
+              // declined → cae al confirm normal de bajar a Free
+            }
+          }
+        } catch (err) {
+          console.error("retention offer fetch failed", err);
+          // No bloqueamos el flow si el offer falla
+        }
+      }
+
       const targetLabel =
         targetPlanId === "free"
           ? "Free"

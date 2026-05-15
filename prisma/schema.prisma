@@ -336,6 +336,9 @@ model Subscription {
   /// guardar la tarjeta queda como crédito acá, se descuenta de su
   /// siguiente factura).
   creditCents        Int             @default(0)
+  /// Cuándo el user aceptó una oferta de retención (cupón anti-churn).
+  /// Limita el offer a 1 vez por año por agency para evitar abuso.
+  retentionOfferAcceptedAt DateTime?
 
   /// Customer ID en Wompi (para reusar entre cobros). Opcional porque
   /// algunos plans (free/trialing) nunca crean customer.

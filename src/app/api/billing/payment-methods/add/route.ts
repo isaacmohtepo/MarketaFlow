@@ -493,11 +493,30 @@ export async function POST(req: Request) {
     req,
   });
 
+  // AUTO-RESUME: si la suscripción está past_due y el cobro original
+  // falló (típicamente porque la tarjeta vieja se venció o tuvo declined),
+  // intentamos cobrar AHORA contra el nuevo método en vez de esperar al
+  // próximo ciclo de cron (que puede ser hasta 23h después). Recovery
+  // instantáneo = mejor UX + menos churn.
+  let resumed = false;
+  if (sub.status === "past_due") {
+    try {
+      const { runRetryPastDue } = await import("@/app/api/cron/billing/jobs/retry-past-due");
+      resumed = await runRetryPastDue(sub.id);
+    } catch (err) {
+      console.error("auto-resume failed", err);
+      // No rompemos la response — el cron regular va a reintentar igual
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     paymentMethodId: pm.id,
     wompiStatus: sourceStatus,
     needsConfirmation: false,
-    note: "Tarjeta guardada correctamente.",
+    resumed,
+    note: resumed
+      ? "Tarjeta guardada y suscripción reactivada con cobro exitoso."
+      : "Tarjeta guardada correctamente.",
   });
 }
