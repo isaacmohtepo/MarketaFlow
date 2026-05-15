@@ -316,7 +316,12 @@ export default function Sidebar({
       className={
         isMobile
           ? "flex h-full w-64 shrink-0 flex-col"
-          : "hidden lg:flex w-60 shrink-0 flex-col"
+          : // Desktop: sticky top-0 + h-screen anclan el sidebar al
+            // viewport. Sin esto, en páginas largas (dashboard, brands)
+            // el sidebar crecía con el contenido y el PlanCard del
+            // footer quedaba below-the-fold. Ahora el nav scrollea
+            // internamente y el PlanCard siempre es visible.
+            "sticky top-0 hidden h-screen w-60 shrink-0 flex-col lg:flex"
       }
       style={{ background: "var(--bg-sidebar)", borderRight: DARK_LINE }}
     >
