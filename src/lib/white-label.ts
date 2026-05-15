@@ -106,10 +106,32 @@ export function whiteLabelCssOverride(wl: WhiteLabel): string {
       ? `${wl.accentColor}, ${wl.accentColor}`
       : null;
 
-  // Override de los gradientes para asegurar que el cambio se ve aunque
-  // el navegador cacheé la regla original (specificity bump via :where).
+  // Override de los gradientes. IMPORTANTE: usamos `background-image` (no
+  // el shorthand `background`) porque el shorthand RESETEA otras props
+  // del background — incluyendo `background-clip`, que `.brand-gradient-text`
+  // necesita en `text` para clipear el gradient al texto. Si usábamos
+  // `background:` con !important, sobrescribía background-clip a border-box
+  // y el texto aparecía como una BARRA pintada en vez de letras coloridas.
+  //
+  // También forzamos background-clip / -webkit-background-clip con !important
+  // para asegurar que ningún reset posterior los pise. .btn-gradient tiene
+  // colores hardcoded en globals.css; lo forzamos también acá para que
+  // tome los del white-label.
   const gradOverride = gradStops
-    ? `.brand-gradient{background:linear-gradient(135deg, ${gradStops}) !important;}.brand-gradient-text{background:linear-gradient(135deg, ${gradStops}) !important;-webkit-background-clip:text;background-clip:text;color:transparent !important;}`
+    ? `
+      .brand-gradient {
+        background-image: linear-gradient(135deg, ${gradStops}) !important;
+      }
+      .brand-gradient-text {
+        background-image: linear-gradient(135deg, ${gradStops}) !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        color: transparent !important;
+      }
+      .btn-gradient {
+        background-image: linear-gradient(135deg, ${gradStops}) !important;
+      }
+    `
     : "";
 
   return `:root{${parts.join("")}}${gradOverride}`;
