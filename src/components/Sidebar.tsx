@@ -273,32 +273,37 @@ export default function Sidebar({
       style={{ background: "var(--bg-sidebar)", borderRight: DARK_LINE }}
     >
       <div
-        className={`flex items-center px-4 ${
-          // Cuando es "solo logo" damos más alto + centramos el logo grande
-          brandLogoUrl && brandLogoMode === "logo_only"
-            ? "h-16 justify-center"
-            : "h-14 gap-2.5"
+        className={`flex h-14 items-center px-4 ${
+          brandLogoMode === "logo_only"
+            ? "justify-center"
+            : "gap-2.5"
         }`}
         style={{ borderBottom: DARK_LINE }}
       >
-        {/* Logo (oculto si modo = text_only) */}
+        {/* Logo (oculto si modo = text_only). En logo_only dejamos que el
+            aspect ratio natural mande: max-height fijo, ancho automático.
+            Sin caja de fondo — el logo se ve "limpio" sobre el sidebar
+            oscuro. */}
         {brandLogoMode !== "text_only" && (
           <>
             {brandLogoUrl ? (
-              <span
-                className={`flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm ${
-                  brandLogoMode === "logo_only"
-                    ? "grid h-10 w-full max-w-[200px] bg-white/5"
-                    : "grid h-7 w-7 bg-white/5"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+              brandLogoMode === "logo_only" ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={brandLogoUrl}
                   alt={brandName ?? "Logo"}
-                  className="h-full w-full object-contain p-0.5"
+                  className="h-8 w-auto max-w-[160px] object-contain"
                 />
-              </span>
+              ) : (
+                <span className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg bg-white/5 shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={brandLogoUrl}
+                    alt={brandName ?? "Logo"}
+                    className="h-full w-full object-contain"
+                  />
+                </span>
+              )
             ) : (
               <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg brand-gradient text-white shadow-sm">
                 <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />

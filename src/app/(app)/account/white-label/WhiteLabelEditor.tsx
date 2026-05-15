@@ -323,34 +323,46 @@ export default function WhiteLabelEditor({
         {/* Preview Sidebar (estilo dashboard interno) */}
         <div className="mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm">
           <div
-            className={`flex items-center border-b border-zinc-800 px-4 ${
-              effectiveMode === "logo_only" ? "py-4" : "gap-2.5 py-3"
+            className={`flex h-14 items-center border-b border-zinc-800 px-4 ${
+              effectiveMode === "logo_only" ? "justify-center" : "gap-2.5"
             }`}
           >
             {effectiveMode !== "text_only" && (
-              <span
-                className={`flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm ${
-                  effectiveMode === "logo_only"
-                    ? "grid h-10 w-full max-w-[180px]"
-                    : "grid h-7 w-7"
-                }`}
-                style={{
-                  background: logoUrl ? "#fff" : previewGradient,
-                }}
-              >
+              <>
                 {logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={logoUrl}
-                    alt=""
-                    className="h-full w-full object-contain p-0.5"
-                  />
+                  effectiveMode === "logo_only" ? (
+                    // Modo logo grande: aspect ratio natural, max-height fijo,
+                    // ancho automático. Sin caja de fondo.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      className="h-8 w-auto max-w-[160px] object-contain"
+                    />
+                  ) : (
+                    <span
+                      className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm"
+                      style={{ background: "#fff" }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={logoUrl}
+                        alt=""
+                        className="h-full w-full object-contain"
+                      />
+                    </span>
+                  )
                 ) : (
-                  <span className="text-[11px] font-bold text-white">
-                    {effectiveBrandName.charAt(0).toUpperCase()}
+                  <span
+                    className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm"
+                    style={{ background: previewGradient }}
+                  >
+                    <span className="text-[11px] font-bold text-white">
+                      {effectiveBrandName.charAt(0).toUpperCase()}
+                    </span>
                   </span>
                 )}
-              </span>
+              </>
             )}
             {effectiveMode !== "logo_only" && (
               <div className="min-w-0">
