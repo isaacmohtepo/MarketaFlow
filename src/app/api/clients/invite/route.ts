@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, appUrl } from "@/lib/email";
 import { audit } from "@/lib/audit";
 import { hasPermission } from "@/lib/permissions";
+import { tplClientInvite } from "@/lib/email-templates";
+import { getWhiteLabel } from "@/lib/white-label";
 
 /**
  * POST /api/clients/invite { email, brandIds[] }
@@ -166,37 +168,32 @@ export async function POST(req: Request) {
   });
 
   const acceptUrl = appUrl(`/team/accept/${inv.token}`);
-  const escapeHtml = (s: string) =>
-    s
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  const inviterName = escapeHtml(user.name ?? user.email);
-  const agencyName = escapeHtml(m.agency.name);
-  const brandList = brands
-    .map((b) => `<strong>${escapeHtml(b.name)}</strong>`)
-    .join(", ");
+
+  // White-label: si la agency tiene WL activo y configurado, el email
+  // se manda con el branding del cliente (logo, color, nombre) en vez
+  // del MarketaFlow default. Si WL está off, getWhiteLabel devuelve
+  // enabled=false → pasamos null al template y usa el shell default.
+  const wlRaw = await getWhiteLabel(m.agencyId);
+  const wl = wlRaw.enabled
+    ? {
+        brandName: wlRaw.brandName,
+        logoUrl: wlRaw.logoUrl,
+        accentColor: wlRaw.accentColor,
+      }
+    : null;
+  const senderBrand = wl?.brandName ?? "MarketaFlow";
+  const inviterName = user.name ?? user.email;
 
   sendEmail({
     to: body.email,
-    subject: `${inviterName} te invitó a revisar contenido en MarketaFlow`,
-    html: `
-      <p style="font-family:system-ui,sans-serif;color:#1d1d1f;line-height:1.6">
-        Hola,<br/><br/>
-        <strong>${inviterName}</strong> de <strong>${agencyName}</strong> te
-        invitó a revisar y aprobar contenido para ${brandList}.<br/><br/>
-        Como cliente vas a poder ver los posts programados, dejar comentarios
-        y aprobar o pedir cambios. Solo eso — no podés crear ni editar
-        contenido.<br/><br/>
-        <a href="${acceptUrl}" style="background:linear-gradient(135deg,#3b5fff,#8a2be2,#ff4d8f,#ff2d55);color:#fff;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:9999px;display:inline-block">
-          Aceptar invitación
-        </a><br/><br/>
-        Si no tenés cuenta de MarketaFlow, vas a poder crearla rápidamente con
-        este mismo email. El link expira en 14 días.
-      </p>
-    `,
+    subject: `${inviterName} te invitó a revisar contenido en ${senderBrand}`,
+    html: tplClientInvite({
+      inviterName,
+      agencyName: m.agency.name,
+      brandNames: brands.map((b) => b.name),
+      acceptUrl,
+      wl,
+    }),
   }).catch((e) => console.error("client invite email failed", e));
 
   return NextResponse.json({

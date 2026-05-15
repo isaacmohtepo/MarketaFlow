@@ -106,6 +106,29 @@ function shell({
 </html>`;
 }
 
+export function tplClientInvite(opts: {
+  inviterName: string;
+  agencyName: string;
+  /** Lista de nombres de marcas a las que se invita (ej. ["Coca", "Pepsi"]) */
+  brandNames: string[];
+  acceptUrl: string;
+  wl?: EmailBranding;
+}) {
+  const brandList = opts.brandNames
+    .map((b) => `<strong>${esc(b)}</strong>`)
+    .join(", ");
+  const footerBrand = opts.wl?.brandName ?? "MarketaFlow";
+  return shell({
+    preheader: `${esc(opts.inviterName)} te invita a revisar contenido en ${esc(footerBrand)}`,
+    title: `Tenés contenido para revisar`,
+    intro: `<strong>${esc(opts.inviterName)}</strong> de <strong>${esc(opts.agencyName)}</strong> te invitó a revisar y aprobar contenido para ${brandList}. Como cliente vas a poder ver los posts programados, dejar comentarios y aprobar o pedir cambios.`,
+    ctaLabel: "Aceptar invitación →",
+    ctaUrl: opts.acceptUrl,
+    footer: `Si no tenés cuenta de ${esc(footerBrand)} todavía, vas a poder crearla rápido con este mismo email. El link expira en 14 días.`,
+    wl: opts.wl,
+  });
+}
+
 export function tplPostInReview(opts: {
   brandName: string;
   agencyName: string;
