@@ -108,6 +108,27 @@ function buildSections({
         },
         ...(canViewBilling
           ? [
+              // Plan = todo lo que tiene que ver con la SUSCRIPCIÓN:
+              // qué plan tenés activo y qué add-ons sumás encima.
+              {
+                label: "Plan",
+                icon: Sparkles,
+                match: (p: string) => false,
+                children: [
+                  {
+                    label: "Configuración",
+                    href: "/billing#plan",
+                    icon: Settings,
+                  } as NavItem,
+                  {
+                    label: "Productos",
+                    href: "/billing#productos",
+                    icon: Package,
+                  } as NavItem,
+                ],
+              } as NavItem,
+              // Facturación = todo lo FINANCIERO: cómo te cobramos
+              // (métodos de pago) y qué ya cobramos (facturas).
               {
                 label: "Facturación",
                 icon: CreditCard,
@@ -119,16 +140,6 @@ function buildSections({
                     icon: Receipt,
                     match: (p: string) =>
                       p === "/billing" || p === "/billing/" || p.startsWith("/billing/return") || p.startsWith("/billing/checkout"),
-                  } as NavItem,
-                  {
-                    label: "Plan",
-                    href: "/billing#plan",
-                    icon: Sparkles,
-                  } as NavItem,
-                  {
-                    label: "Productos",
-                    href: "/billing#productos",
-                    icon: Package,
                   } as NavItem,
                   {
                     label: "Métodos de pago",
