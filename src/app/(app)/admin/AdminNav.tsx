@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2, Webhook, HeartPulse, Send, FileText, Sliders, Tag } from "lucide-react";
+import { CreditCard, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2, Webhook, HeartPulse, Send, FileText, Sliders, Tag, HardDrive } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "Resumen", icon: LayoutGrid, desc: "Stats globales" },
@@ -44,6 +44,12 @@ const NAV = [
     label: "Health",
     icon: HeartPulse,
     desc: "DB / R2 / Wompi / Anthropic",
+  },
+  {
+    slug: "usage",
+    label: "Uso e infra",
+    icon: HardDrive,
+    desc: "Storage R2, DB, tiers free",
   },
   {
     slug: "settings",

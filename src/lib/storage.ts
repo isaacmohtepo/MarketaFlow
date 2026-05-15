@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { randomBytes } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -87,6 +92,38 @@ export async function uploadBuffer(opts: {
     }),
   );
   return { url: `${R2_PUBLIC_URL.replace(/\/+$/, "")}/${opts.key}` };
+}
+
+/**
+ * Suma el storage usado en R2 por prefix (o total si no se pasa).
+ * Usa ListObjectsV2 paginado — 1k objects por call. Para buckets gigantes
+ * sería más eficiente usar S3 Inventory; para el rango "decenas de miles"
+ * es fine. Total clase-A ops: ceil(count/1000).
+ */
+export async function r2UsageByPrefix(prefix = ""): Promise<{
+  bytes: number;
+  count: number;
+}> {
+  if (!r2 || !R2_BUCKET) return { bytes: 0, count: 0 };
+  let bytes = 0;
+  let count = 0;
+  let continuationToken: string | undefined = undefined;
+  do {
+    const res: import("@aws-sdk/client-s3").ListObjectsV2CommandOutput =
+      await r2.send(
+        new ListObjectsV2Command({
+          Bucket: R2_BUCKET,
+          Prefix: prefix || undefined,
+          ContinuationToken: continuationToken,
+        }),
+      );
+    for (const obj of res.Contents ?? []) {
+      bytes += obj.Size ?? 0;
+      count += 1;
+    }
+    continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (continuationToken);
+  return { bytes, count };
 }
 
 /**
