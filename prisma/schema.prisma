@@ -386,6 +386,18 @@ model PaymentMethod {
   /// porque era el default histórico).
   environment    String?
 
+  /// Estado del payment_source en Wompi: "AVAILABLE" (listo para cobrar),
+  /// "PENDING" (esperando aprobación del user en su app Nequi), "DECLINED"
+  /// (rechazado), "ERROR". Para CARD típicamente nace AVAILABLE inmediato.
+  /// Para NEQUI nace PENDING hasta que el user aprueba el push.
+  ///
+  /// Null en rows legacy creadas antes de este campo (asumimos AVAILABLE
+  /// por compat).
+  wompiStatus    String?
+  /// Última vez que verificamos el status contra Wompi. Para evitar
+  /// pollings excesivos / re-verificar muy seguido.
+  wompiStatusCheckedAt DateTime?
+
   createdAt      DateTime     @default(now())
 
   @@index([subscriptionId])

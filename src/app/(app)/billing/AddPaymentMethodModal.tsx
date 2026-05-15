@@ -1,8 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Smartphone, Loader2, X } from "lucide-react";
+import {
+  CreditCard,
+  Smartphone,
+  Loader2,
+  X,
+  Clock,
+} from "lucide-react";
 import { toast } from "sonner";
+
+/** Estado del flujo de confirmación Nequi. */
+type NequiState =
+  | { kind: "idle" }
+  | { kind: "waiting"; paymentMethodId: string; attempts: number };
 
 type WompiConfig = {
   publicKey: string;
@@ -56,6 +67,7 @@ export default function AddPaymentMethodModal({
 
   // Nequi form state
   const [phone, setPhone] = useState("");
+  const [nequiState, setNequiState] = useState<NequiState>({ kind: "idle" });
 
   useEffect(() => {
     if (!open) return;
@@ -82,7 +94,81 @@ export default function AddPaymentMethodModal({
     setExpYear("");
     setCvc("");
     setPhone("");
+    setNequiState({ kind: "idle" });
   }
+
+  // Polling de status del método Nequi mientras estamos en "waiting".
+  // Cada 4s consultamos /check. Si pasa a AVAILABLE → success + cerrar.
+  // Si pasa a DECLINED/ERROR → toast error + cerrar. Si timeout (5min,
+  // ~75 intentos) → desistir y avisar al user.
+  useEffect(() => {
+    if (nequiState.kind !== "waiting") return;
+    const MAX_ATTEMPTS = 75;
+    const POLL_MS = 4000;
+    let cancelled = false;
+
+    const t = setTimeout(async () => {
+      if (cancelled) return;
+      try {
+        const r = await fetch(
+          `/api/billing/payment-methods/${nequiState.paymentMethodId}/check`,
+          { method: "POST" },
+        );
+        const j = (await r.json().catch(() => ({}))) as {
+          wompiStatus?: string;
+          isFinal?: boolean;
+          isSuccess?: boolean;
+        };
+        if (cancelled) return;
+        if (j.isSuccess) {
+          toast.success("¡Nequi activado! Listo para cobros recurrentes.");
+          reset();
+          onAdded();
+          onClose();
+          return;
+        }
+        if (j.isFinal && !j.isSuccess) {
+          toast.error(
+            j.wompiStatus === "DECLINED"
+              ? "Rechazaste el push de Nequi. Intentá de nuevo."
+              : "Wompi reportó error con tu Nequi. Intentá de nuevo.",
+          );
+          onAdded(); // refresh list (la fila quedó con status final)
+          onClose();
+          return;
+        }
+        // Sigue PENDING — pollear de nuevo si no se acabó el timeout
+        if (nequiState.attempts + 1 >= MAX_ATTEMPTS) {
+          toast.error(
+            "Pasaron 5 minutos sin confirmación. Probá agregar Nequi otra vez.",
+          );
+          onAdded();
+          onClose();
+          return;
+        }
+        setNequiState({
+          kind: "waiting",
+          paymentMethodId: nequiState.paymentMethodId,
+          attempts: nequiState.attempts + 1,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        console.error("nequi check failed", err);
+        // Reintentar — un error de red no es razón para cancelar todo
+        setNequiState({
+          kind: "waiting",
+          paymentMethodId: nequiState.paymentMethodId,
+          attempts: nequiState.attempts + 1,
+        });
+      }
+    }, POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nequiState]);
 
   async function submitCard(e: React.FormEvent) {
     e.preventDefault();
@@ -204,15 +290,37 @@ export default function AddPaymentMethodModal({
           acceptancePersonalDataAuthToken: cfg.acceptancePersonalDataAuthToken,
         }),
       });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) {
+      const j = (await r.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        paymentMethodId?: string;
+        wompiStatus?: string;
+        needsConfirmation?: boolean;
+        note?: string;
+      };
+      if (!r.ok || !j.ok) {
         toast.error(j.error ?? "No se pudo guardar Nequi");
         return;
       }
-      toast.success(j.note ?? "Nequi guardado — confirmá el push en tu app");
-      reset();
-      onAdded();
-      onClose();
+      // Nequi típicamente nace en PENDING — entramos a estado "waiting"
+      // y arrancamos el polling. El user ve "Esperando confirmación..."
+      // hasta que apruebe el push.
+      if (j.needsConfirmation && j.paymentMethodId) {
+        setNequiState({
+          kind: "waiting",
+          paymentMethodId: j.paymentMethodId,
+          attempts: 0,
+        });
+        // NO cerramos el modal — queda mostrando el estado de espera.
+        // No llamamos onAdded() aún — solo cuando el status sea final.
+      } else {
+        // Caso raro: Wompi devolvió status AVAILABLE directo (no debería
+        // pasar para Nequi pero por las dudas).
+        toast.success(j.note ?? "Nequi activado");
+        reset();
+        onAdded();
+        onClose();
+      }
     } catch (err) {
       console.error(err);
       toast.error("Error de red al guardar Nequi");
@@ -362,6 +470,58 @@ export default function AddPaymentMethodModal({
                   )}
                 </button>
               </form>
+            ) : nequiState.kind === "waiting" ? (
+              // Estado de espera tras crear el payment_source.
+              // El push ya está en el celu del user; estamos polleando.
+              <div className="space-y-4 p-5 text-center">
+                <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-full bg-fuchsia-50 ring-1 ring-fuchsia-200">
+                  <Smartphone className="h-7 w-7 text-fuchsia-600" />
+                  <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-white ring-1 ring-fuchsia-200">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-fuchsia-600" />
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-[14px] font-semibold text-zinc-900">
+                    Esperando confirmación
+                  </h3>
+                  <p className="mt-1 text-[12px] text-zinc-600">
+                    Te llegó un push a tu app Nequi (····{phone.slice(-4)}).
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-zinc-600">
+                    Abrila, tocá <strong>Aceptar</strong> y volvé acá.
+                  </p>
+                </div>
+                <div className="mx-auto flex max-w-[200px] items-center gap-1 text-[10.5px] text-zinc-400">
+                  <Clock className="h-3 w-3" />
+                  <span>
+                    Intento {nequiState.attempts + 1}/75 · expira en{" "}
+                    {Math.max(0, 5 - Math.floor(nequiState.attempts * 4 / 60))}
+                    min
+                  </span>
+                </div>
+                {/* Sandbox: en sandbox el push no llega "de verdad" — Wompi
+                    no simula la app Nequi. Avisamos al user que en sandbox
+                    el método puede quedarse en PENDING. */}
+                {cfg?.environment === "sandbox" && (
+                  <div className="rounded-lg bg-amber-50 p-2.5 text-left text-[10.5px] text-amber-800 ring-1 ring-amber-200">
+                    <strong>Modo sandbox:</strong> Wompi no envía push real
+                    en sandbox. El método se va a quedar en PENDING (no
+                    usable para cobros) hasta timeout. En producción sí
+                    llega push de verdad al celular.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNequiState({ kind: "idle" });
+                    onAdded();
+                    onClose();
+                  }}
+                  className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+                >
+                  Cancelar (podés verificar después desde Métodos de pago)
+                </button>
+              </div>
             ) : (
               <form onSubmit={submitNequi} className="space-y-3 p-5">
                 <Field label="Teléfono Nequi">

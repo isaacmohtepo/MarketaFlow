@@ -53,6 +53,12 @@ export async function GET() {
         pm.type === "CARD" && pm.expMonth != null && pm.expYear != null
           ? new Date(pm.expYear, pm.expMonth, 1) <= now
           : false;
+      // Status Wompi: AVAILABLE = listo para cobrar, PENDING = esperando
+      // confirmación del user (típico Nequi recién agregado), DECLINED/
+      // ERROR = falló. Rows legacy sin status las tratamos como AVAILABLE
+      // (estaban funcionando antes de este campo).
+      const wompiStatus = pm.wompiStatus ?? "AVAILABLE";
+      const pendingConfirmation = wompiStatus === "PENDING";
       return {
         id: pm.id,
         type: pm.type,
@@ -64,8 +70,11 @@ export async function GET() {
         isDefault: pm.isDefault,
         // null en rows legacy → asumimos "sandbox" por compat
         environment: pm.environment ?? "sandbox",
+        wompiStatus,
+        pendingConfirmation,
         // Calculado: ¿se puede usar para cobros con la config actual?
-        usable: envOk && !expired,
+        // Un método PENDING no se puede cobrar — Wompi rechaza.
+        usable: envOk && !expired && !pendingConfirmation,
         expired,
         // ¿Soporta cobros recurrentes? Solo CARD y NEQUI.
         recurring: pm.type === "CARD" || pm.type === "NEQUI",

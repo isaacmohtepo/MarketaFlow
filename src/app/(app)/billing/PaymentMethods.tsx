@@ -25,6 +25,11 @@ type PaymentMethod = {
   expired: boolean;
   /** True si el tipo soporta cobros recurrentes (solo CARD/NEQUI). */
   recurring: boolean;
+  /** Estado del payment_source en Wompi. */
+  wompiStatus?: string;
+  /** True si el método está esperando confirmación del user (típico
+   *  Nequi recién agregado). No usable para cobros hasta confirmar. */
+  pendingConfirmation?: boolean;
   createdAt: string;
 };
 
@@ -297,6 +302,14 @@ function PaymentMethodRow({
               title="Token de prueba — solo funciona en sandbox"
             >
               Sandbox
+            </span>
+          )}
+          {pm.pendingConfirmation && (
+            <span
+              className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-200"
+              title="Esperando que confirmes el push en tu app Nequi"
+            >
+              Pendiente
             </span>
           )}
           {pm.expired && (

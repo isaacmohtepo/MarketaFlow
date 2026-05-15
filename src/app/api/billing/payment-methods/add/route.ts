@@ -207,6 +207,7 @@ export async function POST(req: Request) {
 
   // Llamar a Wompi para crear el payment_source.
   let sourceId: string | null = null;
+  let sourceStatus: string | null = null;
   try {
     const res = await fetch(`${apiBase}/payment_sources`, {
       method: "POST",
@@ -257,6 +258,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: errMsg }, { status: 400 });
     }
     sourceId = String(json.data.id);
+    // Wompi devuelve status: "AVAILABLE" para CARDs aprobadas, "PENDING"
+    // para NEQUI hasta que el user confirma el push en su app. Lo
+    // guardamos en la DB para que la UI muestre el estado correcto y el
+    // polling sepa qué buscar.
+    sourceStatus =
+      typeof json.data.status === "string" ? json.data.status : null;
   } catch (err) {
     console.error("Wompi payment_source create failed", err);
     return NextResponse.json(
@@ -283,6 +290,8 @@ export async function POST(req: Request) {
       type: body.type,
       isDefault: true,
       environment: env,
+      wompiStatus: sourceStatus,
+      wompiStatusCheckedAt: new Date(),
       ...(body.type === "CARD"
         ? {
             brand: body.brand,
@@ -301,6 +310,8 @@ export async function POST(req: Request) {
       subscriptionId: sub.id,
       isDefault: true,
       environment: env,
+      wompiStatus: sourceStatus,
+      wompiStatusCheckedAt: new Date(),
     },
   });
 
@@ -323,6 +334,12 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     paymentMethodId: pm.id,
+    wompiStatus: sourceStatus,
+    // El modal usa estos flags para decidir qué UI mostrar:
+    //  - needsConfirmation=true → mostrar "Esperando confirmación..." +
+    //    pollear /check hasta que pase a AVAILABLE
+    //  - needsConfirmation=false → toast de éxito directo
+    needsConfirmation: sourceStatus === "PENDING",
     note:
       body.type === "NEQUI"
         ? "Te llegó un push a tu app Nequi para confirmar. Aprobá ahí en los próximos 5 minutos para activarlo."
