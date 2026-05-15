@@ -482,7 +482,7 @@ export default async function BillingPage({
 
       {/* Comparación de planes — siempre visible para que el user pueda
           mejorar o bajar su plan cuando quiera. */}
-      <section className="card p-6">
+      <section id="plan" className="card p-6 scroll-mt-20">
         <PlanSwitcher
           currentPlanId={plan.id as PlanId}
           currentCycle={summary.billingCycle as "monthly" | "yearly"}
@@ -495,7 +495,7 @@ export default async function BillingPage({
 
       {/* Métodos de pago — gestión completa (ver, marcar default, borrar,
           agregar/cambiar). El componente client se encarga de todo. */}
-      <section className="card p-6">
+      <section id="metodos" className="card p-6 scroll-mt-20">
         <div className="mb-3 flex items-end justify-between">
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">Métodos de pago</h2>
@@ -513,7 +513,7 @@ export default async function BillingPage({
 
       {/* Add-ons: marca extra, seat extra, white-label. Solo aplica a Pro
           (Agency ya incluye todo, Free no puede comprar). */}
-      <section className="card p-6">
+      <section id="productos" className="card p-6 scroll-mt-20">
         <div className="mb-3">
           <h2 className="text-sm font-semibold text-zinc-900">Add-ons</h2>
           <p className="mt-0.5 text-[11.5px] text-zinc-500">

@@ -31,6 +31,8 @@ import {
   Activity,
   Receipt,
   HelpCircle,
+  Package,
+  Wallet,
 } from "lucide-react";
 
 type NavItem = {
@@ -117,6 +119,21 @@ function buildSections({
                     icon: Receipt,
                     match: (p: string) =>
                       p === "/billing" || p === "/billing/" || p.startsWith("/billing/return") || p.startsWith("/billing/checkout"),
+                  } as NavItem,
+                  {
+                    label: "Plan",
+                    href: "/billing#plan",
+                    icon: Sparkles,
+                  } as NavItem,
+                  {
+                    label: "Productos",
+                    href: "/billing#productos",
+                    icon: Package,
+                  } as NavItem,
+                  {
+                    label: "Métodos de pago",
+                    href: "/billing#metodos",
+                    icon: Wallet,
                   } as NavItem,
                   {
                     label: "Facturas",
