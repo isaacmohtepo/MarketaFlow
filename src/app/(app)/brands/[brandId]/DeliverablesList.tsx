@@ -112,11 +112,17 @@ function CoverPreview({ d }: { d: Deliverable }) {
       />
     );
   }
-  // Web design con URL pero sin captura → mostrar mock browser
+  // Web design con URL → screenshot automático via WordPress mShots (gratis,
+  // sin API key, cachea del lado de wp.com). Si el screenshot no existe aún,
+  // mShots devuelve un placeholder gris y encola la captura — el browser lo
+  // reintenta solo al refrescar. Mantenemos el mock browser chrome arriba
+  // para que se vea contextualizado como un sitio web.
   if (d.assetType === "web_design" && d.sourceUrl) {
+    const shotUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(d.sourceUrl)}?w=800&h=600`;
     return (
       <div className="flex h-full w-full flex-col bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50">
-        <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-white/70 px-2.5 py-1.5">
+        {/* Browser chrome */}
+        <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-white/80 px-2.5 py-1.5 backdrop-blur">
           <span className="flex gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-300" />
             <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
@@ -126,8 +132,27 @@ function CoverPreview({ d }: { d: Deliverable }) {
             {hostOf(d.sourceUrl)}
           </span>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <Globe className="h-7 w-7 text-zinc-400" />
+        {/* Screenshot real del sitio. object-top para mostrar el hero/header
+            (que es lo más identificable). El globe en background queda como
+            fallback visible mientras el shot carga o si falla. */}
+        <div className="relative flex-1 overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Globe className="h-7 w-7 text-zinc-300" />
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={shotUrl}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 h-full w-full object-cover object-top"
+            draggable={false}
+            onError={(e) => {
+              // Si mShots falla por completo, ocultamos el <img> y queda el
+              // fallback de globe + gradient visible.
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
         </div>
       </div>
     );
