@@ -117,6 +117,25 @@ export default async function BrandContent({
   const lastViewed = new Map<string, Date>();
   for (const row of viewRows) lastViewed.set(row.postId, row.lastViewedAt);
 
+  // Para video posts: traer el primer media file con mime video/* — lo usamos
+  // como source en un <video preload="metadata"> en el card para auto-generar
+  // un thumbnail del primer frame (no necesitamos guardar un poster fijo).
+  const videoFiles =
+    postIds.length > 0
+      ? await prisma.postImage.findMany({
+          where: {
+            postId: { in: postIds },
+            mime: { startsWith: "video/" },
+          },
+          orderBy: { position: "asc" },
+          select: { postId: true, url: true },
+        })
+      : [];
+  const videoUrlMap = new Map<string, string>();
+  for (const f of videoFiles) {
+    if (!videoUrlMap.has(f.postId)) videoUrlMap.set(f.postId, f.url);
+  }
+
   return (
     <>
       {access.canApprove && (statusCounts.in_review ?? 0) > 0 && (
@@ -242,6 +261,7 @@ export default async function BrandContent({
                 scheduledAt: p.scheduledAt ? p.scheduledAt.toISOString() : null,
                 assetType: p.assetType ?? "other",
                 sourceUrl: p.sourceUrl,
+                videoUrl: videoUrlMap.get(p.id) ?? null,
                 imageCount: p._count.images || (p.imageUrl ? 1 : 0),
                 unresolvedComments: cs.unresolved,
                 totalComments: cs.total,

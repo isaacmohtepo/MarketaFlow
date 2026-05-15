@@ -35,6 +35,8 @@ type Deliverable = {
   scheduledAt: string | null;
   assetType: string;
   sourceUrl: string | null;
+  /** URL del archivo de video subido — para auto-thumbnail via preload=metadata */
+  videoUrl?: string | null;
   imageCount: number;
   unresolvedComments: number;
   totalComments: number;
@@ -60,6 +62,32 @@ function hostOf(url: string) {
 }
 
 function CoverPreview({ d }: { d: Deliverable }) {
+  // Video file subido → renderizar <video preload="metadata"> que carga el
+  // primer frame automáticamente como poster, sin necesidad de guardar una
+  // thumbnail aparte. Overlay con play icon + gradient brand para identificarlo.
+  if (d.assetType === "video" && d.videoUrl) {
+    return (
+      <div className="relative h-full w-full bg-zinc-900">
+        <video
+          // Fragment #t=0.5 fuerza al browser a renderizar el frame del segundo
+          // 0.5 en lugar del primer frame (que en muchos videos sale negro/blanco).
+          // R2 soporta byte-range requests → el browser solo descarga la cabecera.
+          src={`${d.videoUrl}#t=0.5`}
+          preload="metadata"
+          muted
+          playsInline
+          className="h-full w-full object-cover"
+        />
+        {/* Velo + play badge para identificarlo como video sin ambigüedad */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-lg ring-1 ring-fuchsia-200">
+            <Play className="h-5 w-5 fill-fuchsia-600 text-fuchsia-600" />
+          </span>
+        </span>
+      </div>
+    );
+  }
   // Imagen disponible (cover) → mostrarla
   if (d.imageUrl) {
     return (
@@ -92,12 +120,13 @@ function CoverPreview({ d }: { d: Deliverable }) {
       </div>
     );
   }
-  // Video con URL → tarjeta video
+  // Video con URL externa (YouTube/Vimeo/Loom) — sin archivo para preview.
+  // Mismo overlay brand para mantener consistencia visual con videos subidos.
   if (d.assetType === "video" && d.sourceUrl) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-rose-100 via-fuchsia-100 to-amber-100">
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-white/80 ring-1 ring-zinc-200">
-          <Play className="h-5 w-5 fill-zinc-700 text-zinc-700" />
+      <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-fuchsia-100 via-rose-100 to-amber-100">
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-lg ring-1 ring-fuchsia-200">
+          <Play className="h-5 w-5 fill-fuchsia-600 text-fuchsia-600" />
         </span>
       </div>
     );
