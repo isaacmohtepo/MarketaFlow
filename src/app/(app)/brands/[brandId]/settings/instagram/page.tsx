@@ -19,9 +19,15 @@ export default async function BrandInstagramSettings({
 
   const brand = await prisma.brand.findUnique({
     where: { id: brandId },
-    select: { name: true, igUserId: true, igAccessToken: true },
+    select: {
+      name: true,
+      igUserId: true,
+      igAccessToken: true,
+      igAccessTokenEnc: true,
+    },
   });
   if (!brand) notFound();
+  const hasToken = !!(brand.igAccessToken || brand.igAccessTokenEnc);
 
   // Si la plataforma todavía no tiene OAuth de Meta configurado,
   // mostramos un placeholder "Próximamente" en vez del connector roto.
@@ -47,7 +53,7 @@ export default async function BrandInstagramSettings({
           </p>
           <InstagramConnector
             brandId={brandId}
-            connected={!!brand.igUserId && !!brand.igAccessToken}
+            connected={!!brand.igUserId && hasToken}
             currentIgUserId={brand.igUserId}
           />
         </>

@@ -41,10 +41,12 @@ export async function GET(
   const post = await prisma.post.findUnique({
     where: { id },
     include: {
-      brand: { select: { igAccessToken: true } },
+      brand: { select: { id: true } },
     },
   });
   if (!post) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  const { getIgAccessToken } = await import("@/lib/instagram-token");
+  const brandToken = await getIgAccessToken(post.brand.id);
   if (!post.publishedAt) {
     return NextResponse.json({
       ok: true,
@@ -59,7 +61,7 @@ export async function GET(
       reason: "Sin IG media ID — publicado en modo demo o plataforma distinta",
     });
   }
-  if (!post.brand.igAccessToken) {
+  if (!brandToken) {
     return NextResponse.json({
       ok: true,
       insights: null,
@@ -88,7 +90,7 @@ export async function GET(
   // Fetch fresh
   const insights = await fetchInstagramInsights(
     post.igMediaId,
-    post.brand.igAccessToken,
+    brandToken,
   );
 
   if (!insights) {

@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess, hasPermission } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import {
+  setIgAccessToken,
+  clearIgAccessToken,
+} from "@/lib/instagram-token";
 
 /**
  * GET /api/brands/[id]/instagram → estado actual (sin exponer el token)
@@ -39,13 +43,20 @@ export async function GET(
   }
   const brand = await prisma.brand.findUnique({
     where: { id },
-    select: { igUserId: true, igAccessToken: true },
+    select: {
+      igUserId: true,
+      igAccessToken: true,
+      igAccessTokenEnc: true,
+      igConnectionStatus: true,
+    },
   });
+  const hasToken = !!(brand?.igAccessToken || brand?.igAccessTokenEnc);
   return NextResponse.json({
-    connected: !!brand?.igUserId && !!brand?.igAccessToken,
+    connected: !!brand?.igUserId && hasToken,
     igUserId: brand?.igUserId ?? null,
     // Nunca devolvemos el token completo — solo si está seteado
-    hasToken: !!brand?.igAccessToken,
+    hasToken,
+    status: brand?.igConnectionStatus ?? null,
   });
 }
 
@@ -103,13 +114,7 @@ export async function POST(
     );
   }
 
-  await prisma.brand.update({
-    where: { id },
-    data: {
-      igUserId: body.igUserId,
-      igAccessToken: body.igAccessToken,
-    },
-  });
+  await setIgAccessToken(id, body.igAccessToken, { igUserId: body.igUserId });
 
   audit({
     category: "team",
@@ -139,10 +144,7 @@ export async function DELETE(
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
   }
-  await prisma.brand.update({
-    where: { id },
-    data: { igUserId: null, igAccessToken: null },
-  });
+  await clearIgAccessToken(id);
   audit({
     category: "team",
     action: "brand.instagram_disconnected",

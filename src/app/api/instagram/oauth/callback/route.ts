@@ -127,14 +127,9 @@ export async function GET(req: Request) {
     }
     const igUserId = pageWithIg.instagram_business_account.id;
 
-    // 4. Guardar en Brand
-    await prisma.brand.update({
-      where: { id: parsed.brandId },
-      data: {
-        igUserId,
-        igAccessToken: longLivedToken,
-      },
-    });
+    // 4. Guardar en Brand (token encriptado via helper)
+    const { setIgAccessToken } = await import("@/lib/instagram-token");
+    await setIgAccessToken(parsed.brandId, longLivedToken, { igUserId });
 
     audit({
       category: "team",

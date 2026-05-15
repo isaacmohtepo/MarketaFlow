@@ -498,12 +498,21 @@ model Brand {
   lockedAt    DateTime?
   /// Credenciales de publicación de Instagram (Meta Graph API).
   /// igUserId = Instagram Business Account ID (NO @username)
-  /// igAccessToken = long-lived user token con permisos pages_show_list,
-  /// instagram_basic, instagram_content_publish, business_management.
-  /// Lo guardamos por brand para que cada cliente conecte su cuenta.
-  /// El token DEBERÍA encriptarse — por ahora lo dejamos plain (TODO).
-  igUserId    String?
-  igAccessToken String?
+  /// Long-lived user token con permisos pages_show_list, instagram_basic,
+  /// instagram_content_publish, business_management. Lo guardamos por brand
+  /// para que cada cliente conecte su cuenta.
+  ///
+  /// SIEMPRE leer/escribir via lib/instagram-token.ts (encripta/desencripta
+  /// con la master key del proyecto). igAccessToken (plain) queda solo para
+  /// rows legacy hasta que el endpoint de migración las migre a Enc; después
+  /// se va a deprecar.
+  igUserId           String?
+  igAccessToken      String?
+  igAccessTokenEnc   String?
+  igTokenRefreshedAt DateTime?
+  /// Estado de la conexión: null = no conectada; "ok" = funciona; "needs_reconnect"
+  /// = el cron refresh detectó token caducado y necesita que el user reconecte.
+  igConnectionStatus String?
   createdAt   DateTime     @default(now())
   agency      Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   posts        Post[]

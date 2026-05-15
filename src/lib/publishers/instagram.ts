@@ -35,14 +35,16 @@ export async function publishToInstagram(
     return { ok: false, error: "El post no tiene imágenes" };
   }
 
-  // Resolver credenciales: primero por brand, luego env vars, sino demo
+  // Resolver credenciales: primero por brand (token encriptado via helper),
+  // luego env vars, sino demo.
   const brand = await prisma.brand.findUnique({
     where: { id: post.brandId },
-    select: { igUserId: true, igAccessToken: true },
+    select: { igUserId: true },
   });
+  const { getIgAccessToken } = await import("@/lib/instagram-token");
+  const brandToken = await getIgAccessToken(post.brandId);
   const igUserId = brand?.igUserId ?? process.env.IG_USER_ID ?? null;
-  const accessToken =
-    brand?.igAccessToken ?? process.env.META_ACCESS_TOKEN ?? null;
+  const accessToken = brandToken ?? process.env.META_ACCESS_TOKEN ?? null;
 
   if (!igUserId || !accessToken) {
     // Modo demo
