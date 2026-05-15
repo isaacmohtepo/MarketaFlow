@@ -58,7 +58,173 @@ export async function POST(
       ? "https://production.wompi.co/v1"
       : "https://sandbox.wompi.co/v1";
 
-  // Consultar Wompi
+  // ─────────────────────────────────────────────────────────────────
+  // FLUJO NEQUI: si la row tiene nequiTokenId pero no wompiSourceId,
+  // estamos esperando que el user apruebe el push para el TOKEN. Cuando
+  // el token pase a APPROVED, creamos el source recién ahí.
+  // ─────────────────────────────────────────────────────────────────
+  if (pm.nequiTokenId && !pm.wompiSourceId) {
+    // 1. Chequear status del token
+    let tokenStatus: string | null = null;
+    try {
+      const tRes = await fetch(
+        `${apiBase}/tokens/nequi/${pm.nequiTokenId}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${cfg.privateKey}` },
+          cache: "no-store",
+        },
+      );
+      if (tRes.ok) {
+        const j = (await tRes.json()) as { data?: { status?: string } };
+        tokenStatus = j.data?.status ?? null;
+      }
+    } catch (err) {
+      console.error("Wompi tokens/nequi check failed", err);
+    }
+
+    if (!tokenStatus) {
+      return NextResponse.json(
+        { error: "No pudimos consultar el token Nequi." },
+        { status: 502 },
+      );
+    }
+
+    // Token rechazado / expirado / con error → marcar source como DECLINED.
+    if (tokenStatus === "DECLINED" || tokenStatus === "ERROR" || tokenStatus === "FAILED") {
+      await prisma.paymentMethod.update({
+        where: { id },
+        data: {
+          wompiStatus: "DECLINED",
+          wompiStatusCheckedAt: new Date(),
+        },
+      });
+      return NextResponse.json({
+        ok: true,
+        wompiStatus: "DECLINED",
+        isFinal: true,
+        isSuccess: false,
+      });
+    }
+
+    // Token aún PENDING → seguir polleando
+    if (tokenStatus !== "APPROVED") {
+      await prisma.paymentMethod.update({
+        where: { id },
+        data: { wompiStatusCheckedAt: new Date() },
+      });
+      return NextResponse.json({
+        ok: true,
+        wompiStatus: "TOKEN_PENDING",
+        isFinal: false,
+        isSuccess: false,
+      });
+    }
+
+    // Token APPROVED → crear el payment_source AHORA con el token
+    // aprobado. También necesitamos un acceptance_token fresh.
+    let acceptanceToken: string | null = null;
+    let acceptancePersonalDataAuthToken: string | null = null;
+    try {
+      const mRes = await fetch(
+        `${apiBase}/merchants/${encodeURIComponent(cfg.publicKey)}`,
+        { cache: "no-store" },
+      );
+      if (mRes.ok) {
+        const j = (await mRes.json()) as {
+          data?: {
+            presigned_acceptance?: { acceptance_token?: string };
+            presigned_personal_data_auth?: { acceptance_token?: string };
+          };
+        };
+        acceptanceToken = j.data?.presigned_acceptance?.acceptance_token ?? null;
+        acceptancePersonalDataAuthToken =
+          j.data?.presigned_personal_data_auth?.acceptance_token ?? null;
+      }
+    } catch {}
+    if (!acceptanceToken || !acceptancePersonalDataAuthToken) {
+      return NextResponse.json(
+        { error: "Wompi no devolvió acceptance tokens." },
+        { status: 502 },
+      );
+    }
+
+    try {
+      const sRes = await fetch(`${apiBase}/payment_sources`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cfg.privateKey}`,
+        },
+        body: JSON.stringify({
+          type: "NEQUI",
+          token: pm.nequiTokenId,
+          customer_email:
+            (await prisma.user.findUnique({ where: { id: user.id } }))?.email ??
+            user.email,
+          acceptance_token: acceptanceToken,
+          accept_personal_auth: acceptancePersonalDataAuthToken,
+        }),
+      });
+      const sJson = (await sRes.json()) as {
+        data?: { id?: string | number; status?: string };
+        error?: { reason?: string; messages?: Record<string, string[]> | string };
+      };
+      if (!sRes.ok || !sJson.data?.id) {
+        console.warn("Wompi payment_source create after token approval failed", {
+          status: sRes.status,
+          error: sJson.error,
+        });
+        await prisma.paymentMethod.update({
+          where: { id },
+          data: {
+            wompiStatus: "ERROR",
+            wompiStatusCheckedAt: new Date(),
+          },
+        });
+        return NextResponse.json({
+          ok: true,
+          wompiStatus: "ERROR",
+          isFinal: true,
+          isSuccess: false,
+        });
+      }
+      const newSourceId = String(sJson.data.id);
+      const newStatus = typeof sJson.data.status === "string" ? sJson.data.status : "AVAILABLE";
+
+      await prisma.paymentMethod.update({
+        where: { id },
+        data: {
+          wompiSourceId: newSourceId,
+          wompiStatus: newStatus,
+          wompiStatusCheckedAt: new Date(),
+        },
+      });
+      return NextResponse.json({
+        ok: true,
+        wompiStatus: newStatus,
+        isFinal: newStatus === "AVAILABLE",
+        isSuccess: newStatus === "AVAILABLE",
+      });
+    } catch (err) {
+      console.error("Wompi payment_source create after token failed", err);
+      return NextResponse.json(
+        { error: "No pudimos crear la fuente de pago." },
+        { status: 502 },
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // FLUJO CARD (o NEQUI ya finalizado): solo pollear el source status.
+  // ─────────────────────────────────────────────────────────────────
+  if (!pm.wompiSourceId) {
+    return NextResponse.json(
+      { error: "El método no tiene source_id todavía." },
+      { status: 400 },
+    );
+  }
+
   let wompiStatus: string | null = null;
   try {
     const res = await fetch(`${apiBase}/payment_sources/${pm.wompiSourceId}`, {
@@ -66,7 +232,6 @@ export async function POST(
       headers: {
         Authorization: `Bearer ${cfg.privateKey}`,
       },
-      // No cachear — queremos el status fresco siempre
       cache: "no-store",
     });
     if (!res.ok) {

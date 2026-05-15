@@ -165,36 +165,23 @@ export async function POST(req: Request) {
     );
   }
 
-  // Construir el body del payment_source según el tipo.
-  // Usamos los tokens fresh fetched arriba — NUNCA los del body, que
-  // pueden estar stale por reintentos.
-  let sourceBody: Record<string, unknown>;
-  if (body.type === "CARD") {
-    sourceBody = {
-      type: "CARD",
-      token: body.cardToken,
-      customer_email: user.email,
-      acceptance_token: acceptanceToken,
-      ...(acceptancePersonalDataAuthToken && {
-        accept_personal_auth: acceptancePersonalDataAuthToken,
-      }),
-    };
-  } else {
-    // Para NEQUI: Wompi requiere tokenizar primero el teléfono via
-    // POST /tokens/nequi (devuelve un token tipo "tok_nequi_..."). Solo
-    // ese token se puede usar en /payment_sources. Antes mandábamos
-    // phone_number directo, Wompi lo aceptaba — ahora rechaza con
-    // "token: Debe ser completado".
-    //
-    // El tokenize NO confirma el pago — devuelve token en estado PENDING.
-    // El user recibe el push notification cuando creamos el
-    // payment_source con ese token y aprueba ahí, no antes.
+  // FLUJO NEQUI (special case): tokenizamos el teléfono y guardamos el
+  // token_id en la row, pero NO creamos el payment_source todavía. El
+  // payment_source solo se puede crear con un token APROBADO. El user
+  // recibe el push, lo aprueba, y /check detecta la aprobación y crea
+  // el source recién ahí.
+  //
+  // Antes creábamos el source inmediato con el token PENDING → el source
+  // quedaba PENDING para siempre porque el token nunca llegó aprobado al
+  // momento de crearse.
+  if (body.type === "NEQUI") {
+    let nequiTokenId: string;
     try {
       const tokenRes = await fetch(`${apiBase}/tokens/nequi`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // tokens/nequi usa la PUBLIC key (no la private)
+          // tokens/nequi usa PUBLIC key
           Authorization: `Bearer ${cfg.publicKey}`,
         },
         body: JSON.stringify({ phone_number: body.phoneNumber }),
@@ -208,7 +195,6 @@ export async function POST(req: Request) {
         };
       };
       if (!tokenRes.ok || !tokenJson.data?.id) {
-        // Mismo expansion de error que más abajo, mostrar campo concreto
         let detail = "";
         if (
           tokenJson.error?.messages &&
@@ -228,13 +214,7 @@ export async function POST(req: Request) {
         });
         return NextResponse.json({ error: errMsg }, { status: 400 });
       }
-      sourceBody = {
-        type: "NEQUI",
-        token: tokenJson.data.id,
-        customer_email: user.email,
-        acceptance_token: acceptanceToken,
-        accept_personal_auth: acceptancePersonalDataAuthToken,
-      };
+      nequiTokenId = tokenJson.data.id;
     } catch (err) {
       console.error("Wompi tokens/nequi network failed", err);
       return NextResponse.json(
@@ -245,7 +225,68 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
+
+    // Guardar la row con el token (sin source_id todavía).
+    // Status TOKEN_PENDING es nuestro custom — Wompi usa "PENDING" pero
+    // queremos diferenciar "esperando aprobación del token" de "source
+    // pendiente". /check entiende ambos.
+    await prisma.paymentMethod.updateMany({
+      where: { subscriptionId: sub.id, isDefault: true },
+      data: { isDefault: false },
+    });
+    const pm = await prisma.paymentMethod.create({
+      data: {
+        subscriptionId: sub.id,
+        wompiSourceId: null,
+        nequiTokenId,
+        type: "NEQUI",
+        isDefault: true,
+        environment: env,
+        wompiStatus: "TOKEN_PENDING",
+        wompiStatusCheckedAt: new Date(),
+        brand: "NEQUI",
+        last4: body.phoneNumber.slice(-4),
+        holderName: body.phoneNumber,
+      },
+    });
+
+    audit({
+      category: "billing",
+      action: "payment_method.nequi_tokenized",
+      actorUserId: user.id,
+      actorEmail: user.email,
+      targetId: pm.id,
+      metadata: {
+        agencyId: m.agencyId,
+        last4: body.phoneNumber.slice(-4),
+        environment: env,
+      },
+      req,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      paymentMethodId: pm.id,
+      wompiStatus: "TOKEN_PENDING",
+      needsConfirmation: true,
+      note: "Te llegó un push a tu app Nequi para confirmar. Aprobá ahí en los próximos 5 minutos para activarlo.",
+    });
   }
+
+  // ─────────────────────────────────────────────────────────────────
+  // FLUJO CARD: el token de tarjeta ya fue aprobado por el browser via
+  // /tokens/cards (el user metió los datos directos a Wompi). Acá solo
+  // creamos el payment_source con ese token.
+  // ─────────────────────────────────────────────────────────────────
+  const sourceBody: Record<string, unknown> = {
+    type: "CARD",
+    token: body.cardToken,
+    customer_email: user.email,
+    acceptance_token: acceptanceToken,
+    ...(acceptancePersonalDataAuthToken && {
+      accept_personal_auth: acceptancePersonalDataAuthToken,
+    }),
+  };
 
   // Llamar a Wompi para crear el payment_source.
   let sourceId: string | null = null;
@@ -324,29 +365,25 @@ export async function POST(req: Request) {
     data: { isDefault: false },
   });
 
+  // NEQUI ya retornó antes — acá solo llega CARD.
+  if (body.type !== "CARD") {
+    return NextResponse.json({ error: "Tipo inválido" }, { status: 400 });
+  }
   const pm = await prisma.paymentMethod.upsert({
     where: { wompiSourceId: sourceId },
     create: {
       subscriptionId: sub.id,
       wompiSourceId: sourceId,
-      type: body.type,
+      type: "CARD",
       isDefault: true,
       environment: env,
       wompiStatus: sourceStatus,
       wompiStatusCheckedAt: new Date(),
-      ...(body.type === "CARD"
-        ? {
-            brand: body.brand,
-            last4: body.last4,
-            expMonth: body.expMonth,
-            expYear: body.expYear,
-            holderName: body.cardHolder,
-          }
-        : {
-            brand: "NEQUI",
-            last4: body.phoneNumber.slice(-4),
-            holderName: body.phoneNumber,
-          }),
+      brand: body.brand,
+      last4: body.last4,
+      expMonth: body.expMonth,
+      expYear: body.expYear,
+      holderName: body.cardHolder,
     },
     update: {
       subscriptionId: sub.id,
@@ -365,9 +402,9 @@ export async function POST(req: Request) {
     targetId: pm.id,
     metadata: {
       agencyId: m.agencyId,
-      type: body.type,
-      brand: body.type === "CARD" ? body.brand : "NEQUI",
-      last4: body.type === "CARD" ? body.last4 : body.phoneNumber.slice(-4),
+      type: "CARD",
+      brand: body.brand,
+      last4: body.last4,
       environment: env,
     },
     req,
@@ -377,14 +414,7 @@ export async function POST(req: Request) {
     ok: true,
     paymentMethodId: pm.id,
     wompiStatus: sourceStatus,
-    // El modal usa estos flags para decidir qué UI mostrar:
-    //  - needsConfirmation=true → mostrar "Esperando confirmación..." +
-    //    pollear /check hasta que pase a AVAILABLE
-    //  - needsConfirmation=false → toast de éxito directo
-    needsConfirmation: sourceStatus === "PENDING",
-    note:
-      body.type === "NEQUI"
-        ? "Te llegó un push a tu app Nequi para confirmar. Aprobá ahí en los próximos 5 minutos para activarlo."
-        : "Tarjeta guardada correctamente.",
+    needsConfirmation: false,
+    note: "Tarjeta guardada correctamente.",
   });
 }

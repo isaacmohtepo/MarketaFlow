@@ -362,8 +362,15 @@ model PaymentMethod {
   subscriptionId String
   subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
-  /// Token de payment_source en Wompi.
-  wompiSourceId  String       @unique
+  /// Token de payment_source en Wompi. Null mientras el flujo NEQUI está
+  /// esperando que el user apruebe el push: en ese estado tenemos
+  /// nequiTokenId pero todavía no creamos el source. Una vez que el token
+  /// se aprueba, /check crea el source y guarda el id acá.
+  wompiSourceId  String?      @unique
+  /// Solo para NEQUI: id del /tokens/nequi (tok_nequi_...) que el user
+  /// debe aprobar via push. Después de aprobado, /check usa este token
+  /// para crear el payment_source.
+  nequiTokenId   String?
   /// Tipo: "CARD" | "PSE" | "NEQUI" | etc. Solo CARD y NEQUI soportan recurrente.
   type           String       @default("CARD")
 

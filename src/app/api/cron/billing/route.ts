@@ -446,6 +446,30 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     return false;
   }
 
+  // NEQUI no finalizado (TOKEN_PENDING): el method existe pero el user no
+  // aprobó el push todavía. No podemos cobrar — past_due + razón clara.
+  if (!pm.wompiSourceId) {
+    await prisma.$transaction([
+      prisma.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          status: "failed",
+          failedAt: now,
+          failedReason:
+            "El método Nequi nunca fue aprobado por el cliente en su app. Pediles que vuelvan a agregar el método.",
+        },
+      }),
+      prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          status: "past_due",
+          pastDueSinceAt: sub.pastDueSinceAt ?? now,
+        },
+      }),
+    ]);
+    return false;
+  }
+
   // Expired card check: si la tarjeta tiene expMonth/expYear y ya pasó,
   // Wompi rechaza con error críptico ("INVALID" o similar). Lo cortamos
   // temprano, marcamos invoice failed con razón clara, y mandamos email

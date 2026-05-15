@@ -226,6 +226,15 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    if (!pm.wompiSourceId) {
+      return NextResponse.json(
+        {
+          error: "El método todavía está pendiente de aprobación en la app Nequi.",
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    }
     if (pm.type === "CARD" && pm.expMonth && pm.expYear) {
       const expDate = new Date(pm.expYear, pm.expMonth, 1);
       if (expDate <= new Date()) {
