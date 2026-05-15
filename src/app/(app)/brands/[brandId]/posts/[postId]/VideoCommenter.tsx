@@ -176,13 +176,16 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
       {duration > 0 && (
         <div className="border-t border-zinc-100 bg-zinc-50/60 px-4 py-3">
           <div className="mb-1.5 flex items-center justify-between text-[10.5px]">
-            <span className="font-semibold uppercase tracking-wider text-zinc-500">
-              {markers.length === 0
-                ? "Timeline"
-                : `${markers.length} ${markers.length === 1 ? "comentario" : "comentarios"}`}
+            <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-zinc-500">
+              Timeline
+              {markers.length > 0 && (
+                <span className="rounded-full bg-fuchsia-100 px-1.5 py-0.5 font-bold normal-case tracking-normal text-fuchsia-700">
+                  {markers.length} {markers.length === 1 ? "comentario" : "comentarios"}
+                </span>
+              )}
             </span>
             <span className="font-mono tabular-nums text-zinc-400">
-              {formatTime(currentTime)}
+              {formatTime(currentTime)} <span className="text-zinc-300">/</span> {formatTime(duration)}
             </span>
           </div>
           <div
@@ -284,6 +287,47 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
               </div>
             )}
           </div>
+
+          {/* Strip de comentarios anclados, ordenados por timestamp.
+              Cada chip es clickeable → seek al momento + highlight del
+              comment en el panel lateral. Aparece debajo de la barra para
+              que el user vea de un vistazo TODOS los comments del video
+              sin tener que hover marker por marker. */}
+          {markers.length > 0 && (
+            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:thin]">
+              {[...markers]
+                .sort((a, b) => a.time - b.time)
+                .map((m, idx) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => onMarkerClick?.(m.id)}
+                    onMouseEnter={() =>
+                      setHoverPct(Math.min(100, (m.time / duration) * 100))
+                    }
+                    onMouseLeave={() => setHoverPct(null)}
+                    className={`group flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-[11px] transition hover:border-fuchsia-300 hover:bg-fuchsia-50 hover:shadow-sm ${
+                      hoverMarkerId === m.id ? "border-fuchsia-400 bg-fuchsia-50 shadow-sm" : ""
+                    }`}
+                    title={m.body ?? `Comentario ${idx + 1}`}
+                  >
+                    <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 font-mono text-[9px] font-bold text-white">
+                      {idx + 1}
+                    </span>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="font-mono text-[10px] font-semibold text-fuchsia-700 tabular-nums">
+                        {formatTime(m.time)}
+                      </span>
+                      {m.body && (
+                        <span className="max-w-[140px] truncate text-[10.5px] text-zinc-600 group-hover:text-zinc-900">
+                          {m.body}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
       )}
 
