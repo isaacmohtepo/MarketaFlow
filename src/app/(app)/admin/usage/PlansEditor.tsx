@@ -8,7 +8,7 @@ import {
   SERVICE_META,
   type ServiceKey,
   type UsagePlans,
-} from "@/lib/usage-plans";
+} from "@/lib/usage-plans-types";
 
 /**
  * Form editable de planes/límites de servicios externos.
