@@ -19,7 +19,10 @@ const TABS = [
 export default function BillingTabs() {
   const pathname = usePathname() ?? "/billing";
   return (
-    <nav className="mb-8 -mx-1 flex gap-6 overflow-x-auto border-b border-zinc-100 px-1">
+    <nav
+      role="navigation"
+      className="mb-8 -mx-1 flex gap-6 overflow-x-auto border-b border-zinc-100 px-1 print:hidden"
+    >
       {TABS.map((t) => {
         const active = isActive(pathname, t.href);
         return (

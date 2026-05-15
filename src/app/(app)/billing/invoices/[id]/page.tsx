@@ -68,14 +68,19 @@ export default async function InvoiceDetailPage({
         </div>
       </div>
 
-      {/* Documento imprimible */}
+      {/* Documento imprimible — print: el card pierde border/sombra/radius
+          y el padding interno se mantiene (px-2 vs px-8) para que el
+          contenido no quede pegado a los márgenes del @page. */}
       <article className="card overflow-hidden bg-white print:rounded-none print:border-0 print:shadow-none">
         {/* Top brand bar */}
         <div className="brand-gradient h-2" />
 
-        <div className="p-8 print:p-0 print:py-6">
-          {/* Header del documento */}
-          <header className="flex flex-wrap items-start justify-between gap-6 border-b border-zinc-100 pb-6">
+        <div className="p-8 print:px-2 print:py-6">
+          {/* Header del documento — usamos <div> en lugar de <header>
+              porque globals.css hide TODOS los <header> al imprimir
+              (es para el chrome de la app), y necesitamos que el header
+              de la factura (con logo + NIT + número) SÍ se imprima. */}
+          <div className="flex flex-wrap items-start justify-between gap-6 border-b border-zinc-100 pb-6">
             <div>
               <div className="flex items-center gap-2">
                 <span className="grid h-7 w-7 place-items-center rounded-lg brand-gradient text-white">
@@ -104,7 +109,7 @@ export default async function InvoiceDetailPage({
                 <StatusPill status={invoice.status} />
               </div>
             </div>
-          </header>
+          </div>
 
           {/* Direcciones + meta */}
           <div className="mt-6 grid gap-6 sm:grid-cols-2">

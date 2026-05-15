@@ -33,9 +33,11 @@ export default async function BillingLayout({
   return (
     <div className="mx-auto max-w-5xl">
       {/* Header persistente: H1 + agency name. No se re-renderiza entre
-          navegaciones de tabs — solo el {children} de abajo cambia. */}
+          navegaciones de tabs — solo el {children} de abajo cambia.
+          Print: oculto, porque la factura imprimible (sub-page hijo) tiene
+          su propio header de documento. */}
       {agencyName && (
-        <div className="mb-2">
+        <div className="mb-2 print:hidden">
           <h1 className="text-[28px] font-bold tracking-tight text-zinc-900">
             Facturación
           </h1>
