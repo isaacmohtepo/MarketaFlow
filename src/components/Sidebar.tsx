@@ -465,11 +465,17 @@ function formatDate(iso: string | null): string {
 }
 
 function PlanCard({ data }: { data: PlanCardData }) {
+  // Todas las variantes linkean a /billing/plan (la página de gestión).
+  // ANTES apuntaban a /billing (Resumen), lo cual hacía que el click
+  // pareciera "no hacer nada" cuando el user ya estaba en /billing —
+  // Next.js no re-navega a la misma URL.
+  const planHref = "/billing/plan";
+
   // Caso 1: Free → CTA "Sube a Pro"
   if (data.planId === "free") {
     return (
       <Link
-        href="/billing"
+        href={planHref}
         className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
         style={{ border: DARK_LINE }}
       >
@@ -500,7 +506,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
     );
     return (
       <Link
-        href="/billing"
+        href={planHref}
         className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
         style={{ border: DARK_LINE }}
       >
@@ -520,11 +526,11 @@ function PlanCard({ data }: { data: PlanCardData }) {
     );
   }
 
-  // Caso 3: Past due (pago vencido)
+  // Caso 3: Past due → va a Métodos de pago directo (la acción real)
   if (data.status === "past_due") {
     return (
       <Link
-        href="/billing"
+        href="/billing/payment-methods"
         className="group block overflow-hidden rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs transition hover:bg-rose-500/20"
       >
         <div className="flex items-center justify-between">
@@ -547,7 +553,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
   if (data.cancelAtPeriodEnd && data.currentPeriodEnd) {
     return (
       <Link
-        href="/billing"
+        href={planHref}
         className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
         style={{ border: DARK_LINE }}
       >
@@ -570,7 +576,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
   // Caso 5: Plan activo paid (Pro / Agency normal)
   return (
     <Link
-      href="/billing"
+      href={planHref}
       className="group block overflow-hidden rounded-lg p-3 text-xs transition hover:bg-white/[0.04]"
       style={{ border: DARK_LINE }}
     >
