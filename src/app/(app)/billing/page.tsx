@@ -141,7 +141,7 @@ export default async function BillingPage() {
       )}
 
       {/* Hero numérico en card unificada — 3 columnas con separadores */}
-      <div className="mb-6 grid divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <div className="mb-6 grid divide-y divide-zinc-100 card sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <Metric
           label="Plan actual"
           value={plan.name}
@@ -179,7 +179,7 @@ export default async function BillingPage() {
       </div>
 
       {/* Uso del plan */}
-      <section className="mb-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <section className="card mb-6 p-6">
         <div className="mb-5 flex items-baseline justify-between">
           <div>
             <h2 className="text-[15px] font-semibold text-zinc-900">
@@ -240,7 +240,7 @@ export default async function BillingPage() {
       </section>
 
       {/* Últimas facturas */}
-      <section className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <section className="card">
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
           <div>
             <h2 className="text-[15px] font-semibold text-zinc-900">
