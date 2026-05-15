@@ -357,29 +357,58 @@ async function handleTransactionUpdated(
         }
       }
 
-      if (transaction.payment_source_id) {
-        // Wompi manda event.environment ("test" o "prod"). Lo
-        // normalizamos a nuestro vocabulario ("sandbox"/"production").
-        // event no está en scope acá pero podemos inferir del cfg
-        // resuelto al verificar la firma. Más confiable: pedírselo
-        // al caller.
+      // SEGURIDAD: el webhook payload incluye payment_source_id pero esa
+      // propiedad NO está en la firma HMAC (Wompi solo firma transaction.id,
+      // status, amount). Un atacante que intercepte un webhook puede
+      // modificar payment_source_id y la firma sigue siendo válida →
+      // podríamos asociar un source de otro environment / merchant a la
+      // suscripción.
+      //
+      // Mitigación: re-fetcheamos la transaction desde la API autenticada
+      // de Wompi usando el transaction.id (que SÍ está firmado). Lo que
+      // venga de ese GET es la fuente de verdad — payment_source_id
+      // verificado.
+      let verifiedSourceId: number | null = null;
+      let verifiedMethodType: string | null = null;
+      try {
+        const authedEnv = await resolveWompiEnvironment();
+        if (authedEnv) {
+          const authedTx = await getTransaction(transaction.id, authedEnv);
+          if (
+            authedTx &&
+            authedTx.id === transaction.id &&
+            authedTx.status === "APPROVED" &&
+            authedTx.payment_source_id != null
+          ) {
+            verifiedSourceId = Number(authedTx.payment_source_id);
+            verifiedMethodType =
+              authedTx.payment_method_type ?? null;
+          }
+        }
+      } catch (err) {
+        console.error("webhook: re-fetch transaction failed", err);
+        // Si Wompi no contesta, NO asociamos el payment_source. Mejor
+        // perder la asociación que vincular un source no verificado.
+      }
+
+      if (verifiedSourceId != null) {
         const sourceEnv = environmentFromEvent;
         await tx.paymentMethod.updateMany({
           where: { subscriptionId: invoice.subscriptionId, isDefault: true },
           data: { isDefault: false },
         });
         await tx.paymentMethod.upsert({
-          where: { wompiSourceId: String(transaction.payment_source_id) },
+          where: { wompiSourceId: String(verifiedSourceId) },
           create: {
             subscriptionId: invoice.subscriptionId,
-            wompiSourceId: String(transaction.payment_source_id),
-            type: transaction.payment_method_type ?? "CARD",
+            wompiSourceId: String(verifiedSourceId),
+            type: verifiedMethodType ?? "CARD",
             isDefault: true,
             environment: sourceEnv ?? null,
           },
           update: {
             subscriptionId: invoice.subscriptionId,
-            type: transaction.payment_method_type ?? "CARD",
+            type: verifiedMethodType ?? "CARD",
             isDefault: true,
             environment: sourceEnv ?? null,
           },
@@ -388,16 +417,18 @@ async function handleTransactionUpdated(
     });
 
     // Enriquecer display info (last4, brand, expiry, holder, nequi phone)
-    // — el webhook NO trae estos campos. Hay que pedir GET /transactions/{id}
-    // para obtenerlos. Fire-and-forget; si falla, el método queda guardado
-    // con el token pero sin info visible.
+    // — el webhook NO trae estos campos. Pedimos GET /transactions/{id}
+    // (autenticado) para obtenerlos. Solo si arriba creamos un
+    // PaymentMethod con source verificado (sino, no hay nada que enriquecer).
     if (transaction.payment_source_id) {
       try {
         const env = await resolveWompiEnvironment();
         if (env) {
           const full = await getTransaction(transaction.id, env);
+          // Usar el source_id de la respuesta AUTENTICADA, no del webhook
+          const verifiedSrcId = full?.payment_source_id;
           const pm = full?.payment_method;
-          if (pm) {
+          if (pm && verifiedSrcId != null) {
             const updates: {
               brand?: string | null;
               last4?: string | null;
@@ -421,8 +452,10 @@ async function handleTransactionUpdated(
               updates.holderName = pm.phone_number;
             }
             if (Object.keys(updates).length > 0) {
-              await prisma.paymentMethod.update({
-                where: { wompiSourceId: String(transaction.payment_source_id) },
+              // updateMany para que no explote si el PaymentMethod no
+              // existe (verificación del source falló o se borró).
+              await prisma.paymentMethod.updateMany({
+                where: { wompiSourceId: String(verifiedSrcId) },
                 data: updates,
               });
             }

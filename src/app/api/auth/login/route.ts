@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
-import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
 import { verifyToken, verifyRecoveryCode } from "@/lib/totp";
 import { getSystemSetting } from "@/lib/system-settings";
 
@@ -28,9 +28,15 @@ export async function POST(req: Request) {
 
   // Rate limit doble: por IP (5/min) y por email (5/15min) para prevenir
   // brute force tanto desde una IP como contra un email específico.
-  const byIp = rateLimit(req, { key: "login:ip", limit: 5, windowMs: 60_000 });
+  // Usamos la versión async que prefiere Upstash sobre in-memory para que
+  // el límite sea compartido entre instancias de Lambda en Vercel.
+  const byIp = await rateLimitAsync(req, {
+    key: "login:ip",
+    limit: 5,
+    windowMs: 60_000,
+  });
   if (!byIp.ok) return rateLimitResponse(byIp);
-  const byEmail = rateLimit(req, {
+  const byEmail = await rateLimitAsync(req, {
     key: "login:email",
     limit: 5,
     windowMs: 15 * 60_000,

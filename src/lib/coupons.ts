@@ -118,6 +118,23 @@ export async function validateCoupon(args: {
  * Llamar desde el webhook cuando el invoice se marca paid Y tiene
  * `couponCode` set. Incrementa el counter + crea redemption row.
  * Acepta un tx opcional para participar en la transacción del webhook.
+ *
+ * SEGURIDAD (race conditions):
+ *  - El incremento del counter se hace con UPDATE condicional:
+ *    `WHERE id = ? AND (maxRedemptions IS NULL OR redemptionCount < maxRedemptions)`.
+ *    Si dos requests paralelos pasan validateCoupon, solo UNO va a afectar
+ *    1 row (Prisma updateMany devuelve count). El otro recibe count=0 y
+ *    abortamos su redemption sin tocar nada.
+ *  - Para `oncePerAgency`, hacemos el check de redemption previa dentro
+ *    de la transacción + relamos en el create con manejo de unique conflict
+ *    en invoiceId (que sí tiene unique constraint). Si dos webhooks
+ *    paralelos intentan recordRedemption para invoices distintos pero
+ *    misma agency, el segundo va a chocar al crear redemption porque
+ *    validateCoupon habría devuelto false al hacer findFirst dentro del tx
+ *    (con Serializable isolation rompiendo el segundo commit).
+ *
+ * Retorna `true` si la redención se aplicó, `false` si fue rechazada por
+ * cap (en cuyo caso el caller debería marcar el invoice sin descuento).
  */
 export async function recordRedemption(args: {
   code: string;
@@ -125,19 +142,55 @@ export async function recordRedemption(args: {
   invoiceId: string;
   amountSavedCents: number;
   tx?: Prisma.TransactionClient;
-}): Promise<void> {
+}): Promise<boolean> {
   const client = (args.tx ?? prisma) as Prisma.TransactionClient;
+  const code = args.code.toUpperCase();
   const coupon = await client.coupon.findUnique({
-    where: { code: args.code.toUpperCase() },
-    select: { id: true },
+    where: { code },
+    select: {
+      id: true,
+      maxRedemptions: true,
+      oncePerAgency: true,
+      active: true,
+    },
   });
-  if (!coupon) return;
-  // Idempotencia: si ya existe redemption para este invoice, no hacer nada
+  if (!coupon || !coupon.active) return false;
+
+  // Idempotencia: si ya existe redemption para este invoice exacto, no
+  // hacer nada (el webhook se está reprocesando — válido, no es race).
   const existing = await client.couponRedemption.findUnique({
     where: { invoiceId: args.invoiceId },
     select: { id: true },
   });
-  if (existing) return;
+  if (existing) return true;
+
+  // Verificar oncePerAgency en read-fresh dentro del tx
+  if (coupon.oncePerAgency) {
+    const prior = await client.couponRedemption.findFirst({
+      where: { couponId: coupon.id, agencyId: args.agencyId },
+      select: { id: true },
+    });
+    if (prior) return false;
+  }
+
+  // Incremento atómico de redemptionCount con cap: si maxRedemptions está
+  // set y ya alcanzó el cap, no se actualiza ninguna row. Esto reemplaza
+  // el patrón {increment: 1} que NO es atómico vs cap check.
+  const updated = await client.coupon.updateMany({
+    where: {
+      id: coupon.id,
+      OR: [
+        { maxRedemptions: null },
+        { redemptionCount: { lt: coupon.maxRedemptions ?? Number.MAX_SAFE_INTEGER } },
+      ],
+    },
+    data: { redemptionCount: { increment: 1 } },
+  });
+  if (updated.count === 0) {
+    // Cap alcanzado por otra request paralela — abortar redención
+    return false;
+  }
+
   await client.couponRedemption.create({
     data: {
       couponId: coupon.id,
@@ -146,10 +199,7 @@ export async function recordRedemption(args: {
       amountSavedCents: args.amountSavedCents,
     },
   });
-  await client.coupon.update({
-    where: { id: coupon.id },
-    data: { redemptionCount: { increment: 1 } },
-  });
+  return true;
 }
 
 function formatCop(cents: number): string {

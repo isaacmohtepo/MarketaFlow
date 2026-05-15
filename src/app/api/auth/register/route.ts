@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
 import { startTrialForAgency, canInviteClient } from "@/lib/billing";
-import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * Password policy: mínimo 8 caracteres + al menos 1 letra y 1 dígito.
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   }
 
   // Rate limit: 3 registros por IP por hora — evita scripts que crean miles de cuentas
-  const rl = rateLimit(req, { key: "register", limit: 3, windowMs: 60 * 60_000 });
+  const rl = await rateLimitAsync(req, { key: "register", limit: 3, windowMs: 60 * 60_000 });
   if (!rl.ok) return rateLimitResponse(rl);
 
   let body;

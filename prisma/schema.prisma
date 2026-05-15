@@ -501,6 +501,11 @@ model Coupon {
 ///  - Contar redenciones por cupón (uso real + atómico)
 ///  - Verificar "oncePerAgency" buscando si esta agency ya redimió este cupón
 ///  - Historial de cuánto se ahorró cada cliente
+///
+/// SEGURIDAD: la validación de `oncePerAgency` y `maxRedemptions` se hace
+/// dentro de una transacción Serializable + UPDATE condicional en
+/// Coupon.redemptionCount (ver lib/coupons.ts:recordRedemption). Eso
+/// previene que dos requests paralelos rebasen los caps.
 model CouponRedemption {
   id               String   @id @default(cuid())
   couponId         String

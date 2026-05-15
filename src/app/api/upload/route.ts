@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { uploadFile, isR2Configured } from "@/lib/storage";
+import { validateMagicBytes } from "@/lib/magic-bytes";
 
 /**
  * Allowlist de MIME types permitidos para upload. Bloqueamos:
@@ -95,6 +96,31 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: `Extensión .${ext} bloqueada por seguridad.` },
       { status: 415 },
+    );
+  }
+
+  // Validación por magic bytes: comparamos los primeros bytes del archivo
+  // contra la firma conocida del MIME declarado. Esto cierra el vector
+  // "subo un SVG con <script> declarando MIME image/jpeg" — la firma del
+  // SVG NO coincide con JPEG y lo rechazamos antes de subir a R2.
+  // Solo leemos los primeros 256 bytes (suficiente para todas las
+  // signatures + sniff de texto disfrazado).
+  try {
+    const headBuf = Buffer.from(
+      await file.slice(0, 256).arrayBuffer(),
+    );
+    const magicCheck = validateMagicBytes(headBuf, mime);
+    if (!magicCheck.ok) {
+      return NextResponse.json(
+        { error: magicCheck.reason },
+        { status: 415 },
+      );
+    }
+  } catch (err) {
+    console.error("magic-byte validation failed", err);
+    return NextResponse.json(
+      { error: "No se pudo validar el archivo." },
+      { status: 400 },
     );
   }
 

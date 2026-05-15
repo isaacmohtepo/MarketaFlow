@@ -7,7 +7,7 @@ import {
   verifyPassword,
   getCurrentSessionToken,
 } from "@/lib/auth";
-import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 
 // Misma policy que en register: 8+, letras+números
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   // Rate limit: 5 intentos por hora por user — previene attempts contra
   // currentPassword si robaron la session pero no la pass.
-  const rl = rateLimit(req, {
+  const rl = await rateLimitAsync(req, {
     key: "password-change",
     limit: 5,
     windowMs: 60 * 60_000,
