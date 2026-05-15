@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, X, Eye } from "lucide-react";
+import { Loader2, Upload, X, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+
+const DEFAULT_FROM = "#3b5fff";
+const DEFAULT_VIA = "#8a2be2";
+const DEFAULT_TO = "#ff2d55";
+
+const PRESETS: { name: string; from: string; to: string; accent: string }[] = [
+  { name: "MarketaFlow", from: "#3b5fff", to: "#ff2d55", accent: "#8a2be2" },
+  { name: "Esmeralda", from: "#10b981", to: "#0ea5e9", accent: "#10b981" },
+  { name: "Atardecer", from: "#f59e0b", to: "#ef4444", accent: "#f97316" },
+  { name: "Bosque", from: "#16a34a", to: "#065f46", accent: "#16a34a" },
+  { name: "Océano", from: "#0ea5e9", to: "#312e81", accent: "#0ea5e9" },
+  { name: "Mono", from: "#18181b", to: "#52525b", accent: "#27272a" },
+];
 
 export default function WhiteLabelEditor({
   agencyName,
@@ -14,13 +27,21 @@ export default function WhiteLabelEditor({
     brandName: string | null;
     logoUrl: string | null;
     accentColor: string | null;
+    gradientFrom: string | null;
+    gradientTo: string | null;
   };
 }) {
   const router = useRouter();
   const [brandName, setBrandName] = useState(initial.brandName ?? "");
   const [logoUrl, setLogoUrl] = useState<string | null>(initial.logoUrl);
   const [accentColor, setAccentColor] = useState(
-    initial.accentColor ?? "#8a2be2",
+    initial.accentColor ?? DEFAULT_VIA,
+  );
+  const [gradientFrom, setGradientFrom] = useState(
+    initial.gradientFrom ?? DEFAULT_FROM,
+  );
+  const [gradientTo, setGradientTo] = useState(
+    initial.gradientTo ?? DEFAULT_TO,
   );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,7 +80,9 @@ export default function WhiteLabelEditor({
         body: JSON.stringify({
           brandName: brandName.trim() || null,
           logoUrl,
-          accentColor: accentColor === "#8a2be2" ? null : accentColor,
+          accentColor: accentColor === DEFAULT_VIA ? null : accentColor,
+          gradientFrom: gradientFrom === DEFAULT_FROM ? null : gradientFrom,
+          gradientTo: gradientTo === DEFAULT_TO ? null : gradientTo,
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -67,14 +90,27 @@ export default function WhiteLabelEditor({
         toast.error(j.error ?? "No se pudo guardar");
         return;
       }
-      toast.success("Branding actualizado");
+      toast.success("Branding guardado — refrescá para ver el cambio en la app");
       router.refresh();
     } finally {
       setSaving(false);
     }
   }
 
+  function applyPreset(p: (typeof PRESETS)[number]) {
+    setGradientFrom(p.from);
+    setGradientTo(p.to);
+    setAccentColor(p.accent);
+  }
+
+  function resetColors() {
+    setGradientFrom(DEFAULT_FROM);
+    setGradientTo(DEFAULT_TO);
+    setAccentColor(DEFAULT_VIA);
+  }
+
   const effectiveBrandName = brandName.trim() || agencyName;
+  const previewGradient = `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`;
 
   return (
     <div className="space-y-5">
@@ -85,15 +121,23 @@ export default function WhiteLabelEditor({
         </label>
         <p className="mt-0.5 text-[11.5px] text-zinc-500">
           PNG transparente, SVG o JPG. Máx 2 MB. Ideal cuadrado o casi
-          cuadrado, mínimo 256×256 px. Se va a mostrar en headers / emails.
+          cuadrado, mínimo 256×256 px. Se va a mostrar en el sidebar, headers
+          y emails.
         </p>
         <div className="mt-3 flex items-center gap-3">
-          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-lg bg-zinc-50 ring-1 ring-zinc-200">
+          <div
+            className="grid h-16 w-16 place-items-center overflow-hidden rounded-lg ring-1 ring-zinc-200"
+            style={{ background: logoUrl ? "#fff" : previewGradient }}
+          >
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="h-full w-full object-contain" />
+              <img
+                src={logoUrl}
+                alt=""
+                className="h-full w-full object-contain"
+              />
             ) : (
-              <span className="text-[18px] font-bold text-zinc-400">
+              <span className="text-[20px] font-bold text-white">
                 {effectiveBrandName.charAt(0).toUpperCase()}
               </span>
             )}
@@ -135,8 +179,9 @@ export default function WhiteLabelEditor({
           Nombre del brand
         </label>
         <p className="mt-0.5 text-[11.5px] text-zinc-500">
-          Reemplaza &quot;MarketaFlow&quot; en lo que ven tus clientes. Si lo
-          dejás vacío, usamos el nombre de tu agencia ({agencyName}).
+          Reemplaza &quot;MarketaFlow&quot; en sidebar, emails y páginas
+          públicas. Si lo dejás vacío, usamos el nombre de tu agencia (
+          {agencyName}).
         </p>
         <input
           type="text"
@@ -148,66 +193,147 @@ export default function WhiteLabelEditor({
         />
       </div>
 
-      {/* Color */}
+      {/* Colores */}
       <div className="card p-5">
-        <label className="block text-[12px] font-semibold uppercase tracking-wide text-zinc-500">
-          Color de acento
-        </label>
-        <p className="mt-0.5 text-[11.5px] text-zinc-500">
-          Usado para botones de aprobación / links en páginas públicas y
-          emails. Default: violeta MarketaFlow.
-        </p>
-        <div className="mt-3 flex items-center gap-3">
-          <input
-            type="color"
-            value={accentColor}
-            onChange={(e) => setAccentColor(e.target.value)}
-            className="h-10 w-16 cursor-pointer rounded-md border border-zinc-200 bg-white"
+        <div className="flex items-end justify-between">
+          <div>
+            <label className="block text-[12px] font-semibold uppercase tracking-wide text-zinc-500">
+              Colores
+            </label>
+            <p className="mt-0.5 text-[11.5px] text-zinc-500">
+              El gradiente se aplica a botones primarios, badges y
+              encabezados. El accent es el color sólido para acciones
+              individuales.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={resetColors}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Restaurar
+          </button>
+        </div>
+
+        {/* Presets rápidos */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => applyPreset(p)}
+              className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10.5px] font-medium hover:border-zinc-300"
+              title={`Aplicar preset ${p.name}`}
+            >
+              <span
+                className="h-3 w-6 rounded-full"
+                style={{
+                  background: `linear-gradient(135deg, ${p.from}, ${p.to})`,
+                }}
+              />
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <ColorField
+            label="Gradient — desde"
+            value={gradientFrom}
+            onChange={setGradientFrom}
           />
-          <input
-            type="text"
+          <ColorField
+            label="Gradient — hasta"
+            value={gradientTo}
+            onChange={setGradientTo}
+          />
+          <ColorField
+            label="Color de acento"
             value={accentColor}
-            onChange={(e) => setAccentColor(e.target.value)}
-            maxLength={7}
-            placeholder="#8a2be2"
-            className="input-soft w-32 rounded-md px-3 py-2 font-mono text-[12px] uppercase"
+            onChange={setAccentColor}
+            hint="Sólido — botones secundarios"
           />
         </div>
       </div>
 
       {/* Preview */}
-      <div className="rounded-lg border border-zinc-200 bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 p-5">
+      <div className="rounded-lg border border-zinc-200 bg-zinc-100 p-5">
         <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
           <Eye className="h-3 w-3" />
-          Preview de página pública
+          Preview en vivo
         </div>
-        <div className="mt-3 rounded-md bg-white p-4 ring-1 ring-zinc-200">
-          <div className="flex items-center gap-2">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="h-7 w-7 rounded object-contain" />
-            ) : (
-              <span
-                className="grid h-7 w-7 place-items-center rounded text-[12px] font-bold text-white"
-                style={{ background: accentColor }}
-              >
-                {effectiveBrandName.charAt(0).toUpperCase()}
-              </span>
-            )}
-            <span className="text-[13px] font-bold text-zinc-900">
-              {effectiveBrandName}
-            </span>
-          </div>
-          <div className="mt-3 text-[12px] text-zinc-700">
-            <p>Te invitan a revisar contenido</p>
-            <button
-              type="button"
-              className="mt-3 rounded-md px-3 py-1.5 text-[11.5px] font-semibold text-white"
-              style={{ background: accentColor }}
+
+        {/* Preview Sidebar (estilo dashboard interno) */}
+        <div className="mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm">
+          <div className="flex items-center gap-2.5 border-b border-zinc-800 px-4 py-3">
+            <span
+              className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm"
+              style={{ background: logoUrl ? "#fff" : previewGradient }}
             >
-              Aprobar post
-            </button>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-[11px] font-bold text-white">
+                  {effectiveBrandName.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[12px] font-semibold tracking-tight text-white">
+                {effectiveBrandName}
+              </p>
+              <p className="truncate text-[10px] text-zinc-500">
+                Vista interna del equipo
+              </p>
+            </div>
           </div>
+          <div className="space-y-1 px-4 py-3">
+            <div className="flex items-center gap-2 text-[11px] text-white">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: previewGradient }}
+              />
+              Dashboard
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
+              Marcas
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
+              Calendario
+            </div>
+          </div>
+        </div>
+
+        {/* Preview de botones */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-white p-3 ring-1 ring-zinc-200">
+          <button
+            type="button"
+            className="rounded-md px-3 py-1.5 text-[11.5px] font-semibold text-white"
+            style={{ background: previewGradient }}
+          >
+            CTA principal
+          </button>
+          <button
+            type="button"
+            className="rounded-md px-3 py-1.5 text-[11.5px] font-semibold text-white"
+            style={{ background: accentColor }}
+          >
+            CTA accent
+          </button>
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white"
+            style={{ background: previewGradient }}
+          >
+            Pro
+          </span>
         </div>
       </div>
 
@@ -224,6 +350,41 @@ export default function WhiteLabelEditor({
           )}
         </button>
       </div>
+    </div>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] font-semibold text-zinc-700">{label}</p>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-zinc-200 bg-white"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={7}
+          placeholder="#000000"
+          className="input-soft w-full rounded-md px-2 py-1.5 font-mono text-[12px] uppercase"
+        />
+      </div>
+      {hint && <p className="mt-1 text-[10px] text-zinc-500">{hint}</p>}
     </div>
   );
 }

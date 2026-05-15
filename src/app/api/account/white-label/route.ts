@@ -16,14 +16,16 @@ import { audit } from "@/lib/audit";
  * (whiteLabelEnabled = true en getEffectiveLimits). Esto evita que un
  * user en Free configure branding que no se va a usar.
  */
+const hexColor = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}$/, "Color hex inválido (ej. #ff4d8f)");
+
 const patchSchema = z.object({
   brandName: z.string().trim().min(2).max(50).nullable().optional(),
   logoUrl: z.string().url().max(500).nullable().optional(),
-  accentColor: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Color hex inválido (ej. #ff4d8f)")
-    .nullable()
-    .optional(),
+  accentColor: hexColor.nullable().optional(),
+  gradientFrom: hexColor.nullable().optional(),
+  gradientTo: hexColor.nullable().optional(),
 });
 
 async function resolveAgencyId(userId: string): Promise<string | null> {
@@ -48,6 +50,8 @@ export async function GET() {
         wlBrandName: true,
         wlLogoUrl: true,
         wlAccentColor: true,
+        wlGradientFrom: true,
+        wlGradientTo: true,
       },
     }),
     getEffectiveLimits(agencyId),
@@ -59,6 +63,8 @@ export async function GET() {
     brandName: agency?.wlBrandName ?? null,
     logoUrl: agency?.wlLogoUrl ?? null,
     accentColor: agency?.wlAccentColor ?? null,
+    gradientFrom: agency?.wlGradientFrom ?? null,
+    gradientTo: agency?.wlGradientTo ?? null,
   });
 }
 
@@ -100,6 +106,8 @@ export async function PATCH(req: Request) {
   if (body.brandName !== undefined) updates.wlBrandName = body.brandName;
   if (body.logoUrl !== undefined) updates.wlLogoUrl = body.logoUrl;
   if (body.accentColor !== undefined) updates.wlAccentColor = body.accentColor;
+  if (body.gradientFrom !== undefined) updates.wlGradientFrom = body.gradientFrom;
+  if (body.gradientTo !== undefined) updates.wlGradientTo = body.gradientTo;
 
   await prisma.agency.update({
     where: { id: agencyId },

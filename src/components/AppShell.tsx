@@ -19,6 +19,8 @@ export default function AppShell({
   userName,
   avatarUrl,
   agencyName,
+  brandName,
+  brandLogoUrl,
   title,
   isAdmin = false,
   isOwner = false,
@@ -29,6 +31,10 @@ export default function AppShell({
   userName: string;
   avatarUrl?: string | null;
   agencyName: string | null;
+  /** Nombre del brand a mostrar en sidebar/topbar. Si null, "MarketaFlow". */
+  brandName?: string | null;
+  /** URL del logo custom. Si null, se usa el ícono Zap default. */
+  brandLogoUrl?: string | null;
   title?: string;
   isAdmin?: boolean;
   isOwner?: boolean;
@@ -48,6 +54,8 @@ export default function AppShell({
       {/* Sidebar fijo en desktop */}
       <Sidebar
         agencyName={agencyName}
+        brandName={brandName}
+        brandLogoUrl={brandLogoUrl}
         isAdmin={isAdmin}
         isOwner={isOwner}
         planCard={planCard}
@@ -64,6 +72,8 @@ export default function AppShell({
           <div className="fixed inset-y-0 left-0 z-50 w-64 lg:hidden">
             <Sidebar
               agencyName={agencyName}
+              brandName={brandName}
+              brandLogoUrl={brandLogoUrl}
               isMobile
               isAdmin={isAdmin}
               isOwner={isOwner}

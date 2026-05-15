@@ -186,6 +186,8 @@ const DARK_LINE = "1px solid rgba(255, 255, 255, 0.07)";
 
 export default function Sidebar({
   agencyName,
+  brandName,
+  brandLogoUrl,
   isMobile = false,
   onNavigate,
   isAdmin = false,
@@ -193,6 +195,10 @@ export default function Sidebar({
   planCard = null,
 }: {
   agencyName: string | null;
+  /** Si está set, reemplaza "MarketaFlow" en el header. */
+  brandName?: string | null;
+  /** Si está set, reemplaza el ícono Zap del header con el logo custom. */
+  brandLogoUrl?: string | null;
   isMobile?: boolean;
   onNavigate?: () => void;
   isAdmin?: boolean;
@@ -267,14 +273,25 @@ export default function Sidebar({
         className="flex h-14 items-center gap-2.5 px-4"
         style={{ borderBottom: DARK_LINE }}
       >
-        <span className="grid h-7 w-7 place-items-center rounded-lg brand-gradient text-white shadow-sm">
-          <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
-        </span>
+        {brandLogoUrl ? (
+          <span className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg bg-white/5 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={brandLogoUrl}
+              alt={brandName ?? "Logo"}
+              className="h-full w-full object-contain"
+            />
+          </span>
+        ) : (
+          <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg brand-gradient text-white shadow-sm">
+            <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </span>
+        )}
         <div className="min-w-0">
           <p className="truncate text-[13px] font-semibold tracking-tight text-white">
-            MarketaFlow
+            {brandName ?? "MarketaFlow"}
           </p>
-          {agencyName && (
+          {agencyName && agencyName !== brandName && (
             <p className="truncate text-[11px] text-zinc-500">{agencyName}</p>
           )}
         </div>

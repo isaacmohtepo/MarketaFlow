@@ -14,6 +14,7 @@ import { permissionsForRole } from "@/lib/permissions";
 import { PermissionsProvider } from "@/components/PermissionsProvider";
 import { getFeatureFlags } from "@/lib/feature-flags";
 import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
+import { getWhiteLabel, whiteLabelCssOverride } from "@/lib/white-label";
 
 /**
  * Layout compartido para todas las rutas autenticadas (dashboard, brands, inbox,
@@ -159,6 +160,16 @@ export default async function AppLayout({
 
   const featureFlags = getFeatureFlags();
 
+  // Resolver white-label de la agency primaria del user. Si está
+  // activo, inyectamos las variables CSS y pasamos el logo/brandName
+  // al AppShell. Cuando no hay white-label, usamos branding default.
+  const primaryAgencyId =
+    ownerMembership?.agencyId ?? anyMembership?.agencyId ?? null;
+  const wl = primaryAgencyId
+    ? await getWhiteLabel(primaryAgencyId)
+    : null;
+  const wlCss = wl ? whiteLabelCssOverride(wl) : "";
+
   return (
     <FeatureFlagsProvider flags={featureFlags}>
     <PermissionsProvider
@@ -166,10 +177,18 @@ export default async function AppLayout({
       brandPermissions={brandPerms}
       roles={[...userRoles]}
     >
+    {wlCss && (
+      // Inyectar las variables CSS de white-label antes del shell para
+      // que todos los componentes que usen brand-gradient las tomen.
+      // eslint-disable-next-line react/no-danger
+      <style dangerouslySetInnerHTML={{ __html: wlCss }} />
+    )}
     <AppShell
       userName={user.name ?? user.email}
       avatarUrl={userRow?.avatarUrl ?? null}
       agencyName={agencyName}
+      brandName={wl?.enabled ? wl.brandName : null}
+      brandLogoUrl={wl?.enabled ? wl.logoUrl : null}
       isAdmin={isAdmin}
       isOwner={isOwner}
       planCard={planCard}

@@ -103,7 +103,14 @@ model Agency {
   /// Si está vacío y el add-on activo, se muestra el branding default.
   wlBrandName       String?
   wlLogoUrl         String?
+  /// Color de acento "principal" (botones, links no-gradient, ring focus).
+  /// Si null, usamos el color violeta default.
   wlAccentColor     String?
+  /// Colores del gradiente principal (`.brand-gradient` y `.brand-gradient-text`).
+  /// Se override en runtime via `<style>` inyectado en el layout. Si null,
+  /// usa el gradiente azul→violeta→rosa default.
+  wlGradientFrom    String?
+  wlGradientTo      String?
   createdAt    DateTime          @default(now())
   brands       Brand[]
   members      Membership[]

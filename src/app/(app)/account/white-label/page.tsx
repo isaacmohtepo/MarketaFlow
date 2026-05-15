@@ -31,6 +31,8 @@ export default async function WhiteLabelPage() {
         wlBrandName: true,
         wlLogoUrl: true,
         wlAccentColor: true,
+        wlGradientFrom: true,
+        wlGradientTo: true,
       },
     }),
     getEffectiveLimits(m.agencyId),
@@ -76,6 +78,8 @@ export default async function WhiteLabelPage() {
               brandName: agency.wlBrandName,
               logoUrl: agency.wlLogoUrl,
               accentColor: agency.wlAccentColor,
+              gradientFrom: agency.wlGradientFrom,
+              gradientTo: agency.wlGradientTo,
             }}
           />
         </div>
@@ -84,14 +88,19 @@ export default async function WhiteLabelPage() {
       <div className="mt-6 rounded-lg border border-zinc-200 bg-zinc-50/40 p-4 text-[11.5px] text-zinc-600">
         <p className="font-semibold text-zinc-800">¿Dónde se aplica?</p>
         <ul className="mt-1 list-disc space-y-0.5 pl-4">
-          <li>Página pública de revisión (cuando compartís un post o feed via link)</li>
-          <li>Email de invitación a clientes</li>
-          <li>Email de pago confirmado / fallido</li>
+          <li>
+            <strong>Toda la UI interna</strong>: sidebar, dashboard,
+            settings, planes — tu logo y nombre reemplazan a MarketaFlow,
+            y los colores del gradient se aplican a botones, badges,
+            indicadores activos y CTAs.
+          </li>
+          <li>Página pública de revisión (cuando compartís un feed via link)</li>
+          <li>Emails (invitación, pago confirmado, pago fallido)</li>
           <li>Footer de las páginas que ven tus clientes externos</li>
         </ul>
         <p className="mt-2 text-zinc-500">
-          La UI interna de tu equipo (dashboard, settings, etc.) sigue
-          mostrando MarketaFlow — el white-label es solo para lo público.
+          Refrescá después de guardar para ver el cambio aplicado en el
+          sidebar y en toda la app.
         </p>
       </div>
     </div>
