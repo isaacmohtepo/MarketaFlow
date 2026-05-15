@@ -98,6 +98,9 @@ export async function GET(req: Request) {
 
     const browser = await puppeteer.launch({
       args: chromium.args,
+      // Viewport 1280×800 → triggerea layout desktop en breakpoints estándar
+      // (md/lg de Tailwind). Sites se ven "como si entrara el usuario", no
+      // versión mobile responsive con todo apilado.
       defaultViewport: { width: 1280, height: 800 },
       executablePath: await chromium.executablePath(),
       headless: true,
@@ -115,10 +118,15 @@ export async function GET(req: Request) {
       });
       // Espera extra para animaciones de hero / fade-ins.
       await new Promise((r) => setTimeout(r, TIMEOUT_RENDER_MS));
+      // Quality 55: para thumbnails de 400×250 en cards la diferencia
+      // visual vs q78 es imperceptible, pero el peso baja de ~60KB a ~25KB.
+      // optimizeForSpeed acelera el encode JPEG ~30% — el shot pesa lo
+      // mismo pero el cold start cuesta menos.
       const shot = await page.screenshot({
         type: "jpeg",
-        quality: 78,
-        fullPage: false, // solo viewport — para card thumbnail no necesitamos scroll
+        quality: 55,
+        fullPage: false,
+        optimizeForSpeed: true,
       });
       buf = Buffer.from(shot);
     } finally {

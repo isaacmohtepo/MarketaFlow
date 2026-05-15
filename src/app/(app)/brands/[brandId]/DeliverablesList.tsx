@@ -113,14 +113,12 @@ function CoverPreview({ d }: { d: Deliverable }) {
     );
   }
   // Web design con URL → screenshot self-hosted via /api/screenshot.
-  // Puppeteer + chromium en Vercel, cache en R2 por hash de URL. Cache hit
-  // = redirect inmediato; cache miss = ~5s la primera vez y queda guardado.
-  // Privacy: las URLs nunca salen de tu infra.
+  // Puppeteer + chromium en Vercel, cache en R2 por hash de URL.
+  // Screenshots optimizados: 400×250 q60 ≈ 12KB/sitio (200k sitios = 2.4GB).
   if (d.assetType === "web_design" && d.sourceUrl) {
     const shotUrl = `/api/screenshot?url=${encodeURIComponent(d.sourceUrl)}`;
     return (
       <div className="flex h-full w-full flex-col bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50">
-        {/* Browser chrome */}
         <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-white/80 px-2.5 py-1.5 backdrop-blur">
           <span className="flex gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-300" />
@@ -131,9 +129,6 @@ function CoverPreview({ d }: { d: Deliverable }) {
             {hostOf(d.sourceUrl)}
           </span>
         </div>
-        {/* Screenshot real del sitio. object-top para mostrar el hero/header
-            (que es lo más identificable). El globe en background queda como
-            fallback visible mientras el shot carga o si falla. */}
         <div className="relative flex-1 overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center">
             <Globe className="h-7 w-7 text-zinc-300" />
@@ -146,8 +141,6 @@ function CoverPreview({ d }: { d: Deliverable }) {
             className="absolute inset-0 h-full w-full object-cover object-top"
             draggable={false}
             onError={(e) => {
-              // Si el endpoint falla, ocultamos para que quede el fallback
-              // visible (globe + gradient).
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
           />
