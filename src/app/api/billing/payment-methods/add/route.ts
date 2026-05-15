@@ -138,14 +138,71 @@ export async function POST(req: Request) {
       }),
     };
   } else {
-    // Para NEQUI siempre incluimos accept_personal_auth (validado arriba).
-    sourceBody = {
-      type: "NEQUI",
-      phone_number: body.phoneNumber,
-      customer_email: user.email,
-      acceptance_token: body.acceptanceToken,
-      accept_personal_auth: body.acceptancePersonalDataAuthToken,
-    };
+    // Para NEQUI: Wompi requiere tokenizar primero el teléfono via
+    // POST /tokens/nequi (devuelve un token tipo "tok_nequi_..."). Solo
+    // ese token se puede usar en /payment_sources. Antes mandábamos
+    // phone_number directo, Wompi lo aceptaba — ahora rechaza con
+    // "token: Debe ser completado".
+    //
+    // El tokenize NO confirma el pago — devuelve token en estado PENDING.
+    // El user recibe el push notification cuando creamos el
+    // payment_source con ese token y aprueba ahí, no antes.
+    try {
+      const tokenRes = await fetch(`${apiBase}/tokens/nequi`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // tokens/nequi usa la PUBLIC key (no la private)
+          Authorization: `Bearer ${cfg.publicKey}`,
+        },
+        body: JSON.stringify({ phone_number: body.phoneNumber }),
+      });
+      const tokenJson = (await tokenRes.json()) as {
+        data?: { id?: string; status?: string };
+        error?: {
+          type?: string;
+          reason?: string;
+          messages?: Record<string, string[]> | string;
+        };
+      };
+      if (!tokenRes.ok || !tokenJson.data?.id) {
+        // Mismo expansion de error que más abajo, mostrar campo concreto
+        let detail = "";
+        if (
+          tokenJson.error?.messages &&
+          typeof tokenJson.error.messages === "object"
+        ) {
+          detail = Object.entries(tokenJson.error.messages)
+            .map(([f, m]) => `${f}: ${Array.isArray(m) ? m.join(", ") : m}`)
+            .join(" · ");
+        }
+        const errMsg =
+          detail ||
+          tokenJson.error?.reason ||
+          `Wompi rechazó el teléfono (${tokenRes.status})`;
+        console.warn("Wompi tokens/nequi rejected", {
+          status: tokenRes.status,
+          error: tokenJson.error,
+        });
+        return NextResponse.json({ error: errMsg }, { status: 400 });
+      }
+      sourceBody = {
+        type: "NEQUI",
+        token: tokenJson.data.id,
+        customer_email: user.email,
+        acceptance_token: body.acceptanceToken,
+        accept_personal_auth: body.acceptancePersonalDataAuthToken,
+      };
+    } catch (err) {
+      console.error("Wompi tokens/nequi network failed", err);
+      return NextResponse.json(
+        {
+          error:
+            "No pudimos contactar Wompi para tokenizar el teléfono. Probá de nuevo.",
+        },
+        { status: 502 },
+      );
+    }
   }
 
   // Llamar a Wompi para crear el payment_source.
