@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 import { ASSET_TYPE_TAB_LABEL, assetTypeLabel, assetTypeTint, isAssetType } from "@/lib/asset-types";
-import { FileList, WebsiteEmbed } from "@/components/AssetPreview";
+import { FileList } from "@/components/AssetPreview";
 import PostBoard from "./PostBoard";
 import WebDesignBoard from "./WebDesignBoard";
 import Timeline from "./Timeline";
@@ -178,11 +178,10 @@ export default async function PostPage({
                 Abrir original
               </a>
             </div>
-            {!post.imageUrl && (
-              <div className="mt-3">
-                <WebsiteEmbed url={post.sourceUrl} />
-              </div>
-            )}
+            {/* El iframe del sitio se renderiza dentro de WebDesignBoard
+                más abajo (con UI de comentarios + breakpoints). Antes
+                duplicábamos un <WebsiteEmbed /> acá y se veía el sitio
+                2 veces — eso confundía al user. */}
           </div>
         )}
 
