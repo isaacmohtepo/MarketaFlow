@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
-import { sendTrialEndedEmail } from "@/lib/billing-emails";
+import { sendTrialEndedEmail, sendPaymentFailedEmail } from "@/lib/billing-emails";
 import { isCronAuthorized } from "@/lib/cron-auth";
 
 /**
@@ -31,6 +31,8 @@ export async function GET(req: Request) {
     canceledExpired: 0,
     chargedSuccess: 0,
     chargedFailed: 0,
+    chargedSkippedExpired: 0,
+    dunningSent: 0,
     skipped: 0,
   };
 
@@ -100,6 +102,12 @@ export async function GET(req: Request) {
     else stats.chargedFailed++;
   }
 
+  // 4. Dunning escalonado: para subs en past_due con pastDueSinceAt set,
+  //    mandamos recordatorios día 1, 3 y 7. Día 7 ademas marcamos
+  //    expired + plan free para limpieza (getEffectivePlanId ya devuelve
+  //    free pero el record sigue diciendo "pro" — confunde a soporte).
+  stats.dunningSent = await runDunning(now);
+
   // En Hobby plan de Vercel solo se permite 1 cron daily, así que este
   // endpoint ejecuta TODO el trabajo periódico en una sola corrida:
   // billing (arriba) + trial-emails + broadcasts due + webhook retries +
@@ -158,6 +166,71 @@ export async function GET(req: Request) {
 }
 
 /**
+ * Dunning escalonado. Manda 3 recordatorios al owner cuando la subscription
+ * está past_due: día 1, día 3 y día 7. En día 7 además flippea status a
+ * "expired" y plan a "free" para limpiar el estado. Usa pastDueSinceAt
+ * como ancla y lastDunningStage para no duplicar.
+ */
+async function runDunning(now: Date): Promise<number> {
+  const subs = await prisma.subscription.findMany({
+    where: {
+      status: "past_due",
+      pastDueSinceAt: { not: null },
+    },
+    include: {
+      agency: { select: { id: true, name: true } },
+    },
+    take: 200,
+  });
+  let sent = 0;
+  for (const sub of subs) {
+    const anchor = sub.pastDueSinceAt!.getTime();
+    const daysSince = (now.getTime() - anchor) / (24 * 60 * 60 * 1000);
+    const stage = sub.lastDunningStage ?? "";
+
+    let targetStage: "d1" | "d3" | "d7" | null = null;
+    if (daysSince >= 7 && stage !== "d7") targetStage = "d7";
+    else if (daysSince >= 3 && stage !== "d7" && stage !== "d3") targetStage = "d3";
+    else if (daysSince >= 1 && stage === "") targetStage = "d1";
+
+    if (!targetStage) continue;
+
+    const reason =
+      targetStage === "d1"
+        ? "Tu último intento de cobro falló. Actualizá tu método de pago en MarketaFlow para mantener tu plan activo — vamos a reintentar."
+        : targetStage === "d3"
+          ? "Hace 3 días que tu pago está pendiente. Actualizá tu tarjeta o Nequi en /billing para que sigamos cobrando — sino te bajamos a Free el día 7."
+          : "Tu pago lleva 7 días pendiente. Bajamos tu cuenta a plan Free. Si querés volver al plan anterior, actualizá tu método de pago y suscribite de nuevo desde /billing.";
+
+    try {
+      await sendPaymentFailedEmail({
+        agencyId: sub.agencyId,
+        agencyName: sub.agency.name,
+        amountCents: 0,
+        reason,
+      });
+      const updates: Record<string, unknown> = {
+        lastDunningSentAt: now,
+        lastDunningStage: targetStage,
+      };
+      if (targetStage === "d7") {
+        updates.status = "expired";
+        updates.plan = "free";
+        updates.nextChargeAt = null;
+      }
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: updates,
+      });
+      sent++;
+    } catch (err) {
+      console.error("dunning email failed", sub.id, err);
+    }
+  }
+  return sent;
+}
+
+/**
  * Intenta cobrar la subscription usando el payment method default. Retorna
  * true si Wompi aceptó (status APPROVED inmediatamente o PENDING). False
  * si rechazó o erroró.
@@ -166,6 +239,7 @@ export async function GET(req: Request) {
  * webhook puede actualizar el status final si Wompi tarda en confirmar.
  */
 async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
+  const now = new Date();
   const sub = await prisma.subscription.findUnique({
     where: { id: subscriptionId },
     include: {
@@ -220,7 +294,10 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     // como past_due y avisamos en el cron log.
     await prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { status: "past_due" },
+      data: {
+        status: "past_due",
+        pastDueSinceAt: sub.pastDueSinceAt ?? now,
+      },
     });
     await prisma.invoice.update({
       where: { id: invoice.id },
@@ -243,7 +320,10 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
   if (pmEnv !== environment) {
     await prisma.subscription.update({
       where: { id: subscriptionId },
-      data: { status: "past_due" },
+      data: {
+        status: "past_due",
+        pastDueSinceAt: sub.pastDueSinceAt ?? now,
+      },
     });
     await prisma.invoice.update({
       where: { id: invoice.id },
@@ -254,6 +334,40 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
       },
     });
     return false;
+  }
+
+  // Expired card check: si la tarjeta tiene expMonth/expYear y ya pasó,
+  // Wompi rechaza con error críptico ("INVALID" o similar). Lo cortamos
+  // temprano, marcamos invoice failed con razón clara, y mandamos email
+  // al owner para que actualice. Solo aplica a tipo CARD (Nequi no caduca).
+  if (pm.type === "CARD" && pm.expMonth && pm.expYear) {
+    const expDate = new Date(pm.expYear, pm.expMonth, 1); // primer día del mes SIGUIENTE
+    if (expDate <= now) {
+      await prisma.$transaction([
+        prisma.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            status: "failed",
+            failedAt: now,
+            failedReason: `La tarjeta ${pm.brand ?? ""} ····${pm.last4 ?? ""} venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agregá una nueva en /billing.`,
+          },
+        }),
+        prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: "past_due",
+            pastDueSinceAt: sub.pastDueSinceAt ?? now,
+          },
+        }),
+      ]);
+      sendPaymentFailedEmail({
+        agencyId: sub.agencyId,
+        agencyName: sub.agency.name,
+        amountCents: amount,
+        reason: `Tu tarjeta terminada en ${pm.last4 ?? "????"} venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agregá una tarjeta nueva en MarketaFlow para que sigamos cobrando tu suscripción.`,
+      }).catch((e) => console.error("expired-card email failed", e));
+      return false;
+    }
   }
 
   try {
@@ -281,6 +395,10 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
             currentPeriodStart: periodStart,
             currentPeriodEnd: periodEnd,
             nextChargeAt: new Date(periodEnd.getTime() - 24 * 60 * 60 * 1000),
+            // Salimos de past_due — limpiamos dunning tracking.
+            pastDueSinceAt: null,
+            lastDunningSentAt: null,
+            lastDunningStage: null,
           },
         }),
       ]);
@@ -301,7 +419,10 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
       }),
       prisma.subscription.update({
         where: { id: sub.id },
-        data: { status: "past_due" },
+        data: {
+          status: "past_due",
+          pastDueSinceAt: sub.pastDueSinceAt ?? now,
+        },
       }),
     ]);
     return false;
@@ -317,7 +438,10 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
       }),
       prisma.subscription.update({
         where: { id: sub.id },
-        data: { status: "past_due" },
+        data: {
+          status: "past_due",
+          pastDueSinceAt: sub.pastDueSinceAt ?? now,
+        },
       }),
     ]);
     return false;

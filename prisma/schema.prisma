@@ -309,6 +309,16 @@ model Subscription {
   /// algunos plans (free/trialing) nunca crean customer.
   wompiCustomerId    String?
 
+  /// Cuándo entró en past_due (primer cobro fallido). Se usa como ancla
+  /// para el dunning escalonado (día 1, 3, 7). Se limpia al volver a active.
+  pastDueSinceAt     DateTime?
+  /// Último recordatorio de pago fallido enviado. Evita duplicar el mismo
+  /// recordatorio dentro del mismo "stage" (1d/3d/7d).
+  lastDunningSentAt  DateTime?
+  /// Stage del último dunning mandado ("d1" | "d3" | "d7"). El cron solo
+  /// manda el siguiente si todavía no se mandó este stage.
+  lastDunningStage   String?
+
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
@@ -397,6 +407,13 @@ model Invoice {
   periodEnd          DateTime?
 
   description        String?
+
+  /// Si este invoice es por un add-on (no un cobro de plan), guardamos
+  /// qué add-on y cuántas unidades. El webhook usa estos campos al
+  /// confirmar el pago para incrementar Subscription.extraBrands etc.
+  /// Null cuando el invoice corresponde a un cobro de plan normal.
+  addonType          String?
+  addonQuantity      Int?
 
   paidAt             DateTime?
   failedAt           DateTime?

@@ -273,36 +273,64 @@ async function handleTransactionUpdated(
         },
       });
 
-      // Actualizar subscription: activa, periodo nuevo, próximo cobro
-      const periodStart = invoice.periodStart ?? new Date();
-      const periodEnd = invoice.periodEnd ?? new Date();
-      // Próximo cobro = un día antes del fin del período (margen para reintentos)
-      const nextChargeAt = new Date(periodEnd);
-      nextChargeAt.setDate(nextChargeAt.getDate() - 1);
+      // Caso especial: invoice de add-on. No tocamos plan/period/nextChargeAt
+      // — solo incrementamos el contador del add-on en Subscription. El
+      // ciclo de cobro del plan sigue como estaba; el add-on se va a
+      // facturar manualmente cada mes hasta nuevo aviso (no auto-renueva).
+      if (invoice.addonType) {
+        const qty = invoice.addonQuantity ?? 1;
+        const addonUpdates: Record<string, unknown> = {};
+        if (invoice.addonType === "extraBrand") {
+          addonUpdates.extraBrands = { increment: qty };
+        } else if (invoice.addonType === "extraSeat") {
+          addonUpdates.extraSeats = { increment: qty };
+        } else if (invoice.addonType === "whiteLabel") {
+          addonUpdates.whiteLabelAddon = true;
+        }
+        if (Object.keys(addonUpdates).length > 0) {
+          await tx.subscription.update({
+            where: { id: invoice.subscriptionId },
+            data: addonUpdates,
+          });
+        }
+        // No retornamos acá — más abajo el código de payment_source sigue
+        // siendo útil si el pago vino con tarjeta nueva.
+      } else {
+        // Actualizar subscription: activa, periodo nuevo, próximo cobro
+        const periodStart = invoice.periodStart ?? new Date();
+        const periodEnd = invoice.periodEnd ?? new Date();
+        // Próximo cobro = un día antes del fin del período (margen para reintentos)
+        const nextChargeAt = new Date(periodEnd);
+        nextChargeAt.setDate(nextChargeAt.getDate() - 1);
 
-      // Aplicar el plan/cycle pendientes (que el checkout dejó en
-      // pendingPlan/pendingBillingCycle) ahora que el pago se confirmó.
-      // Si no hay pending (p.ej. cobro de renovación normal), no
-      // tocamos plan/cycle — siguen como estaban.
-      const pendingPlan = invoice.subscription.pendingPlan;
-      const pendingCycle = invoice.subscription.pendingBillingCycle;
-      await tx.subscription.update({
-        where: { id: invoice.subscriptionId },
-        data: {
-          status: "active",
-          currentPeriodStart: periodStart,
-          currentPeriodEnd: periodEnd,
-          nextChargeAt,
-          // Si era trial, finalizamos el trial
-          trialEndsAt: null,
-          // Aplicar pending plan/cycle si hay
-          ...(pendingPlan ? { plan: pendingPlan } : {}),
-          ...(pendingCycle ? { billingCycle: pendingCycle } : {}),
-          // Limpiar pending después de aplicar
-          pendingPlan: null,
-          pendingBillingCycle: null,
-        },
-      });
+        // Aplicar el plan/cycle pendientes (que el checkout dejó en
+        // pendingPlan/pendingBillingCycle) ahora que el pago se confirmó.
+        // Si no hay pending (p.ej. cobro de renovación normal), no
+        // tocamos plan/cycle — siguen como estaban.
+        const pendingPlan = invoice.subscription.pendingPlan;
+        const pendingCycle = invoice.subscription.pendingBillingCycle;
+        await tx.subscription.update({
+          where: { id: invoice.subscriptionId },
+          data: {
+            status: "active",
+            currentPeriodStart: periodStart,
+            currentPeriodEnd: periodEnd,
+            nextChargeAt,
+            // Si era trial, finalizamos el trial
+            trialEndsAt: null,
+            // Salimos de past_due si era el caso (cobro manual exitoso)
+            pastDueSinceAt: null,
+            lastDunningSentAt: null,
+            lastDunningStage: null,
+            // Aplicar pending plan/cycle si hay
+            ...(pendingPlan ? { plan: pendingPlan } : {}),
+            ...(pendingCycle ? { billingCycle: pendingCycle } : {}),
+            // Limpiar pending después de aplicar
+            pendingPlan: null,
+            pendingBillingCycle: null,
+          },
+        });
+      }
 
       // Si vino payment_source_id, guardamos el token para cobros futuros.
       // Marcamos esta como default y desmarcamos las anteriores (último

@@ -14,12 +14,13 @@ import { prisma } from "@/lib/db";
 import { getBillingSummary, getEffectiveLimits } from "@/lib/billing";
 import { syncBrandLocks } from "@/lib/brand-lock";
 import { expireStalePendingInvoices } from "@/lib/invoice-cleanup";
-import { PLANS_LIST, formatCop, type PlanId } from "@/lib/plans";
+import { PLANS_LIST, ADDONS, formatCop, type PlanId } from "@/lib/plans";
 import type { Prisma } from "@/generated/prisma";
 import BillingActions from "./BillingActions";
 import InvoiceFilters from "./InvoiceFilters";
 import BrandLockToggle from "./BrandLockToggle";
 import PaymentMethods from "./PaymentMethods";
+import Addons from "./Addons";
 
 const PAGE_SIZE = 15;
 
@@ -515,6 +516,32 @@ export default async function BillingPage({
           currentPlan={plan.id}
           currentCycle={summary.billingCycle}
           isFree={isFree}
+        />
+      </section>
+
+      {/* Add-ons: marca extra, seat extra, white-label. Solo aplica a Pro
+          (Agency ya incluye todo, Free no puede comprar). */}
+      <section className="card p-6">
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-zinc-900">Add-ons</h2>
+          <p className="mt-0.5 text-[11.5px] text-zinc-500">
+            Sumá capacidad encima de tu plan sin tener que cambiarte a uno más caro.
+          </p>
+        </div>
+        <Addons
+          available={Object.values(ADDONS).map((a) => ({
+            id: a.id,
+            label: a.label,
+            description: a.description,
+            priceCopMonthly: a.priceCopMonthly,
+          }))}
+          current={{
+            extraBrands: summary.extraBrands,
+            extraSeats: summary.extraSeats,
+            whiteLabelAddon: summary.whiteLabelAddon,
+          }}
+          isFree={isFree}
+          isPro={plan.id === "pro"}
         />
       </section>
 

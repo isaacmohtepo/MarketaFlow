@@ -17,9 +17,14 @@ type PaymentMethod = {
   holderName: string | null;
   isDefault: boolean;
   environment: "sandbox" | "production";
-  /** False si el env del token no matchea el env activo de Wompi.
-   *  Esos métodos no van a funcionar para cobros recurrentes. */
+  /** False si el env del token no matchea el env activo de Wompi
+   *  o si la tarjeta está vencida. Esos métodos no funcionan para
+   *  cobros recurrentes. */
   usable: boolean;
+  /** True si la tarjeta ya pasó su fecha de expiración. */
+  expired: boolean;
+  /** True si el tipo soporta cobros recurrentes (solo CARD/NEQUI). */
+  recurring: boolean;
   createdAt: string;
 };
 
@@ -138,10 +143,39 @@ export default function PaymentMethods({
     );
   }
 
-  const unusableCount = methods.filter((m) => !m.usable).length;
+  const unusableCount = methods.filter((m) => !m.usable && !m.expired).length;
+  const expiredCount = methods.filter((m) => m.expired).length;
+  const nonRecurringCount = methods.filter((m) => !m.recurring).length;
 
   return (
     <div>
+      {/* Banner: hay tarjetas vencidas */}
+      {expiredCount > 0 && (
+        <div className="mb-3 rounded-lg border border-rose-300 bg-rose-50 p-3 text-[12px] text-rose-900">
+          <p className="font-semibold">
+            {expiredCount === 1
+              ? "Tenés 1 tarjeta vencida."
+              : `Tenés ${expiredCount} tarjetas vencidas.`}
+          </p>
+          <p className="mt-1 text-rose-800">
+            No vamos a poder cobrar la renovación con esta tarjeta. Agregá una
+            nueva con el botón "Agregar método" abajo.
+          </p>
+        </div>
+      )}
+      {/* Banner: hay métodos no recurrentes (PSE / Bancolombia) */}
+      {nonRecurringCount > 0 && (
+        <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-900">
+          <p className="font-semibold">
+            Tenés métodos de pago no recurrentes guardados.
+          </p>
+          <p className="mt-1 text-amber-800">
+            PSE y Bancolombia Transfer no permiten cobros automáticos. Agregá
+            una tarjeta o Nequi para que sigamos cobrando tu suscripción sin
+            que tengas que pagar manualmente cada mes.
+          </p>
+        </div>
+      )}
       {/* Banner: hay métodos guardados que no sirven con el env activo */}
       {unusableCount > 0 && activeEnv && (
         <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-900">
@@ -265,7 +299,23 @@ function PaymentMethodRow({
               Sandbox
             </span>
           )}
-          {!pm.usable && (
+          {pm.expired && (
+            <span
+              className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200"
+              title="Esta tarjeta venció — el cobro va a fallar"
+            >
+              Vencida
+            </span>
+          )}
+          {!pm.recurring && (
+            <span
+              className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-200"
+              title="PSE / Bancolombia no permiten cobros recurrentes"
+            >
+              No recurrente
+            </span>
+          )}
+          {!pm.usable && !pm.expired && (
             <span
               className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200"
               title="Este método no funciona con la config actual de Wompi"

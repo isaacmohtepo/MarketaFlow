@@ -40,22 +40,37 @@ export async function GET() {
   // "no usables" sin tener que esperar al primer cobro fallido.
   const activeEnv = await resolveWompiEnvironment();
 
+  const now = new Date();
   return NextResponse.json({
     activeEnv,
-    paymentMethods: sub.paymentMethods.map((pm) => ({
-      id: pm.id,
-      type: pm.type,
-      brand: pm.brand,
-      last4: pm.last4,
-      expMonth: pm.expMonth,
-      expYear: pm.expYear,
-      holderName: pm.holderName,
-      isDefault: pm.isDefault,
-      // null en rows legacy → asumimos "sandbox" por compat
-      environment: pm.environment ?? "sandbox",
-      // Calculado: ¿se puede usar para cobros con la config actual?
-      usable: !activeEnv ? false : (pm.environment ?? "sandbox") === activeEnv,
-      createdAt: pm.createdAt.toISOString(),
-    })),
+    paymentMethods: sub.paymentMethods.map((pm) => {
+      const envOk = !activeEnv
+        ? false
+        : (pm.environment ?? "sandbox") === activeEnv;
+      // Tarjeta expirada: primer día del mes SIGUIENTE como cutoff
+      // (una tarjeta exp 05/2026 sigue válida todo mayo, vence el 1 de junio).
+      const expired =
+        pm.type === "CARD" && pm.expMonth != null && pm.expYear != null
+          ? new Date(pm.expYear, pm.expMonth, 1) <= now
+          : false;
+      return {
+        id: pm.id,
+        type: pm.type,
+        brand: pm.brand,
+        last4: pm.last4,
+        expMonth: pm.expMonth,
+        expYear: pm.expYear,
+        holderName: pm.holderName,
+        isDefault: pm.isDefault,
+        // null en rows legacy → asumimos "sandbox" por compat
+        environment: pm.environment ?? "sandbox",
+        // Calculado: ¿se puede usar para cobros con la config actual?
+        usable: envOk && !expired,
+        expired,
+        // ¿Soporta cobros recurrentes? Solo CARD y NEQUI.
+        recurring: pm.type === "CARD" || pm.type === "NEQUI",
+        createdAt: pm.createdAt.toISOString(),
+      };
+    }),
   });
 }

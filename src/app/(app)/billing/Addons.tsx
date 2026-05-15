@@ -1,0 +1,180 @@
+"use client";
+
+import { useState } from "react";
+import { Sparkles, Building2, Users, Loader2, Plus, Check } from "lucide-react";
+import { toast } from "sonner";
+
+type AddonId = "extraBrand" | "extraSeat" | "whiteLabel";
+
+type AddonDef = {
+  id: AddonId;
+  label: string;
+  description: string;
+  priceCopMonthly: number;
+};
+
+/**
+ * Sección de add-ons en /billing. Permite al owner comprar:
+ *  - Marca extra (+1 al límite)
+ *  - Miembro de equipo extra (+1 al límite)
+ *  - White-label (toggle)
+ *
+ * Cada compra genera un Wompi Payment Link y al confirmar el pago el
+ * webhook incrementa el contador en la Subscription.
+ *
+ * No soporta remover desde acá (sin reembolso prorrateado) — para bajar
+ * un add-on hay que contactar soporte.
+ */
+export default function Addons({
+  available,
+  current,
+  isFree,
+  isPro,
+}: {
+  available: AddonDef[];
+  current: {
+    extraBrands: number;
+    extraSeats: number;
+    whiteLabelAddon: boolean;
+  };
+  isFree: boolean;
+  isPro: boolean;
+}) {
+  const [busy, setBusy] = useState<AddonId | null>(null);
+
+  async function buy(addonId: AddonId, quantity = 1) {
+    if (isFree) {
+      toast.error("Suscribite a un plan pago primero para agregar add-ons.");
+      return;
+    }
+    setBusy(addonId);
+    try {
+      const r = await fetch("/api/billing/addons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addonId, quantity }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        toast.error(j.error ?? "No se pudo iniciar el pago");
+        return;
+      }
+      window.location.href = j.checkoutUrl;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (isFree) {
+    return (
+      <p className="text-[12px] text-zinc-500">
+        Los add-ons están disponibles para planes Pro y Agency. Suscribite
+        a un plan pago para agregarlos.
+      </p>
+    );
+  }
+
+  if (!isPro) {
+    // Plan Agency ya incluye todo (ilimitado + white-label). Solo Pro tiene add-ons.
+    return (
+      <p className="text-[12px] text-zinc-500">
+        Tu plan Agency ya incluye marcas ilimitadas, miembros ilimitados y
+        white-label. No necesitás add-ons.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="space-y-2">
+      {available.map((a) => {
+        const owned =
+          a.id === "extraBrand"
+            ? current.extraBrands
+            : a.id === "extraSeat"
+              ? current.extraSeats
+              : current.whiteLabelAddon
+                ? 1
+                : 0;
+        const isToggle = a.id === "whiteLabel";
+        const alreadyOwned = isToggle && owned > 0;
+        const Icon =
+          a.id === "extraBrand"
+            ? Building2
+            : a.id === "extraSeat"
+              ? Users
+              : Sparkles;
+        const tone =
+          a.id === "extraBrand"
+            ? "bg-blue-50 text-blue-700 ring-blue-200"
+            : a.id === "extraSeat"
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+              : "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200";
+        return (
+          <li
+            key={a.id}
+            className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3"
+          >
+            <span
+              className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-md ring-1 ${tone}`}
+            >
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <p className="truncate text-[13px] font-semibold text-zinc-900">
+                  {a.label}
+                </p>
+                {owned > 0 && (
+                  <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                    {isToggle ? "Activo" : `× ${owned}`}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-zinc-500">
+                {a.description}{" "}
+                <span className="font-semibold text-zinc-700">
+                  {formatCop(a.priceCopMonthly)}
+                  {!isToggle && " /mes c/u"}
+                  {isToggle && " /mes"}
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={() => buy(a.id)}
+              disabled={busy === a.id || alreadyOwned}
+              className="btn-secondary inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold disabled:opacity-60"
+              title={
+                alreadyOwned
+                  ? "Ya activo"
+                  : isToggle
+                    ? "Comprar"
+                    : "Agregar 1 unidad"
+              }
+            >
+              {busy === a.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : alreadyOwned ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              {alreadyOwned ? "Activo" : "Comprar"}
+            </button>
+          </li>
+        );
+      })}
+      <li className="pt-1 text-[10.5px] text-zinc-500">
+        Los add-ons se cobran como un pago único mensual y se aplican
+        inmediatamente al confirmar el pago. Para removerlos contactá soporte.
+      </li>
+    </ul>
+  );
+}
+
+function formatCop(cents: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
