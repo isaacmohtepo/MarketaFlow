@@ -1,8 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, Building2, Users, Loader2, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
+
+type SavedMethod = {
+  id: string;
+  type: string;
+  brand: string | null;
+  last4: string | null;
+  isDefault: boolean;
+  usable: boolean;
+  recurring: boolean;
+};
 
 type AddonId = "extraBrand" | "extraSeat" | "whiteLabel";
 
@@ -41,6 +51,21 @@ export default function Addons({
   isPro: boolean;
 }) {
   const [busy, setBusy] = useState<AddonId | null>(null);
+  const [defaultMethod, setDefaultMethod] = useState<SavedMethod | null>(null);
+
+  // Fetch métodos guardados al montar para saber si podemos cobrar instant.
+  useEffect(() => {
+    if (isFree || !isPro) return;
+    fetch("/api/billing/payment-methods", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { paymentMethods: [] }))
+      .then((j: { paymentMethods: SavedMethod[] }) => {
+        const usable = (j.paymentMethods ?? []).filter(
+          (m) => m.usable && m.recurring,
+        );
+        setDefaultMethod(usable.find((m) => m.isDefault) ?? usable[0] ?? null);
+      })
+      .catch(() => setDefaultMethod(null));
+  }, [isFree, isPro]);
 
   async function buy(addonId: AddonId, quantity = 1) {
     if (isFree) {
@@ -49,6 +74,37 @@ export default function Addons({
     }
     setBusy(addonId);
     try {
+      // Si hay método guardado, probamos cobrar directo (sin Wompi UI).
+      // Si falla con fallbackToWompi=true, reintentamos via Payment Link.
+      if (defaultMethod) {
+        const r1 = await fetch("/api/billing/addons", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            addonId,
+            quantity,
+            usePaymentMethodId: defaultMethod.id,
+          }),
+        });
+        const j1 = await r1.json();
+        if (r1.ok && j1.instant) {
+          toast.success(
+            j1.status === "approved"
+              ? "Add-on activado"
+              : j1.note ?? "Esperando confirmación",
+          );
+          window.location.href = j1.redirectUrl;
+          return;
+        }
+        if (!j1.fallbackToWompi) {
+          toast.error(j1.error ?? "No se pudo cobrar");
+          return;
+        }
+        toast.error(
+          `${j1.error ?? "Falló el cobro con el método guardado"} — abriendo Wompi…`,
+        );
+        // Caemos al flow Wompi
+      }
       const r = await fetch("/api/billing/addons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -164,8 +220,22 @@ export default function Addons({
         );
       })}
       <li className="pt-1 text-[10.5px] text-zinc-500">
-        Los add-ons se cobran como un pago único mensual y se aplican
-        inmediatamente al confirmar el pago. Para removerlos contactá soporte.
+        {defaultMethod ? (
+          <>
+            Se va a cobrar a tu método guardado (
+            {defaultMethod.brand === "NEQUI"
+              ? `Nequi ····${defaultMethod.last4}`
+              : `${defaultMethod.brand} ····${defaultMethod.last4}`}
+            ) sin redirigir a Wompi. Si falla, te ofrecemos pagar via link.
+            Para remover un add-on contactá soporte.
+          </>
+        ) : (
+          <>
+            Los add-ons se cobran como un pago único mensual y se aplican
+            inmediatamente al confirmar el pago. Para removerlos contactá
+            soporte.
+          </>
+        )}
       </li>
     </ul>
   );

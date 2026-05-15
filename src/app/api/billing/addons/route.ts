@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { ADDONS, type AddonId, type PlanId } from "@/lib/plans";
-import { createPaymentLink, generateReference } from "@/lib/wompi";
+import { createPaymentLink, chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { hasPermission } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -23,6 +23,10 @@ import { audit } from "@/lib/audit";
 const schema = z.object({
   addonId: z.enum(["extraBrand", "extraSeat", "whiteLabel"]),
   quantity: z.number().int().min(1).max(20).default(1),
+  /** Si está set, cobramos directo contra el método guardado en vez de
+   *  generar un Payment Link de Wompi. Si falla, devolvemos
+   *  `fallbackToWompi: true` para que la UI ofrezca el flow normal. */
+  usePaymentMethodId: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -126,6 +130,169 @@ export async function POST(req: Request) {
     req.headers.get("origin")?.replace(/\/+$/, "") ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   const redirectUrl = `${appUrl}/billing/return?ref=${reference}`;
+
+  // Si el user quiere cobrar contra un método guardado, lo hacemos directo
+  // sin generar Payment Link de Wompi. Mismo patrón que /api/checkout —
+  // validamos env / no vencida / tipo recurrente, llamamos chargeWithToken,
+  // y el webhook luego incrementa Subscription.extraBrands/etc al ver
+  // invoice.addonType + paid.
+  if (body.usePaymentMethodId) {
+    const pm = await prisma.paymentMethod.findUnique({
+      where: { id: body.usePaymentMethodId },
+    });
+    if (!pm || pm.subscriptionId !== sub.id) {
+      return NextResponse.json(
+        { error: "Método de pago inválido", fallbackToWompi: true },
+        { status: 400 },
+      );
+    }
+    const pmEnv = pm.environment ?? "sandbox";
+    if (pmEnv !== environment) {
+      return NextResponse.json(
+        {
+          error: `Tu método guardado es de ${pmEnv} pero Wompi está en ${environment}.`,
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    }
+    if (pm.type !== "CARD" && pm.type !== "NEQUI") {
+      return NextResponse.json(
+        {
+          error: "Este método no permite cobros automáticos.",
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    }
+    if (pm.type === "CARD" && pm.expMonth && pm.expYear) {
+      const expDate = new Date(pm.expYear, pm.expMonth, 1);
+      if (expDate <= new Date()) {
+        return NextResponse.json(
+          {
+            error: `Tu tarjeta venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}.`,
+            fallbackToWompi: true,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    try {
+      const tx = await chargeWithToken({
+        reference,
+        amountInCents,
+        currency: "COP",
+        customerEmail: user.email,
+        paymentSourceId: parseInt(pm.wompiSourceId, 10),
+        paymentMethodType: pm.type === "NEQUI" ? "NEQUI" : "CARD",
+        description: `MarketaFlow add-on: ${addon.label}`,
+        environment,
+      });
+
+      // APPROVED: aplicar el add-on inmediato. El webhook va a hacer lo
+      // mismo si llega después (idempotente porque mira invoice.status).
+      if (tx.status === "APPROVED") {
+        const addonUpdates: Record<string, unknown> = {};
+        if (addonId === "extraBrand") {
+          addonUpdates.extraBrands = { increment: body.quantity };
+        } else if (addonId === "extraSeat") {
+          addonUpdates.extraSeats = { increment: body.quantity };
+        } else if (addonId === "whiteLabel") {
+          addonUpdates.whiteLabelAddon = true;
+        }
+        await prisma.$transaction([
+          prisma.invoice.update({
+            where: { wompiReference: reference },
+            data: {
+              status: "paid",
+              wompiTransactionId: tx.id,
+              paidAt: new Date(),
+            },
+          }),
+          prisma.subscription.update({
+            where: { id: sub.id },
+            data: addonUpdates,
+          }),
+        ]);
+
+        audit({
+          category: "billing",
+          action: "addon.purchased_instant",
+          actorUserId: user.id,
+          actorEmail: user.email,
+          metadata: {
+            agencyId: m.agencyId,
+            addonId,
+            quantity: body.quantity,
+            amountCents: amountInCents,
+            paymentMethodId: pm.id,
+          },
+          req,
+        });
+
+        return NextResponse.json({
+          instant: true,
+          status: "approved",
+          reference,
+          redirectUrl: `/billing/return?ref=${reference}`,
+        });
+      }
+      // PENDING (Nequi push): el webhook lo va a aplicar al confirmar.
+      if (tx.status === "PENDING") {
+        await prisma.invoice.update({
+          where: { wompiReference: reference },
+          data: { wompiTransactionId: tx.id },
+        });
+        return NextResponse.json({
+          instant: true,
+          status: "pending",
+          reference,
+          redirectUrl: `/billing/return?ref=${reference}`,
+          note:
+            pm.type === "NEQUI"
+              ? "Te llegó un push a tu app Nequi. Aprobalo en los próximos 5 minutos."
+              : "Pago en proceso, esperando confirmación.",
+        });
+      }
+      // DECLINED / ERROR / VOIDED
+      await prisma.invoice.update({
+        where: { wompiReference: reference },
+        data: {
+          status: "failed",
+          wompiTransactionId: tx.id,
+          failedAt: new Date(),
+          failedReason: tx.status_message ?? `Wompi devolvió ${tx.status}`,
+        },
+      });
+      return NextResponse.json(
+        {
+          error:
+            tx.status_message ??
+            `Tu método guardado fue rechazado (${tx.status}).`,
+          fallbackToWompi: true,
+        },
+        { status: 400 },
+      );
+    } catch (err) {
+      console.error("addon instant charge failed", err);
+      await prisma.invoice.updateMany({
+        where: { wompiReference: reference },
+        data: {
+          status: "failed",
+          failedAt: new Date(),
+          failedReason: err instanceof Error ? err.message : "Error de red",
+        },
+      });
+      return NextResponse.json(
+        {
+          error: "No pudimos contactar Wompi. Probá con otro método.",
+          fallbackToWompi: true,
+        },
+        { status: 502 },
+      );
+    }
+  }
 
   try {
     const link = await createPaymentLink({
