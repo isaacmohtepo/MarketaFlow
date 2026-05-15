@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { PLANS, type PlanId } from "@/lib/plans";
+import { PLANS, ADDONS, type PlanId } from "@/lib/plans";
 import { chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { sendTrialEndedEmail, sendPaymentFailedEmail } from "@/lib/billing-emails";
@@ -338,7 +338,23 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
   if (!ownerEmail) return false;
 
   const plan = PLANS[sub.plan as PlanId];
-  const amount = sub.billingCycle === "yearly" ? plan.priceCopYearly : plan.priceCopMonthly;
+  const planAmount = sub.billingCycle === "yearly" ? plan.priceCopYearly : plan.priceCopMonthly;
+
+  // Add-ons mensuales se cobran junto con el plan en cada renovación.
+  // White-label NO se incluye (es pago único, ya cobrado al activar).
+  // Si el ciclo es anual, multiplicamos × 12 porque los addons están
+  // priceados por mes — un add-on activo durante un año pago = 12 meses.
+  const extraBrandsCost =
+    (sub.extraBrands ?? 0) *
+    ADDONS.extraBrand.priceCop *
+    (sub.billingCycle === "yearly" ? 12 : 1);
+  const extraSeatsCost =
+    (sub.extraSeats ?? 0) *
+    ADDONS.extraSeat.priceCop *
+    (sub.billingCycle === "yearly" ? 12 : 1);
+  const addonsAmount = extraBrandsCost + extraSeatsCost;
+
+  const amount = planAmount + addonsAmount;
   const reference = generateReference(sub.id);
 
   const periodStart = new Date();
@@ -349,6 +365,23 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     periodEnd.setMonth(periodEnd.getMonth() + 1);
   }
 
+  // Descripción detallada — el user ve "Pro + 2 marcas extra + 1 seat extra"
+  // en la factura, no solo "Pro renovación".
+  const addonsDesc: string[] = [];
+  if ((sub.extraBrands ?? 0) > 0) {
+    addonsDesc.push(
+      `${sub.extraBrands} ${sub.extraBrands === 1 ? "marca extra" : "marcas extra"}`,
+    );
+  }
+  if ((sub.extraSeats ?? 0) > 0) {
+    addonsDesc.push(
+      `${sub.extraSeats} ${sub.extraSeats === 1 ? "miembro extra" : "miembros extra"}`,
+    );
+  }
+  const description =
+    `${plan.name} (renovación ${sub.billingCycle === "yearly" ? "anual" : "mensual"})` +
+    (addonsDesc.length > 0 ? ` + ${addonsDesc.join(" + ")}` : "");
+
   const invoice = await prisma.invoice.create({
     data: {
       subscriptionId: sub.id,
@@ -358,7 +391,7 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
       wompiReference: reference,
       periodStart,
       periodEnd,
-      description: `${plan.name} (renovación ${sub.billingCycle === "yearly" ? "anual" : "mensual"})`,
+      description,
     },
   });
 

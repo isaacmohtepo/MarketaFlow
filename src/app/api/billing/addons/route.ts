@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { ADDONS, type AddonId, type PlanId } from "@/lib/plans";
+import { ADDONS, PLANS, type AddonId, type PlanId } from "@/lib/plans";
 import { createPaymentLink, chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { hasPermission } from "@/lib/permissions";
@@ -23,6 +23,10 @@ import { audit } from "@/lib/audit";
 const schema = z.object({
   addonId: z.enum(["extraBrand", "extraSeat", "whiteLabel"]),
   quantity: z.number().int().min(1).max(20).default(1),
+  /** "add" (default) compra el add-on y suma al contador.
+   *  "remove" decrementa el contador sin reembolsar — el add-on deja de
+   *  cobrarse en la próxima renovación. Solo aplica a addons monthly. */
+  action: z.enum(["add", "remove"]).default("add"),
   /** Si está set, cobramos directo contra el método guardado en vez de
    *  generar un Payment Link de Wompi. Si falla, devolvemos
    *  `fallbackToWompi: true` para que la UI ofrezca el flow normal. */
@@ -70,6 +74,94 @@ export async function POST(req: Request) {
       },
       { status: 400 },
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // REMOVE: decrementa el contador inmediato, sin reembolso. El add-on
+  // deja de cobrarse en la próxima renovación. No aplica para one-time
+  // (white-label) — para sacar el white-label hay que contactar soporte.
+  // ─────────────────────────────────────────────────────────────────
+  if (body.action === "remove") {
+    if (addon.billingType !== "monthly") {
+      return NextResponse.json(
+        {
+          error:
+            "Los add-ons de pago único no se pueden remover automáticamente. Contactá soporte.",
+        },
+        { status: 400 },
+      );
+    }
+    const currentCount =
+      addonId === "extraBrand"
+        ? sub.extraBrands ?? 0
+        : sub.extraSeats ?? 0;
+    if (currentCount < body.quantity) {
+      return NextResponse.json(
+        {
+          error: `Solo tenés ${currentCount} ${addon.label.toLowerCase()}${currentCount === 1 ? "" : "s"}, no podés remover ${body.quantity}.`,
+        },
+        { status: 400 },
+      );
+    }
+    // Validación de límites: si al remover quedarías por debajo del uso
+    // actual (ej. tenés 3 marcas y bajás extraBrand a 0 → solo el plan
+    // base permite 1), bloqueamos para evitar romper el estado.
+    const planLimits = PLANS[sub.plan as PlanId].limits;
+    if (addonId === "extraBrand" && planLimits.maxBrands !== -1) {
+      const brandCount = await prisma.brand.count({
+        where: { agencyId: m.agencyId },
+      });
+      const newMax = planLimits.maxBrands + (currentCount - body.quantity);
+      if (brandCount > newMax) {
+        return NextResponse.json(
+          {
+            error: `Tenés ${brandCount} marcas activas. Si bajás el límite a ${newMax}, hay que eliminar ${brandCount - newMax} marca${brandCount - newMax === 1 ? "" : "s"} primero.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+    if (addonId === "extraSeat" && planLimits.maxTeamMembers !== -1) {
+      const seatCount = await prisma.membership.count({
+        where: { agencyId: m.agencyId, brandId: null },
+      });
+      const newMax = planLimits.maxTeamMembers + (currentCount - body.quantity);
+      if (seatCount > newMax) {
+        return NextResponse.json(
+          {
+            error: `Tu equipo tiene ${seatCount} miembros. Si bajás el límite a ${newMax}, hay que sacar ${seatCount - newMax} miembro${seatCount - newMax === 1 ? "" : "s"} primero.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data:
+        addonId === "extraBrand"
+          ? { extraBrands: { decrement: body.quantity } }
+          : { extraSeats: { decrement: body.quantity } },
+    });
+
+    audit({
+      category: "billing",
+      action: "addon.removed",
+      actorUserId: user.id,
+      actorEmail: user.email,
+      metadata: {
+        agencyId: m.agencyId,
+        addonId,
+        quantity: body.quantity,
+      },
+      req,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      removed: body.quantity,
+      note: "Se ajustó tu capacidad. La próxima factura mensual reflejará el cambio.",
+    });
   }
 
   // White-label es un toggle, no cantidad — si ya lo tiene, no podemos

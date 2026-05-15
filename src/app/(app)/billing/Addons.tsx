@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sparkles, Building2, Users, Loader2, Plus, Check, Settings } from "lucide-react";
+import { Sparkles, Building2, Users, Loader2, Plus, Minus, Check, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 type SavedMethod = {
@@ -52,6 +53,7 @@ export default function Addons({
   isFree: boolean;
   isPro: boolean;
 }) {
+  const router = useRouter();
   const [busy, setBusy] = useState<AddonId | null>(null);
   const [defaultMethod, setDefaultMethod] = useState<SavedMethod | null>(null);
 
@@ -123,6 +125,27 @@ export default function Addons({
     }
   }
 
+  async function removeOne(addonId: AddonId) {
+    if (!confirm("¿Quitar 1 unidad? Se ajusta inmediato y no se cobra en la próxima factura.")) return;
+    setBusy(addonId);
+    try {
+      const r = await fetch("/api/billing/addons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addonId, quantity: 1, action: "remove" }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        toast.error(j.error ?? "No se pudo quitar");
+        return;
+      }
+      toast.success(j.note ?? "Add-on ajustado");
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (isFree) {
     return (
       <p className="text-[12px] text-zinc-500">
@@ -182,9 +205,12 @@ export default function Addons({
                 <p className="truncate text-[13px] font-semibold text-zinc-900">
                   {a.label}
                 </p>
-                {owned > 0 && (
+                {/* Badge "Activo" solo para toggles (white-label).
+                    Para monthly addons el contador del control +/- a la
+                    derecha ya muestra la cantidad — el badge sería redundante. */}
+                {isToggle && owned > 0 && (
                   <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                    {isToggle ? "Activo" : `× ${owned}`}
+                    Activo
                   </span>
                 )}
               </div>
@@ -200,36 +226,63 @@ export default function Addons({
                 </span>
               </p>
             </div>
-            {alreadyOwned && a.id === "whiteLabel" ? (
-              <Link
-                href="/account/white-label"
-                className="btn-gradient inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
-              >
-                <Settings className="h-3.5 w-3.5" />
-                Configurar
-              </Link>
+            {isToggle ? (
+              // White-label: pago único. Si ya está activo → botón configurar.
+              // Si no → botón comprar (sin contador).
+              alreadyOwned ? (
+                <Link
+                  href="/account/white-label"
+                  className="btn-gradient inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                  Configurar
+                </Link>
+              ) : (
+                <button
+                  onClick={() => buy(a.id)}
+                  disabled={busy === a.id}
+                  className="btn-secondary inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold disabled:opacity-60"
+                >
+                  {busy === a.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Comprar
+                </button>
+              )
             ) : (
-              <button
-                onClick={() => buy(a.id)}
-                disabled={busy === a.id || alreadyOwned}
-                className="btn-secondary inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold disabled:opacity-60"
-                title={
-                  alreadyOwned
-                    ? "Ya activo"
-                    : isToggle
-                      ? "Comprar"
-                      : "Agregar 1 unidad"
-                }
-              >
-                {busy === a.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : alreadyOwned ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
+              // Monthly addons (extraBrand, extraSeat): controles +/- con
+              // contador. Restar solo se habilita si hay al menos 1 comprado.
+              <div className="inline-flex flex-shrink-0 items-center gap-1 rounded-md border border-zinc-200 bg-white p-0.5">
+                <button
+                  type="button"
+                  onClick={() => removeOne(a.id)}
+                  disabled={busy === a.id || owned === 0}
+                  className="grid h-7 w-7 place-items-center rounded text-zinc-600 transition hover:bg-zinc-100 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Quitar 1"
+                  title={owned === 0 ? "No tenés ninguno" : "Quitar 1 (sin reembolso)"}
+                >
+                  {busy === a.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Minus className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                <span className="min-w-[24px] text-center text-[13px] font-semibold tabular-nums text-zinc-900">
+                  {owned}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => buy(a.id)}
+                  disabled={busy === a.id}
+                  className="grid h-7 w-7 place-items-center rounded text-zinc-600 transition hover:bg-fuchsia-50 hover:text-fuchsia-700 disabled:opacity-30"
+                  aria-label="Agregar 1"
+                  title="Agregar 1 unidad"
+                >
                   <Plus className="h-3.5 w-3.5" />
-                )}
-                {alreadyOwned ? "Activo" : "Comprar"}
-              </button>
+                </button>
+              </div>
             )}
           </li>
         );

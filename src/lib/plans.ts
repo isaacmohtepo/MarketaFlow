@@ -184,8 +184,8 @@ export const ADDONS: Record<AddonId, {
     id: "extraBrand",
     label: "Marca extra",
     description: "Suma 1 marca al límite de tu plan.",
-    priceCop: 1_900_000, // $19.000 COP
-    priceUsd: 5,
+    priceCop: 1_000_000, // $10.000 COP
+    priceUsd: 3,
     billingType: "monthly",
     availableOn: ["pro"], // Agency ya es ilimitado
   },
@@ -193,8 +193,8 @@ export const ADDONS: Record<AddonId, {
     id: "extraSeat",
     label: "Miembro extra de equipo",
     description: "Suma 1 espacio al equipo de tu plan.",
-    priceCop: 1_500_000, // $15.000 COP
-    priceUsd: 4,
+    priceCop: 500_000, // $5.000 COP
+    priceUsd: 1.5,
     billingType: "monthly",
     availableOn: ["pro"],
   },
