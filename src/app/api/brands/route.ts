@@ -7,8 +7,10 @@ import { assertAgencyNotSuspended } from "@/lib/suspension";
 import { hasPermission } from "@/lib/permissions";
 
 const schema = z.object({
-  name: z.string().min(1),
-  handle: z.string().optional().nullable(),
+  // Cap defensivo: nombres muy largos rompen layout en emails, sidebar y
+  // public pages. 80 chars cubre cualquier nombre real de marca.
+  name: z.string().trim().min(1).max(80),
+  handle: z.string().trim().max(40).optional().nullable(),
 });
 
 export async function POST(req: Request) {

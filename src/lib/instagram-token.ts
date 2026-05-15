@@ -35,7 +35,8 @@ export async function getIgAccessToken(brandId: string): Promise<string | null> 
     try {
       return await decrypt(brand.igAccessTokenEnc);
     } catch (err) {
-      console.error("ig token decrypt failed for brand", brandId, err);
+      const { safeLogError } = await import("./safe-log");
+      safeLogError(`ig token decrypt failed for brand ${brandId}`, err);
       return null;
     }
   }
@@ -131,7 +132,8 @@ export async function migrateLegacyTokens(): Promise<{
       });
       migrated++;
     } catch (err) {
-      console.error("ig token migration failed for brand", b.id, err);
+      const { safeLogError } = await import("./safe-log");
+      safeLogError(`ig token migration failed for brand ${b.id}`, err);
       failed++;
     }
   }

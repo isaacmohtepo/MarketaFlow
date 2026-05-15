@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { canCreatePost, getEffectiveLimits } from "@/lib/billing";
 import { isR2Configured } from "@/lib/storage";
 
@@ -20,6 +21,11 @@ import { isR2Configured } from "@/lib/storage";
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  // SEGURIDAD: los detalles sensibles de infra (accessKeyHint, write test
+  // a R2, hints de bucket/keys) son admin-only. Cualquier user logueado
+  // sigue pudiendo ver SU propio plan/uso para banners de la UI.
+  const adminMode = await isAdmin(user.id);
 
   const url = new URL(req.url);
   const brandId = url.searchParams.get("brandId");
@@ -45,39 +51,49 @@ export async function GET(req: Request) {
   const issues: string[] = [];
 
   // === Storage check ===
-  // Si pasaste ?test=1 hacemos un write real (PUT + DELETE de un objeto de
-  // 1 byte) para verificar que las credenciales no solo estén seteadas
-  // sino que funcionen contra R2. Detectamos: keys revocadas, bucket
-  // typeado mal, CORS no relevante para server-to-R2 pero credentials sí.
-  const doWriteTest = url.searchParams.get("test") === "1";
-  // Pista del access key actualmente seteado, para confirmar que el
-  // redeploy agarró el valor correcto. NO exponemos el secret completo,
-  // solo: largo, primeros/últimos chars, y si parece formato legítimo
-  // (32 chars hex sin underscores).
-  const accessKey = process.env.R2_ACCESS_KEY_ID?.trim().replace(/^["']|["']$/g, "") ?? "";
-  const accessKeyHint = {
-    length: accessKey.length,
-    prefix: accessKey.slice(0, 4),
-    suffix: accessKey.slice(-4),
-    looksLikeHex: /^[a-f0-9]{32}$/i.test(accessKey),
-    hasUnderscores: accessKey.includes("_"),
-    expectedFormat: "32 chars hex (a-f, 0-9), sin underscores ni prefijos",
-  };
+  // Solo admins reciben los detalles sensibles (accessKeyHint, write test).
+  // Para users normales solo decimos "configured: true/false" y un issue
+  // genérico si no — suficiente para banners de UI.
+  const doWriteTest = adminMode && url.searchParams.get("test") === "1";
+  let accessKeyHint:
+    | {
+        length: number;
+        prefix: string;
+        suffix: string;
+        looksLikeHex: boolean;
+        hasUnderscores: boolean;
+        expectedFormat: string;
+      }
+    | undefined = undefined;
+  if (adminMode) {
+    const accessKey =
+      process.env.R2_ACCESS_KEY_ID?.trim().replace(/^["']|["']$/g, "") ?? "";
+    accessKeyHint = {
+      length: accessKey.length,
+      prefix: accessKey.slice(0, 4),
+      suffix: accessKey.slice(-4),
+      looksLikeHex: /^[a-f0-9]{32}$/i.test(accessKey),
+      hasUnderscores: accessKey.includes("_"),
+      expectedFormat: "32 chars hex (a-f, 0-9), sin underscores ni prefijos",
+    };
+  }
 
   const storage: {
     configured: boolean;
     mode: string;
-    accessKeyHint: typeof accessKeyHint;
+    accessKeyHint?: typeof accessKeyHint;
     writeTest?: { ok: boolean; error?: string };
   } = {
     configured: isR2Configured,
     mode: isR2Configured ? "r2" : "local-fallback",
-    accessKeyHint,
+    ...(adminMode ? { accessKeyHint } : {}),
   };
 
   if (!isR2Configured) {
     issues.push(
-      "Storage no está configurado. Las imágenes y videos no se pueden persistir en producción. El admin tiene que setear R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL en las env vars de Vercel.",
+      adminMode
+        ? "Storage no está configurado. Las imágenes y videos no se pueden persistir en producción. El admin tiene que setear R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL en las env vars de Vercel."
+        : "Storage no está configurado. Contactá al admin del sistema.",
     );
   } else if (doWriteTest) {
     storage.writeTest = await runR2WriteTest();

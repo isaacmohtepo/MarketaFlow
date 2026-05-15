@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { sanitizeBroadcastHtml } from "@/lib/sanitize-html";
 import SendButton from "./SendButton";
 
 export default async function BroadcastDetailPage({
@@ -75,7 +76,12 @@ export default async function BroadcastDetailPage({
           <div
             className="prose prose-sm mt-3 max-w-none text-[13px] text-zinc-700 [&_p]:my-1"
             dangerouslySetInnerHTML={{
-              __html: b.bodyHtml.replace(/\{\{name\}\}/g, "Isaac"),
+              // Sanitize antes de renderizar: strip <script>, <iframe>,
+              // on*=, javascript:, etc. Defense in depth aunque solo admins
+              // pueden crear broadcasts — previene lateral XSS entre admins.
+              __html: sanitizeBroadcastHtml(
+                b.bodyHtml.replace(/\{\{name\}\}/g, "Isaac"),
+              ),
             }}
           />
         </div>

@@ -107,6 +107,20 @@ export async function POST(req: Request) {
         { status: 401 },
       );
     }
+    // Rate limit específico de intentos 2FA. Sin esto, una vez que el
+    // password fue válido, un atacante podía brute-forcear 6-dígitos (1M
+    // combinaciones) o probar todos los 10 recovery codes sin límite. Los
+    // rate limits de arriba (login:ip + login:email) cuentan TODO intento
+    // de login, así que también ayudan, pero acá agregamos un límite más
+    // estricto: 8 intentos / 15 min por user-id.
+    const twoFaRl = await rateLimitAsync(req, {
+      key: "login:2fa",
+      limit: 8,
+      windowMs: 15 * 60_000,
+      extra: user.id,
+    });
+    if (!twoFaRl.ok) return rateLimitResponse(twoFaRl);
+
     // Intentar TOTP primero (formato 6 dígitos). Si no, probar recovery code.
     const isDigits = /^\d{6}$/.test(body.totpToken);
     let twoFaOk = false;
@@ -114,17 +128,49 @@ export async function POST(req: Request) {
       twoFaOk = verifyToken(user.totpSecret, body.totpToken);
     }
     if (!twoFaOk) {
-      // Fallback: recovery code. Si matchea, lo consumimos (one-time use).
-      const codes = (user.recoveryCodesHash as string[] | null) ?? [];
-      if (codes.length > 0) {
-        const idx = await verifyRecoveryCode(codes, body.totpToken);
+      // Fallback: recovery code. Si matchea, lo consumimos atómicamente
+      // dentro de una transacción que re-lee los codes antes del update.
+      // Sin esto, dos requests paralelos con el mismo recovery code
+      // podrían ambos pasar (ambos leen codes, ambos quitan el mismo idx,
+      // ambos update con la misma lista resultante).
+      const initialCodes = (user.recoveryCodesHash as string[] | null) ?? [];
+      if (initialCodes.length > 0) {
+        const idx = await verifyRecoveryCode(initialCodes, body.totpToken);
         if (idx >= 0) {
-          twoFaOk = true;
-          const remaining = codes.filter((_, i) => i !== idx);
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { recoveryCodesHash: remaining },
-          });
+          // Transacción Serializable: re-leer fresh + actualizar. Si la lista
+          // cambió mientras tanto (otro request consumió el mismo code),
+          // Prisma aborta y devolvemos 2FA failed.
+          try {
+            const consumed = await prisma.$transaction(
+              async (tx) => {
+                const fresh = await tx.user.findUnique({
+                  where: { id: user.id },
+                  select: { recoveryCodesHash: true },
+                });
+                const freshCodes =
+                  (fresh?.recoveryCodesHash as string[] | null) ?? [];
+                // Re-verificar contra los hashes frescos por si alguno fue
+                // consumido en paralelo
+                const freshIdx = await verifyRecoveryCode(
+                  freshCodes,
+                  body.totpToken!,
+                );
+                if (freshIdx === -1) return false;
+                const remaining = freshCodes.filter((_, i) => i !== freshIdx);
+                await tx.user.update({
+                  where: { id: user.id },
+                  data: { recoveryCodesHash: remaining },
+                });
+                return true;
+              },
+              { isolationLevel: "Serializable" },
+            );
+            twoFaOk = consumed;
+          } catch (err) {
+            // Conflict de transacción Serializable o error DB → no consumimos
+            console.error("recovery code atomic consume failed", err);
+            twoFaOk = false;
+          }
         }
       }
     }

@@ -127,7 +127,8 @@ export async function runIgTokenRefresh(): Promise<{
       await setIgAccessToken(brand.id, json.access_token);
       stats.refreshed++;
     } catch (err) {
-      console.error("ig-token refresh error", brand.id, err);
+      const { safeLogError } = await import("@/lib/safe-log");
+      safeLogError(`ig-token refresh error brand=${brand.id}`, err);
       stats.errors++;
     }
   }

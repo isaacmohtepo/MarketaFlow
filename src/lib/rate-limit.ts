@@ -141,13 +141,16 @@ async function upstashIncrWithTtl(
       signal: AbortSignal.timeout(2000),
     });
     if (!res.ok) {
+      // No imprimimos el error completo — podría contener el bearer token
+      // de Upstash en headers/url si fetch lo expone en la excepción.
       console.error("upstash rate-limit non-200", res.status);
       return null;
     }
     const json = (await res.json()) as Array<{ result?: number }>;
     return typeof json[0]?.result === "number" ? json[0].result : null;
   } catch (err) {
-    console.error("upstash rate-limit error", err);
+    const { safeLogError } = await import("./safe-log");
+    safeLogError("upstash rate-limit error", err);
     return null;
   }
 }

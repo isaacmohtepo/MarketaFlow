@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Save, Loader2, Users, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/RichTextEditor";
+import { sanitizeBroadcastHtml } from "@/lib/sanitize-html";
 
 const AUDIENCES = [
   { id: "all", label: "Todos los usuarios" },
@@ -166,7 +167,11 @@ export default function BroadcastEditor() {
             </p>
             <div
               className="prose prose-sm mt-2 max-w-none text-[12px] text-zinc-700 [&_p]:my-1"
-              dangerouslySetInnerHTML={{ __html: bodyHtml.replace(/\{\{name\}\}/g, "Isaac") }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeBroadcastHtml(
+                  bodyHtml.replace(/\{\{name\}\}/g, "Isaac"),
+                ),
+              }}
             />
           </div>
         </div>

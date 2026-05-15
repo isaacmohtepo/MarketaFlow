@@ -12,13 +12,14 @@
  */
 
 import { NextResponse } from "next/server";
+import { safeLogError } from "./safe-log";
 
 /**
- * Loggea el error en server y devuelve 500 con un mensaje genérico.
- * El `context` es solo para logs (no se manda al cliente).
+ * Loggea el error en server (con scrubbing de secrets) y devuelve 500
+ * con un mensaje genérico al cliente. El `context` es solo para logs.
  */
 export function serverError(context: string, err: unknown) {
-  console.error(`[${context}]`, err);
+  safeLogError(`[${context}]`, err);
   return NextResponse.json(
     { error: "Algo salió mal. Si persiste, contactanos." },
     { status: 500 },

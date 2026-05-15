@@ -19,7 +19,7 @@ const passwordSchema = z
   });
 
 const schema = z.object({
-  name: z.string().min(1).max(120),
+  name: z.string().trim().min(1).max(80),
   // Normalizamos a lowercase + trim para que "Alice@x.com" y "alice@x.com"
   // sean la misma cuenta (sino se podrían crear dos users con el mismo
   // email lógico, generando confusión + account-confusion attacks).
@@ -29,7 +29,7 @@ const schema = z.object({
     .max(254) // RFC 5321
     .transform((s) => s.toLowerCase().trim()),
   password: passwordSchema,
-  agencyName: z.string().min(1).max(120).optional(),
+  agencyName: z.string().trim().min(1).max(80).optional(),
   inviteCode: z.string().max(64).optional(),
 });
 

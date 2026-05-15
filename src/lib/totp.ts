@@ -74,13 +74,25 @@ export async function generateRecoveryCodes(): Promise<{
 /**
  * Verifica un código de recuperación contra los hashes guardados. Si matchea,
  * devuelve el índice del código usado (para que el caller lo elimine).
+ *
+ * SEGURIDAD: iteramos TODOS los hashes con bcrypt aún si encontramos uno
+ * que matchee al principio, y solo retornamos el índice al final. Eso
+ * previene un timing attack donde un atacante podría inferir en qué
+ * posición del array está el código bueno midiendo cuánto tarda la
+ * respuesta. Cada bcrypt.compare es ~100ms; total ~1s para 10 códigos.
+ * No vamos a paralelizar con Promise.all porque eso re-introduce el
+ * timing diferencial (la primera promesa que matchea libera el event
+ * loop antes).
  */
 export async function verifyRecoveryCode(
   hashes: string[],
   code: string,
 ): Promise<number> {
+  let foundIdx = -1;
   for (let i = 0; i < hashes.length; i++) {
-    if (await bcrypt.compare(code, hashes[i])) return i;
+    // Asignación condicional sin short-circuit: TODOS los compares corren.
+    const match = await bcrypt.compare(code, hashes[i]);
+    if (match && foundIdx === -1) foundIdx = i;
   }
-  return -1;
+  return foundIdx;
 }

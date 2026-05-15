@@ -143,11 +143,16 @@ export async function GET(req: Request) {
 
     return NextResponse.redirect(new URL(`${settingsUrl}?success=1`, req.url));
   } catch (err) {
-    console.error("IG OAuth callback failed", err);
-    const msg = err instanceof Error ? err.message : "unknown";
+    const { safeLogError, scrubSecrets } = await import("@/lib/safe-log");
+    safeLogError("IG OAuth callback failed", err);
+    const rawMsg = err instanceof Error ? err.message : "unknown";
+    // Scrub la URL del redirect: el mensaje de error de Meta puede traer
+    // snippets de token o app_secret en las URLs, y appendearlo crudo a
+    // settingsUrl?detail=... lo filtra al cliente vía referer.
+    const safeMsg = scrubSecrets(rawMsg).slice(0, 200);
     return NextResponse.redirect(
       new URL(
-        `${settingsUrl}?error=oauth_failed&detail=${encodeURIComponent(msg.slice(0, 200))}`,
+        `${settingsUrl}?error=oauth_failed&detail=${encodeURIComponent(safeMsg)}`,
         req.url,
       ),
     );

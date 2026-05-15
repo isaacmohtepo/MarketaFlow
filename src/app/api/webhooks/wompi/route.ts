@@ -8,6 +8,7 @@ import {
 } from "@/lib/billing-emails";
 import { nextInvoiceNumber, splitIva } from "@/lib/invoice-number";
 import type { PlanId } from "@/lib/plans";
+import { safeLogError } from "@/lib/safe-log";
 
 /**
  * POST /api/webhooks/wompi
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
   try {
     cfg = await getWompiConfig(envFromPayload);
   } catch (err) {
-    console.error("Webhook: no hay config Wompi activa", err);
+    safeLogError("Webhook: no hay config Wompi activa", err);
     await logWebhookSilent({
       provider: "wompi",
       externalId: `noconfig_${externalIdBase}`,
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     processError = err instanceof Error ? err.message : String(err);
-    console.error("Webhook handler tiró excepción", err);
+    safeLogError("Webhook handler tiró excepción", err);
   }
 
   // Loggear (upsert). Si error: scheduleamos un retry con backoff exponencial.
@@ -182,7 +183,7 @@ async function logWebhookSilent(args: {
       },
     });
   } catch (err) {
-    console.error("logWebhookSilent failed", err);
+    safeLogError("logWebhookSilent failed", err);
   }
 }
 
@@ -386,7 +387,7 @@ async function handleTransactionUpdated(
           }
         }
       } catch (err) {
-        console.error("webhook: re-fetch transaction failed", err);
+        safeLogError("webhook: re-fetch transaction failed", err);
         // Si Wompi no contesta, NO asociamos el payment_source. Mejor
         // perder la asociación que vincular un source no verificado.
       }
@@ -462,7 +463,7 @@ async function handleTransactionUpdated(
           }
         }
       } catch (err) {
-        console.error("Failed to enrich payment method details", err);
+        safeLogError("Failed to enrich payment method details", err);
       }
     }
 

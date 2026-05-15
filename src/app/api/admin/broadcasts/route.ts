@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { audit } from "@/lib/audit";
 import { resolveAudience } from "@/lib/broadcast";
+import { sanitizeBroadcastHtml } from "@/lib/sanitize-html";
 
 /**
  * GET /api/admin/broadcasts → list
@@ -63,7 +64,9 @@ export async function POST(req: Request) {
   const created = await prisma.emailBroadcast.create({
     data: {
       subject: body.subject,
-      bodyHtml: body.bodyHtml,
+      // Sanitizamos al guardar para que el HTML peligroso no se persista
+      // en la DB. Defense in depth: la UI también sanitiza al renderizar.
+      bodyHtml: sanitizeBroadcastHtml(body.bodyHtml),
       audience: body.audience,
       createdById: me.id,
       status: scheduledAt ? "scheduled" : "draft",
