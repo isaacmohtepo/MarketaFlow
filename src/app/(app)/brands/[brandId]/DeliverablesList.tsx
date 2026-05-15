@@ -112,13 +112,12 @@ function CoverPreview({ d }: { d: Deliverable }) {
       />
     );
   }
-  // Web design con URL → screenshot automático via WordPress mShots (gratis,
-  // sin API key, cachea del lado de wp.com). Si el screenshot no existe aún,
-  // mShots devuelve un placeholder gris y encola la captura — el browser lo
-  // reintenta solo al refrescar. Mantenemos el mock browser chrome arriba
-  // para que se vea contextualizado como un sitio web.
+  // Web design con URL → screenshot self-hosted via /api/screenshot.
+  // Puppeteer + chromium en Vercel, cache en R2 por hash de URL. Cache hit
+  // = redirect inmediato; cache miss = ~5s la primera vez y queda guardado.
+  // Privacy: las URLs nunca salen de tu infra.
   if (d.assetType === "web_design" && d.sourceUrl) {
-    const shotUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(d.sourceUrl)}?w=800&h=600`;
+    const shotUrl = `/api/screenshot?url=${encodeURIComponent(d.sourceUrl)}`;
     return (
       <div className="flex h-full w-full flex-col bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50">
         {/* Browser chrome */}
@@ -144,12 +143,11 @@ function CoverPreview({ d }: { d: Deliverable }) {
             src={shotUrl}
             alt=""
             loading="lazy"
-            referrerPolicy="no-referrer"
             className="absolute inset-0 h-full w-full object-cover object-top"
             draggable={false}
             onError={(e) => {
-              // Si mShots falla por completo, ocultamos el <img> y queda el
-              // fallback de globe + gradient visible.
+              // Si el endpoint falla, ocultamos para que quede el fallback
+              // visible (globe + gradient).
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
           />

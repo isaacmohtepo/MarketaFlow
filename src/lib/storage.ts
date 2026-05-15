@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { randomBytes } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -64,3 +64,41 @@ export async function uploadFile(
 }
 
 export const isR2Configured = r2Configured;
+
+/**
+ * Sube un Buffer crudo a R2 con una key específica (idempotente).
+ * Útil para artefactos derivados como screenshots, donde el "nombre"
+ * es un hash de la URL fuente, no un nombre random.
+ */
+export async function uploadBuffer(opts: {
+  key: string;
+  body: Buffer;
+  contentType: string;
+  cacheControl?: string;
+}): Promise<UploadResult | null> {
+  if (!r2 || !R2_BUCKET || !R2_PUBLIC_URL) return null;
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: opts.key,
+      Body: opts.body,
+      ContentType: opts.contentType,
+      CacheControl: opts.cacheControl ?? "public, max-age=31536000, immutable",
+    }),
+  );
+  return { url: `${R2_PUBLIC_URL.replace(/\/+$/, "")}/${opts.key}` };
+}
+
+/**
+ * Verifica si una key existe en R2. HEAD es barato — no descarga el body.
+ * Retorna la URL pública si existe, null si no.
+ */
+export async function r2ObjectUrl(key: string): Promise<string | null> {
+  if (!r2 || !R2_BUCKET || !R2_PUBLIC_URL) return null;
+  try {
+    await r2.send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    return `${R2_PUBLIC_URL.replace(/\/+$/, "")}/${key}`;
+  } catch {
+    return null;
+  }
+}

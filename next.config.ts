@@ -75,7 +75,16 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", "pg", "@prisma/adapter-pg"],
+  // puppeteer-core + @sparticuz/chromium NO se bundlean — incluyen binarios
+  // nativos que tracer de Vercel detecta y empaqueta solo si no se intentan
+  // optimizar. Bundling rompe el resolve del executablePath.
+  serverExternalPackages: [
+    "@prisma/client",
+    "pg",
+    "@prisma/adapter-pg",
+    "puppeteer-core",
+    "@sparticuz/chromium",
+  ],
   // Permite acceso al dev server desde la red LAN y túneles públicos.
   // Sin esto, Next 16 bloquea recursos cliente en orígenes que no sean localhost
   // (causa: el form cae a submit nativo GET porque el JS no se carga).
