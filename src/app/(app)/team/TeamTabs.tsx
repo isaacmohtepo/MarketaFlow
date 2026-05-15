@@ -1,21 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Shield, ScrollText } from "lucide-react";
+import { Users, Shield, ScrollText, Handshake } from "lucide-react";
 import TeamManager from "./TeamManager";
 import RolesManager from "./RolesManager";
 import AuditViewer from "./AuditViewer";
+import ClientsManager from "./ClientsManager";
 
 export default function TeamTabs({
   canManageRoles,
   canInvite,
   canViewAudit,
+  canInviteClients,
 }: {
   canManageRoles: boolean;
   canInvite: boolean;
   canViewAudit: boolean;
+  canInviteClients: boolean;
 }) {
-  const [tab, setTab] = useState<"members" | "roles" | "audit">("members");
+  const [tab, setTab] = useState<"members" | "clients" | "roles" | "audit">(
+    "members",
+  );
   return (
     <div>
       <div className="flex border-b divider">
@@ -25,6 +30,14 @@ export default function TeamTabs({
           icon={<Users className="h-3.5 w-3.5" />}
           label="Miembros"
         />
+        {canInviteClients && (
+          <TabBtn
+            active={tab === "clients"}
+            onClick={() => setTab("clients")}
+            icon={<Handshake className="h-3.5 w-3.5" />}
+            label="Clientes"
+          />
+        )}
         {canManageRoles && (
           <TabBtn
             active={tab === "roles"}
@@ -44,6 +57,7 @@ export default function TeamTabs({
       </div>
       <div className="mt-6">
         {tab === "members" && <TeamManager canInvite={canInvite} />}
+        {tab === "clients" && canInviteClients && <ClientsManager />}
         {tab === "roles" && canManageRoles && <RolesManager canManageRoles={canManageRoles} />}
         {tab === "audit" && canViewAudit && <AuditViewer />}
       </div>

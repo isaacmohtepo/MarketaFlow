@@ -26,17 +26,46 @@ export async function POST(
   // Serializable transaction: re-check del límite + create de membership +
   // mark invitation accepted, todo atómico. Cierra la TOCTOU donde dos
   // invitations aceptadas en paralelo podrían pasar ambas el check.
+  //
+  // Si la invitación tiene brandIds (caso "invitar cliente a una/varias
+  // marcas"), creamos UNA membership por brand en vez de una agency-wide.
+  // No contamos a clients contra el límite de team members del plan
+  // porque son externos.
+  const hasBrandScope = inv.brandIds.length > 0;
   const result = await prisma.$transaction(
     async (tx) => {
-      const existing = await tx.membership.findFirst({
-        where: { userId: user.id, agencyId: inv.agencyId, brandId: null },
-      });
-      if (!existing) {
-        const check = await canInviteTeamMember(inv.agencyId, tx);
-        if (!check.ok) return { ok: false as const };
-        await tx.membership.create({
-          data: { userId: user.id, agencyId: inv.agencyId, role: inv.role },
+      if (hasBrandScope) {
+        // Validar que las brands sigan existiendo y sean de la misma agency
+        const validBrands = await tx.brand.findMany({
+          where: { agencyId: inv.agencyId, id: { in: inv.brandIds } },
+          select: { id: true },
         });
+        for (const b of validBrands) {
+          const existing = await tx.membership.findFirst({
+            where: { userId: user.id, agencyId: inv.agencyId, brandId: b.id },
+          });
+          if (!existing) {
+            await tx.membership.create({
+              data: {
+                userId: user.id,
+                agencyId: inv.agencyId,
+                brandId: b.id,
+                role: inv.role,
+              },
+            });
+          }
+        }
+      } else {
+        const existing = await tx.membership.findFirst({
+          where: { userId: user.id, agencyId: inv.agencyId, brandId: null },
+        });
+        if (!existing) {
+          const check = await canInviteTeamMember(inv.agencyId, tx);
+          if (!check.ok) return { ok: false as const };
+          await tx.membership.create({
+            data: { userId: user.id, agencyId: inv.agencyId, role: inv.role },
+          });
+        }
       }
       await tx.teamInvitation.update({
         where: { id: inv.id },

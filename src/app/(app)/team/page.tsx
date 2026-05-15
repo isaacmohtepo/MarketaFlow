@@ -29,11 +29,13 @@ export default async function TeamPage() {
     );
   }
 
-  const [canManageRoles, canInvite, canViewAudit] = await Promise.all([
-    hasPermission(user.id, m.agencyId, "roles.manage"),
-    hasPermission(user.id, m.agencyId, "team.invite"),
-    hasPermission(user.id, m.agencyId, "audit.view"),
-  ]);
+  const [canManageRoles, canInvite, canViewAudit, canInviteClients] =
+    await Promise.all([
+      hasPermission(user.id, m.agencyId, "roles.manage"),
+      hasPermission(user.id, m.agencyId, "team.invite"),
+      hasPermission(user.id, m.agencyId, "audit.view"),
+      hasPermission(user.id, m.agencyId, "clients.invite"),
+    ]);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -46,6 +48,7 @@ export default async function TeamPage() {
           canManageRoles={canManageRoles}
           canInvite={canInvite}
           canViewAudit={canViewAudit}
+          canInviteClients={canInviteClients}
         />
       </div>
     </div>

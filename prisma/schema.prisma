@@ -431,6 +431,11 @@ model TeamInvitation {
   email     String
   role      String    @default("editor")
   token     String    @unique @default(cuid())
+  /// Brand IDs a las que dar acceso al aceptar. Si está vacío → membership
+  /// agency-wide (caso típico para team members). Si tiene IDs → se crea
+  /// una membership por brand (caso típico para invitar clientes a su(s)
+  /// marca(s) específica(s)).
+  brandIds  String[]  @default([])
   expiresAt DateTime
   acceptedAt DateTime?
   createdAt DateTime  @default(now())
