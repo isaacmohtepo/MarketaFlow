@@ -113,17 +113,21 @@ function buildSections({
               {
                 label: "Plan",
                 icon: Sparkles,
-                match: (p: string) => false,
+                match: (p: string) =>
+                  p.startsWith("/billing/plan") ||
+                  p.startsWith("/billing/productos"),
                 children: [
                   {
                     label: "Configuración",
-                    href: "/billing#plan",
+                    href: "/billing/plan",
                     icon: Settings,
+                    match: (p: string) => p.startsWith("/billing/plan"),
                   } as NavItem,
                   {
                     label: "Productos",
-                    href: "/billing#productos",
+                    href: "/billing/productos",
                     icon: Package,
+                    match: (p: string) => p.startsWith("/billing/productos"),
                   } as NavItem,
                 ],
               } as NavItem,
@@ -132,23 +136,33 @@ function buildSections({
               {
                 label: "Facturación",
                 icon: CreditCard,
-                match: (p: string) => p.startsWith("/billing"),
+                match: (p: string) =>
+                  p === "/billing" ||
+                  p === "/billing/" ||
+                  p.startsWith("/billing/return") ||
+                  p.startsWith("/billing/checkout") ||
+                  p.startsWith("/billing/payment-methods") ||
+                  p.startsWith("/billing/invoices"),
                 children: [
                   {
                     label: "Resumen",
                     href: "/billing",
                     icon: Receipt,
                     match: (p: string) =>
-                      p === "/billing" || p === "/billing/" || p.startsWith("/billing/return") || p.startsWith("/billing/checkout"),
+                      p === "/billing" ||
+                      p === "/billing/" ||
+                      p.startsWith("/billing/return") ||
+                      p.startsWith("/billing/checkout"),
                   } as NavItem,
                   {
                     label: "Métodos de pago",
-                    href: "/billing#metodos",
+                    href: "/billing/payment-methods",
                     icon: Wallet,
+                    match: (p: string) => p.startsWith("/billing/payment-methods"),
                   } as NavItem,
                   {
                     label: "Facturas",
-                    href: "/billing#facturas",
+                    href: "/billing/invoices",
                     icon: FileText,
                     match: (p: string) => p.startsWith("/billing/invoices"),
                   } as NavItem,
