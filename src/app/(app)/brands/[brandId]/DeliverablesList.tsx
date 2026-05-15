@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { DraftWatermark } from "@/components/DraftWatermark";
 import {
   CalendarClock,
   CheckCircle2,
@@ -287,6 +288,7 @@ export default function DeliverablesList({
           >
             <div className="relative h-44 w-full overflow-hidden bg-zinc-100">
               <CoverPreview d={d} />
+              <DraftWatermark status={d.status} size="sm" />
 
               <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">

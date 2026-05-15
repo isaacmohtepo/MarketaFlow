@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
 import MediaThumb from "@/components/MediaThumb";
+import { DraftWatermark } from "@/components/DraftWatermark";
 import {
   CalendarClock,
   CheckCircle2,
@@ -255,6 +256,7 @@ export default function FeedGrid({
                     <ImageOff className="h-5 w-5 text-zinc-400" />
                   </div>
                 )}
+                <DraftWatermark status={p.status} size="sm" />
                 <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-white/95 text-zinc-900 shadow-sm backdrop-blur">
                   {isSelected ? (
                     <CheckSquare className="h-4 w-4 text-fuchsia-600" />
@@ -313,6 +315,7 @@ export default function FeedGrid({
                     <ImageOff className="h-5 w-5 text-zinc-400" />
                   </div>
                 )}
+                <DraftWatermark status={p.status} size="sm" />
 
                 <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">

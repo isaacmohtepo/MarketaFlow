@@ -12,6 +12,7 @@ import VideoCommenter, {
 } from "./VideoCommenter";
 import { VideoEmbed } from "@/components/AssetPreview";
 import MentionInput from "@/components/MentionInput";
+import { DraftWatermark } from "@/components/DraftWatermark";
 import MentionText from "@/components/MentionText";
 import { useMentionedRoles } from "@/lib/useMentionedRoles";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -798,12 +799,15 @@ export default function PostBoard({
           }`}
         >
           {currentSlide ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={currentSlide}
-              alt=""
-              className="h-full w-full rounded-lg object-cover pointer-events-none"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={currentSlide}
+                alt=""
+                className="h-full w-full rounded-lg object-cover pointer-events-none"
+              />
+              <DraftWatermark status={liveStatus} size="lg" />
+            </>
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-sm text-zinc-500">
               sin imagen
