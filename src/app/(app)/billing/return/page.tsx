@@ -309,16 +309,10 @@ export default async function BillingReturnPage({
         </>
       )}
       <Link
-        href={
-          invoice.addonType === "method_validation"
-            ? "/billing/payment-methods"
-            : "/dashboard"
-        }
+        href="/dashboard"
         className="btn-gradient mt-8 inline-block rounded-full px-6 py-2.5 text-[13px] font-semibold"
       >
-        {invoice.addonType === "method_validation"
-          ? "Ver mis métodos de pago"
-          : "Ir al dashboard"}
+        Ir al dashboard
       </Link>
     </div>
   );

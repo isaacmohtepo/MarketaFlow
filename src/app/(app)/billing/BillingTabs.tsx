@@ -7,7 +7,6 @@ const TABS = [
   { id: "resumen", label: "Resumen", href: "/billing" },
   { id: "plan", label: "Plan", href: "/billing/plan" },
   { id: "productos", label: "Productos", href: "/billing/productos" },
-  { id: "metodos", label: "Métodos de pago", href: "/billing/payment-methods" },
   { id: "facturas", label: "Facturas", href: "/billing/invoices" },
 ] as const;
 

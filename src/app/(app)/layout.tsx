@@ -7,6 +7,7 @@ import AppShell from "@/components/AppShell";
 import ImpersonateBanner from "@/components/ImpersonateBanner";
 import SuspendedBanner from "@/components/SuspendedBanner";
 import AdminTwoFAReminder from "@/components/AdminTwoFAReminder";
+import PastDueGraceBanner from "@/components/PastDueGraceBanner";
 import { getSystemSetting } from "@/lib/system-settings";
 import { getBillingSummary } from "@/lib/billing";
 import { PLANS, type PlanId } from "@/lib/plans";
@@ -108,6 +109,9 @@ export default async function AppLayout({
     priceMonthlyCents: number;
     billingCycle: string;
   } | null = null;
+  // Banner de gracia: cuando el plan venció (past_due) mostramos aviso
+  // diario con días restantes hasta bajar a Free.
+  let pastDueGrace: { planName: string; daysLeft: number } | null = null;
   if (isOwner && ownerMembership) {
     try {
       const summary = await getBillingSummary(ownerMembership.agencyId);
@@ -126,6 +130,19 @@ export default async function AppLayout({
             : plan.priceCopMonthly,
         billingCycle: summary.billingCycle,
       };
+
+      if (summary.status === "past_due" && summary.pastDueSinceAt) {
+        const graceDays = await getSystemSetting("gracePeriodDays").catch(
+          () => 5,
+        );
+        const elapsed =
+          (Date.now() - summary.pastDueSinceAt.getTime()) /
+          (24 * 60 * 60 * 1000);
+        const daysLeft = Math.max(0, Math.ceil(graceDays - elapsed));
+        // El plan efectivo durante gracia es el pago (no free); usamos el
+        // nombre del plan real de la sub, no el effective.
+        pastDueGrace = { planName: plan.name, daysLeft };
+      }
     } catch {
       // Si falla, dejamos planCard en null y el sidebar muestra el genérico
     }
@@ -215,6 +232,12 @@ export default async function AppLayout({
             <AdminTwoFAReminder
               daysLeft={admin2fa.daysLeft}
               expired={admin2fa.expired}
+            />
+          )}
+          {pastDueGrace && (
+            <PastDueGraceBanner
+              planName={pastDueGrace.planName}
+              daysLeft={pastDueGrace.daysLeft}
             />
           )}
         </>

@@ -5,6 +5,7 @@ import { chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { sendTrialEndedEmail, sendPaymentFailedEmail } from "@/lib/billing-emails";
 import { isCronAuthorized } from "@/lib/cron-auth";
+import { getSystemSetting } from "@/lib/system-settings";
 
 /**
  * GET /api/cron/billing
@@ -48,27 +49,24 @@ export async function GET(req: Request) {
     include: { agency: true },
   });
   for (const sub of expiredTrials) {
-    // Si tienen payment method ya pueden cobrar; sino bajamos a free
-    const hasPm = await prisma.paymentMethod.count({
-      where: { subscriptionId: sub.id },
+    // Modelo pago-único: NO auto-cobramos (no guardamos tarjetas). Cuando
+    // el trial vence, pasamos a past_due → arranca el período de gracia con
+    // aviso diario. Mantiene el plan Pro funcionando durante la gracia,
+    // después getEffectivePlanId baja a free solo. El cliente renueva
+    // pagando un Payment Link de Wompi (one-time).
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        status: "past_due",
+        pastDueSinceAt: now,
+        trialEndsAt: null,
+      },
     });
-    if (hasPm > 0) {
-      // Tienen tarjeta — intentamos primer cobro y los activamos
-      const ok = await tryRecurringCharge(sub.id);
-      if (ok) stats.chargedSuccess++;
-      else stats.chargedFailed++;
-    } else {
-      await prisma.subscription.update({
-        where: { id: sub.id },
-        data: { plan: "free", status: "active", trialEndsAt: null },
-      });
-      // Email avisándole que terminó el trial y bajamos a Free
-      sendTrialEndedEmail({
-        agencyId: sub.agencyId,
-        agencyName: sub.agency.name,
-      }).catch((e) => console.error("trial-ended email failed", e));
-      stats.trialsExpired++;
-    }
+    sendTrialEndedEmail({
+      agencyId: sub.agencyId,
+      agencyName: sub.agency.name,
+    }).catch((e) => console.error("trial-ended email failed", e));
+    stats.trialsExpired++;
   }
 
   // 2. Subs canceladas cuyo período terminó:
@@ -156,19 +154,29 @@ export async function GET(req: Request) {
   });
   stats.canceledExpired += canceledExpired.count;
 
-  // 3. Renovaciones pendientes
-  const pendingCharges = await prisma.subscription.findMany({
+  // 3. Planes activos cuyo período venció → past_due (modelo pago-único).
+  //    NO auto-cobramos. El cliente debe renovar pagando un Payment Link.
+  //    Pasar a past_due arranca la gracia (getEffectivePlanId mantiene el
+  //    plan unos días) + dunning (aviso por email) + banner diario in-app.
+  const expiredActive = await prisma.subscription.findMany({
     where: {
       status: "active",
-      nextChargeAt: { lte: now },
+      plan: { not: "free" },
+      currentPeriodEnd: { lte: now },
       cancelAtPeriodEnd: false,
     },
-    take: 100,
+    take: 200,
   });
-  for (const sub of pendingCharges) {
-    const ok = await tryRecurringCharge(sub.id);
-    if (ok) stats.chargedSuccess++;
-    else stats.chargedFailed++;
+  for (const sub of expiredActive) {
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        status: "past_due",
+        pastDueSinceAt: now,
+        nextChargeAt: null,
+      },
+    });
+    stats.skipped++;
   }
 
   // 4. Dunning escalonado: para subs en past_due con pastDueSinceAt set,
@@ -249,6 +257,9 @@ export async function GET(req: Request) {
  * como ancla y lastDunningStage para no duplicar.
  */
 async function runDunning(now: Date): Promise<number> {
+  // Período de gracia configurable desde /admin/settings. Default 5 días.
+  const graceDays = await getSystemSetting("gracePeriodDays").catch(() => 5);
+
   const subs = await prisma.subscription.findMany({
     where: {
       status: "past_due",
@@ -262,42 +273,57 @@ async function runDunning(now: Date): Promise<number> {
   let sent = 0;
   for (const sub of subs) {
     const anchor = sub.pastDueSinceAt!.getTime();
-    const daysSince = (now.getTime() - anchor) / (24 * 60 * 60 * 1000);
-    const stage = sub.lastDunningStage ?? "";
+    const daysSince = Math.floor(
+      (now.getTime() - anchor) / (24 * 60 * 60 * 1000),
+    );
+    const planName = PLANS[sub.plan as PlanId]?.name ?? sub.plan;
 
-    let targetStage: "d1" | "d3" | "d7" | null = null;
-    if (daysSince >= 7 && stage !== "d7") targetStage = "d7";
-    else if (daysSince >= 3 && stage !== "d7" && stage !== "d3") targetStage = "d3";
-    else if (daysSince >= 1 && stage === "") targetStage = "d1";
+    // Si ya pasó la gracia → bajar a Free (sin borrar nada, solo limita
+    // extras). Email final.
+    if (daysSince >= graceDays) {
+      if (sub.lastDunningStage !== "expired") {
+        try {
+          await sendPaymentFailedEmail({
+            agencyId: sub.agencyId,
+            agencyName: sub.agency.name,
+            amountCents: 0,
+            reason: `Pasaron los ${graceDays} días de gracia sin renovar tu plan ${planName}. Bajamos tu cuenta a Free — no borramos nada, solo quedan limitados los extras (marcas/miembros). Cuando quieras volver, renová tu plan desde /billing/plan.`,
+          });
+        } catch (err) {
+          console.error("dunning final email failed", sub.id, err);
+        }
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: "expired",
+            plan: "free",
+            nextChargeAt: null,
+            lastDunningSentAt: now,
+            lastDunningStage: "expired",
+          },
+        });
+        sent++;
+      }
+      continue;
+    }
 
-    if (!targetStage) continue;
+    // Dentro de la gracia: mandamos email recordatorio 1 vez por día
+    // (el aviso visual diario lo da el banner in-app — el email es backup).
+    // Usamos el día como stage para no duplicar en la misma corrida.
+    const todayStage = `d${daysSince}`;
+    if (sub.lastDunningStage === todayStage) continue;
 
-    const reason =
-      targetStage === "d1"
-        ? "Tu último intento de cobro falló. Actualizá tu método de pago en MarketaFlow para mantener tu plan activo — vamos a reintentar."
-        : targetStage === "d3"
-          ? "Hace 3 días que tu pago está pendiente. Actualizá tu tarjeta o Nequi en /billing para que sigamos cobrando — sino te bajamos a Free el día 7."
-          : "Tu pago lleva 7 días pendiente. Bajamos tu cuenta a plan Free. Si querés volver al plan anterior, actualizá tu método de pago y suscribite de nuevo desde /billing.";
-
+    const daysLeft = graceDays - daysSince;
     try {
       await sendPaymentFailedEmail({
         agencyId: sub.agencyId,
         agencyName: sub.agency.name,
         amountCents: 0,
-        reason,
+        reason: `Tu plan ${planName} venció. Renová pagando desde /billing/plan para seguir usándolo. Te ${daysLeft === 1 ? "queda 1 día" : `quedan ${daysLeft} días`} antes de bajar a Free (no se borra nada).`,
       });
-      const updates: Record<string, unknown> = {
-        lastDunningSentAt: now,
-        lastDunningStage: targetStage,
-      };
-      if (targetStage === "d7") {
-        updates.status = "expired";
-        updates.plan = "free";
-        updates.nextChargeAt = null;
-      }
       await prisma.subscription.update({
         where: { id: sub.id },
-        data: updates,
+        data: { lastDunningSentAt: now, lastDunningStage: todayStage },
       });
       sent++;
     } catch (err) {

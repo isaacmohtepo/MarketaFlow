@@ -116,17 +116,17 @@ export default async function BillingPage() {
           {isPastDue && (
             <Banner
               tone="rose"
-              title="Pago vencido"
-              body="Tu último cobro falló. Actualizá tu método de pago."
-              cta={{ href: "/billing/payment-methods", label: "Actualizar" }}
+              title="Plan vencido"
+              body="Tu plan venció. Renová pagando para seguir usándolo — tenés unos días de gracia antes de bajar a Free."
+              cta={{ href: "/billing/plan", label: "Renovar plan" }}
             />
           )}
           {isTrialing && trialDaysLeft !== null && (
             <Banner
               tone="fuchsia"
               title={`Trial de ${plan.name}`}
-              body={`Faltan ${trialDaysLeft} ${trialDaysLeft === 1 ? "día" : "días"}. Agregá un método para no perder el plan.`}
-              cta={{ href: "/billing/payment-methods", label: "Agregar método" }}
+              body={`Faltan ${trialDaysLeft} ${trialDaysLeft === 1 ? "día" : "días"}. Pagá tu plan para no perderlo cuando termine el trial.`}
+              cta={{ href: "/billing/plan", label: "Pagar plan" }}
             />
           )}
           {willCancel && (

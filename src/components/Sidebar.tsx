@@ -31,7 +31,6 @@ import {
   Receipt,
   HelpCircle,
   Package,
-  Wallet,
 } from "lucide-react";
 
 type NavItem = {
@@ -112,8 +111,9 @@ function buildSections({
                   } as NavItem,
                 ],
               } as NavItem,
-              // Facturación = todo lo FINANCIERO: cómo te cobramos
-              // (métodos de pago) y qué ya cobramos (facturas).
+              // Facturación = todo lo FINANCIERO: qué ya cobramos (facturas).
+              // (Métodos de pago se removió — modelo pago-único por ciclo,
+              // no guardamos tarjetas.)
               {
                 label: "Facturación",
                 icon: CreditCard,
@@ -122,7 +122,6 @@ function buildSections({
                   p === "/billing/" ||
                   p.startsWith("/billing/return") ||
                   p.startsWith("/billing/checkout") ||
-                  p.startsWith("/billing/payment-methods") ||
                   p.startsWith("/billing/invoices"),
                 children: [
                   {
@@ -134,12 +133,6 @@ function buildSections({
                       p === "/billing/" ||
                       p.startsWith("/billing/return") ||
                       p.startsWith("/billing/checkout"),
-                  } as NavItem,
-                  {
-                    label: "Métodos de pago",
-                    href: "/billing/payment-methods",
-                    icon: Wallet,
-                    match: (p: string) => p.startsWith("/billing/payment-methods"),
                   } as NavItem,
                   {
                     label: "Facturas",
@@ -512,24 +505,24 @@ function PlanCard({ data }: { data: PlanCardData }) {
     );
   }
 
-  // Caso 3: Past due → va a Métodos de pago directo (la acción real)
+  // Caso 3: Past due → va a Plan para renovar (pago único)
   if (data.status === "past_due") {
     return (
       <Link
-        href="/billing/payment-methods"
+        href="/billing/plan"
         className="group block overflow-hidden rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs transition hover:bg-rose-500/20"
       >
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-bold uppercase tracking-wider text-rose-300">
-            Pago vencido
+            Plan vencido
           </p>
           <ArrowUpRight className="h-3.5 w-3.5 text-rose-300" />
         </div>
         <p className="mt-1 text-[12px] font-semibold text-white">
-          Actualizá tu tarjeta
+          Renová tu plan
         </p>
         <p className="mt-0.5 text-[11px] text-rose-200/80">
-          3 días de gracia antes de bajar a Free
+          Unos días de gracia antes de bajar a Free
         </p>
       </Link>
     );

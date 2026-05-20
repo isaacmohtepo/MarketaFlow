@@ -103,16 +103,17 @@ const SETTINGS = {
     unit: "días",
     group: "billing",
   },
-  paymentValidationEnabled: {
-    type: "boolean",
-    dbKey: "setting:payment_validation_enabled",
-    default: true,
-    label: "Validar tarjetas con cobro temporal",
+  gracePeriodDays: {
+    type: "number",
+    dbKey: "setting:grace_period_days",
+    default: 5,
+    min: 0,
+    max: 30,
+    label: "Días de gracia tras vencer el plan",
     description:
-      "Al agregar tarjeta nueva via modal, hacer un cobro de $5.000 COP que se anula al instante para confirmar que la tarjeta funciona. Apagar si tu cuenta Wompi tiene anti-fraude estricto que rechaza estos cobros (WS02).",
+      "Cuando vence un plan pago y el cliente no renovó, le damos estos días de gracia con todo funcionando + aviso diario de pagar. Pasados, baja a Free (sin borrar nada). 0 = baja inmediato.",
+    unit: "días",
     group: "billing",
-    warning:
-      "Si lo apagás, las tarjetas se guardan sin verificación → renovaciones podrían fallar sin aviso.",
   },
   // Email
   supportEmail: {

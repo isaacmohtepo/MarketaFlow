@@ -98,14 +98,15 @@ export async function getEffectivePlanId(agencyId: string): Promise<PlanId> {
 
   if (sub.status === "expired") return "free";
   if (sub.status === "past_due") {
-    // Pago atrasado: damos 7 días de gracia en el plan (dunning manda
-    // recordatorios día 1/3/7), luego degradamos. El cron pone "expired"
-    // explícitamente al día 7 para limpiar el estado, pero acá mantenemos
-    // el fallback por si el cron no se ejecutó.
-    // pastDueSinceAt es el ancla real; updatedAt es fallback para subs
-    // viejas que entraron a past_due antes de este campo.
+    // Plan vencido sin renovar: damos N días de gracia (setting
+    // gracePeriodDays, default 5) con el plan funcionando + aviso diario.
+    // El banner in-app y el dunning email avisan que renueve. El cron baja
+    // a free al pasar la gracia; acá replicamos el cálculo como fallback
+    // por si el cron no corrió.
+    // pastDueSinceAt es el ancla; updatedAt es fallback para subs viejas.
+    const graceDays = await getSystemSetting("gracePeriodDays").catch(() => 5);
     const anchor = (sub.pastDueSinceAt ?? sub.updatedAt).getTime();
-    const grace = anchor + 7 * 24 * 60 * 60 * 1000;
+    const grace = anchor + graceDays * 24 * 60 * 60 * 1000;
     if (grace > now.getTime()) return sub.plan as PlanId;
     return "free";
   }
@@ -302,6 +303,7 @@ export async function getBillingSummary(agencyId: string) {
     extraSeats: sub.extraSeats,
     whiteLabelAddon: sub.whiteLabelAddon,
     creditCents: sub.creditCents ?? 0,
+    pastDueSinceAt: sub.pastDueSinceAt,
     limits,
   };
 }
