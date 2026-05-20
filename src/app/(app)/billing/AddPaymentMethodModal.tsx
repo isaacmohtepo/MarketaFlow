@@ -489,7 +489,12 @@ export default function AddPaymentMethodModal({
                   className={BTN_CLS}
                 >
                   {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {cfg.validationEnabled !== false
+                        ? "Validando tarjeta… (puede tardar unos segundos)"
+                        : "Guardando…"}
+                    </span>
                   ) : (
                     "Guardar tarjeta"
                   )}

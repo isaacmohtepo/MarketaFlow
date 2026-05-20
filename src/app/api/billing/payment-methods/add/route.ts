@@ -7,10 +7,16 @@ import { getWompiConfig, resolveWompiEnvironment } from "@/lib/integrations";
 import {
   chargeWithToken,
   voidTransaction,
+  getTransaction,
   generateReference,
 } from "@/lib/wompi";
 import { audit } from "@/lib/audit";
 import { getSystemSetting } from "@/lib/system-settings";
+
+// El polling de validación puede tardar hasta ~16s. Subimos el límite de
+// la función para que Vercel no la mate antes (default 10s en Hobby para
+// algunas configs).
+export const maxDuration = 30;
 
 // $5.000 COP de validación (igual que el flow Wompi-redirect). Va por
 // chargeWithToken (path tokenize, no Payment Link) que NO tiene el
@@ -392,6 +398,7 @@ export async function POST(req: Request) {
     const validationRef = generateReference(sub.id);
     let chargeOk = false;
     let chargeTxId: string | null = null;
+    let declineReason: string | null = null;
     try {
       const tx = await chargeWithToken({
         reference: validationRef,
@@ -404,26 +411,63 @@ export async function POST(req: Request) {
         environment: env,
       });
       chargeTxId = tx.id;
-      if (tx.status === "APPROVED") {
+
+      // Wompi NO devuelve APPROVED al instante en cobros contra
+      // payment_source — la transacción nace PENDING y se procesa async
+      // (segundos). Hay que POLLEAR GET /transactions/{id} hasta que el
+      // status sea final. Antes chequeábamos status inmediato y siempre
+      // caía en PENDING → rechazábamos toda tarjeta válida.
+      let status = tx.status;
+      const MAX_POLLS = 8; // ~16s total (8 × 2s) — dentro del maxDuration
+      const POLL_MS = 2000;
+      let polls = 0;
+      while (
+        (status === "PENDING" || !status) &&
+        polls < MAX_POLLS
+      ) {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        polls++;
+        try {
+          const fresh = await getTransaction(tx.id, env);
+          status = fresh?.status ?? status;
+          if (
+            status === "APPROVED" ||
+            status === "DECLINED" ||
+            status === "ERROR" ||
+            status === "VOIDED"
+          ) {
+            declineReason = fresh?.status_message ?? null;
+            break;
+          }
+        } catch (pollErr) {
+          console.warn("validation poll failed", pollErr);
+        }
+      }
+
+      if (status === "APPROVED") {
         chargeOk = true;
-      } else if (tx.status === "DECLINED" || tx.status === "ERROR") {
-        console.warn("validation charge declined", {
-          status: tx.status,
-          message: tx.status_message,
+      } else {
+        declineReason = declineReason ?? tx.status_message ?? null;
+        console.warn("validation charge not approved", {
+          status,
+          polls,
+          reason: declineReason,
         });
       }
     } catch (err) {
       console.error("validation charge threw", err);
+      declineReason = err instanceof Error ? err.message : null;
     }
 
     if (!chargeOk) {
       // La tarjeta no pasó el cobro de validación. NO guardamos el source
       // — no sirve para cobros recurrentes. Mostramos error al user para
-      // que pruebe otra tarjeta.
+      // que pruebe otra tarjeta. Incluimos la razón de Wompi si la tenemos.
       return NextResponse.json(
         {
-          error:
-            "Tu tarjeta no pasó la validación. Probá con otra tarjeta o llamá a tu banco para habilitar compras online.",
+          error: declineReason
+            ? `Tu tarjeta no pasó la validación: ${declineReason}. Probá con otra tarjeta o llamá a tu banco.`
+            : "Tu tarjeta no pasó la validación. Probá con otra tarjeta o llamá a tu banco para habilitar compras online.",
         },
         { status: 400 },
       );
