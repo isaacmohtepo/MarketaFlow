@@ -115,7 +115,7 @@ export async function POST(req: Request) {
   } else {
     periodEnd.setMonth(periodEnd.getMonth() + 1);
   }
-  await prisma.invoice.create({
+  const createdInvoice = await prisma.invoice.create({
     data: {
       subscriptionId: sub.id,
       amount: amountInCents,
@@ -158,58 +158,64 @@ export async function POST(req: Request) {
   // como paid $0, registramos la redención del cupón, y mandamos al user
   // a la pantalla de éxito.
   if (amountInCents <= 0) {
-    const invoiceNumber = await nextInvoiceNumber();
-    const nextChargeAt = new Date(periodEnd.getTime() - 24 * 60 * 60 * 1000);
-    await prisma.$transaction(async (tx) => {
-      await tx.invoice.update({
-        where: { wompiReference: reference },
-        data: {
-          status: "paid",
-          amount: 0,
-          invoiceNumber,
-          paidAt: new Date(),
-        },
-      });
-      await tx.subscription.update({
-        where: { id: sub.id },
-        data: {
-          plan: body.planId,
-          billingCycle: body.cycle,
-          status: "active",
-          currentPeriodStart: periodStart,
-          currentPeriodEnd: periodEnd,
-          nextChargeAt,
-          trialEndsAt: null,
-          pastDueSinceAt: null,
-          lastDunningSentAt: null,
-          lastDunningStage: null,
-          cancelAtPeriodEnd: false,
-          canceledAt: null,
-          pendingPlan: null,
-          pendingBillingCycle: null,
-        },
-      });
-      if (appliedCoupon) {
-        await recordRedemption({
-          code: appliedCoupon.code,
-          agencyId: ownership.agencyId,
-          invoiceId: (
-            await tx.invoice.findUnique({
-              where: { wompiReference: reference },
-              select: { id: true },
-            })
-          )!.id,
-          amountSavedCents: appliedCoupon.discountCents,
-          tx,
+    try {
+      const invoiceNumber = await nextInvoiceNumber();
+      const nextChargeAt = new Date(periodEnd.getTime() - 24 * 60 * 60 * 1000);
+      await prisma.$transaction(async (tx) => {
+        await tx.invoice.update({
+          where: { id: createdInvoice.id },
+          data: {
+            status: "paid",
+            amount: 0,
+            invoiceNumber,
+            paidAt: new Date(),
+          },
         });
-      }
-    });
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: {
+            plan: body.planId,
+            billingCycle: body.cycle,
+            status: "active",
+            currentPeriodStart: periodStart,
+            currentPeriodEnd: periodEnd,
+            nextChargeAt,
+            trialEndsAt: null,
+            pastDueSinceAt: null,
+            lastDunningSentAt: null,
+            lastDunningStage: null,
+            cancelAtPeriodEnd: false,
+            canceledAt: null,
+            pendingPlan: null,
+            pendingBillingCycle: null,
+          },
+        });
+        if (appliedCoupon) {
+          await recordRedemption({
+            code: appliedCoupon.code,
+            agencyId: ownership.agencyId,
+            invoiceId: createdInvoice.id,
+            amountSavedCents: appliedCoupon.discountCents,
+            tx,
+          });
+        }
+      });
 
-    return NextResponse.json({
-      free: true,
-      redirectUrl: `/billing/return?ref=${reference}`,
-      message: "Plan activado con tu cupón — sin cargo.",
-    });
+      return NextResponse.json({
+        free: true,
+        redirectUrl: `/billing/return?ref=${reference}`,
+        message: "Plan activado con tu cupón — sin cargo.",
+      });
+    } catch (err) {
+      console.error("free coupon activation failed", err);
+      return NextResponse.json(
+        {
+          error:
+            "No se pudo activar el plan con el cupón. Probá de nuevo o contactá soporte.",
+        },
+        { status: 500 },
+      );
+    }
   }
 
   // Resolución del base URL para el redirect, en orden de preferencia:
