@@ -22,6 +22,7 @@ export default async function BillingPlanPage() {
     <PlanSwitcher
       currentPlanId={plan.id as PlanId}
       currentCycle={summary.billingCycle as "monthly" | "yearly"}
+      status={summary.status}
       pendingPlanId={summary.pendingPlan ?? null}
       pendingCycle={summary.pendingBillingCycle ?? null}
       cancelAtPeriodEnd={summary.cancelAtPeriodEnd ?? false}

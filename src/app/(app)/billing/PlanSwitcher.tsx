@@ -28,6 +28,7 @@ type Cycle = "monthly" | "yearly";
 export default function PlanSwitcher({
   currentPlanId,
   currentCycle,
+  status,
   pendingPlanId,
   pendingCycle,
   cancelAtPeriodEnd,
@@ -35,11 +36,18 @@ export default function PlanSwitcher({
 }: {
   currentPlanId: PlanId;
   currentCycle: Cycle;
+  /** Status real de la sub (active / past_due / expired / ...). Si está
+   *  past_due o expired, el plan actual venció y mostramos "Renovar". */
+  status?: string;
   pendingPlanId: string | null;
   pendingCycle: string | null;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: string | null;
 }) {
+  // El plan venció (en gracia o ya expirado): hay que re-pagar el MISMO
+  // plan para renovar. El botón normal dice "Plan actual" sin acción, así
+  // que detectamos esto para mostrar "Renovar".
+  const needsRenewal = status === "past_due" || status === "expired";
   const router = useRouter();
   const { confirm } = useConfirm();
   const [cycle, setCycle] = useState<Cycle>(currentCycle);
@@ -320,7 +328,26 @@ export default function PlanSwitcher({
 
               <div className="mt-3 flex-1" />
 
-              {isCurrent ? (
+              {isCurrent && needsRenewal ? (
+                // Plan vencido → botón Renovar que va al checkout del mismo
+                // plan/ciclo (genera un Payment Link nuevo de Wompi).
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBusyPlanId(`renew-${p.id}`);
+                    window.location.href = `/billing/checkout?plan=${p.id}&cycle=${targetCycle}`;
+                  }}
+                  disabled={busyPlanId !== null}
+                  className="btn-gradient inline-flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60"
+                >
+                  {busyPlanId === `renew-${p.id}` ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  )}
+                  Renovar {p.name}
+                </button>
+              ) : isCurrent ? (
                 <span className="block rounded-md bg-zinc-100 px-2 py-1.5 text-center text-[11px] font-semibold text-zinc-600">
                   Plan actual
                 </span>
