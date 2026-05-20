@@ -9,6 +9,7 @@ import {
   Loader2,
   Calendar,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -280,13 +281,17 @@ export default function PlanSwitcher({
           const targetCycle = p.id === "free" ? cycleForFree : cycle;
           const buttonBusy = busyPlanId === `${p.id}-${targetCycle}`;
 
+          const isExpiredCurrent = isCurrent && needsRenewal;
+
           return (
             <div
               key={p.id}
-              className={`relative flex flex-col rounded-xl border p-4 ${
-                isCurrent
-                  ? "border-fuchsia-300 bg-fuchsia-50/30"
-                  : "border-zinc-200 bg-white"
+              className={`relative flex flex-col rounded-xl border p-4 transition ${
+                isExpiredCurrent
+                  ? "border-rose-400 bg-rose-50/50 ring-2 ring-rose-300 shadow-[0_4px_20px_-4px_rgba(244,63,94,0.4)]"
+                  : isCurrent
+                    ? "border-fuchsia-300 bg-fuchsia-50/30"
+                    : "border-zinc-200 bg-white"
               }`}
             >
               {p.highlight && !isCurrent && (
@@ -294,9 +299,18 @@ export default function PlanSwitcher({
                   Popular
                 </span>
               )}
+              {isExpiredCurrent && (
+                <span className="absolute -top-2 left-3 inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-white/80" />
+                    <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white" />
+                  </span>
+                  Vencido
+                </span>
+              )}
               <div className="flex items-center justify-between">
                 <p className="text-[13px] font-bold text-zinc-900">{p.name}</p>
-                {isCurrent && (
+                {isCurrent && !isExpiredCurrent && (
                   <span className="rounded-full bg-fuchsia-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
                     Actual
                   </span>
@@ -329,8 +343,8 @@ export default function PlanSwitcher({
               <div className="mt-3 flex-1" />
 
               {isCurrent && needsRenewal ? (
-                // Plan vencido → botón Renovar que va al checkout del mismo
-                // plan/ciclo (genera un Payment Link nuevo de Wompi).
+                // Plan vencido → botón Renovar grande y llamativo que va al
+                // checkout del mismo plan/ciclo (Payment Link nuevo de Wompi).
                 <button
                   type="button"
                   onClick={() => {
@@ -338,14 +352,14 @@ export default function PlanSwitcher({
                     window.location.href = `/billing/checkout?plan=${p.id}&cycle=${targetCycle}`;
                   }}
                   disabled={busyPlanId !== null}
-                  className="btn-gradient inline-flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60"
+                  className="inline-flex w-full animate-pulse items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-fuchsia-600 px-3 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-rose-500/30 transition hover:from-rose-700 hover:to-fuchsia-700 hover:shadow-rose-500/50 disabled:opacity-60 disabled:animate-none"
                 >
                   {busyPlanId === `renew-${p.id}` ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <ChevronUp className="h-3.5 w-3.5" />
+                    <RefreshCw className="h-4 w-4" />
                   )}
-                  Renovar {p.name}
+                  Renovar {p.name} ahora
                 </button>
               ) : isCurrent ? (
                 <span className="block rounded-md bg-zinc-100 px-2 py-1.5 text-center text-[11px] font-semibold text-zinc-600">
