@@ -88,8 +88,14 @@ export default async function BillingReturnPage({
   // preguntamos a Wompi directo. Esto evita que el user se quede en
   // "Procesando..." infinito si el webhook falla (firma inválida, env
   // mismatch, o no configurado en Wompi sandbox).
+  // method_validation NO se procesa acá — el webhook es el único que sabe
+  // crear el payment_source desde el card token + anular el cobro. Si la
+  // return page marcara el invoice como paid, el webhook se abortaría por
+  // idempotencia y el source nunca se crearía. Dejamos que el poller espere
+  // a que el webhook complete.
+  const isValidation = invoice.addonType === "method_validation";
   const effectiveTxId = wompiTransactionId ?? invoice.wompiTransactionId;
-  if (invoice.status === "pending" && effectiveTxId) {
+  if (!isValidation && invoice.status === "pending" && effectiveTxId) {
     try {
       const env = await resolveWompiEnvironment();
       if (env) {

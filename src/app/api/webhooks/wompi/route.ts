@@ -242,12 +242,33 @@ async function handleTransactionUpdated(
     return;
   }
 
-  // Idempotencia: si ya está paid y misma transactionId, ignoramos
+  // Idempotencia: si ya está paid y misma transactionId, ignoramos.
+  //
+  // EXCEPCIÓN method_validation: para esos invoices "completar" no es solo
+  // marcar paid — es crear el payment_source desde el card token. La return
+  // page puede haber marcado paid pero sin crear el source. Si todavía no
+  // hay un PaymentMethod reciente para este sub, NO abortamos — dejamos que
+  // el bloque method_validation de abajo cree el source. (Es idempotente
+  // gracias al check alreadyHasSourceForThisTx.)
   if (
     invoice.status === "paid" &&
     invoice.wompiTransactionId === transaction.id
   ) {
-    return;
+    if (invoice.addonType !== "method_validation") {
+      return;
+    }
+    const recentSource = await prisma.paymentMethod.findFirst({
+      where: {
+        subscriptionId: invoice.subscriptionId,
+        wompiSourceId: { not: null },
+        createdAt: { gte: new Date(Date.now() - 10 * 60_000) },
+      },
+    });
+    if (recentSource) {
+      // Ya se creó el source para esta validación — nada que hacer.
+      return;
+    }
+    // Sino: seguimos para crear el source desde el token.
   }
 
   if (transaction.status === "APPROVED") {
