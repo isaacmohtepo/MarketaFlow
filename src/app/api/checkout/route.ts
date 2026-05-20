@@ -159,47 +159,63 @@ export async function POST(req: Request) {
   // a la pantalla de éxito.
   if (amountInCents <= 0) {
     try {
-      const invoiceNumber = await nextInvoiceNumber();
       const nextChargeAt = new Date(periodEnd.getTime() - 24 * 60 * 60 * 1000);
-      await prisma.$transaction(async (tx) => {
-        await tx.invoice.update({
-          where: { id: createdInvoice.id },
-          data: {
-            status: "paid",
-            amount: 0,
-            invoiceNumber,
-            paidAt: new Date(),
-          },
-        });
-        await tx.subscription.update({
-          where: { id: sub.id },
-          data: {
-            plan: body.planId,
-            billingCycle: body.cycle,
-            status: "active",
-            currentPeriodStart: periodStart,
-            currentPeriodEnd: periodEnd,
-            nextChargeAt,
-            trialEndsAt: null,
-            pastDueSinceAt: null,
-            lastDunningSentAt: null,
-            lastDunningStage: null,
-            cancelAtPeriodEnd: false,
-            canceledAt: null,
-            pendingPlan: null,
-            pendingBillingCycle: null,
-          },
-        });
-        if (appliedCoupon) {
+
+      // invoiceNumber best-effort — si nextInvoiceNumber falla, seguimos
+      // sin número (no debe bloquear la activación de un plan gratis).
+      let invoiceNumber: string | null = null;
+      try {
+        invoiceNumber = await nextInvoiceNumber();
+      } catch (e) {
+        console.error("nextInvoiceNumber failed (non-blocking)", e);
+      }
+
+      // Updates SECUENCIALES (sin $transaction interactiva — más confiable
+      // en serverless + pooler). El paso crítico es activar la sub; lo
+      // hacemos primero. La factura y la redención son secundarias.
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          plan: body.planId,
+          billingCycle: body.cycle,
+          status: "active",
+          currentPeriodStart: periodStart,
+          currentPeriodEnd: periodEnd,
+          nextChargeAt,
+          trialEndsAt: null,
+          pastDueSinceAt: null,
+          lastDunningSentAt: null,
+          lastDunningStage: null,
+          cancelAtPeriodEnd: false,
+          canceledAt: null,
+          pendingPlan: null,
+          pendingBillingCycle: null,
+        },
+      });
+
+      await prisma.invoice.update({
+        where: { id: createdInvoice.id },
+        data: {
+          status: "paid",
+          amount: 0,
+          ...(invoiceNumber ? { invoiceNumber } : {}),
+          paidAt: new Date(),
+        },
+      });
+
+      // Redención del cupón — best-effort, NO bloquea la activación.
+      if (appliedCoupon) {
+        try {
           await recordRedemption({
             code: appliedCoupon.code,
             agencyId: ownership.agencyId,
             invoiceId: createdInvoice.id,
             amountSavedCents: appliedCoupon.discountCents,
-            tx,
           });
+        } catch (rErr) {
+          console.error("coupon redemption failed (non-blocking)", rErr);
         }
-      });
+      }
 
       return NextResponse.json({
         free: true,
@@ -208,10 +224,12 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       console.error("free coupon activation failed", err);
+      // Exponemos el detalle temporalmente para debug (sin acceso a logs prod).
       return NextResponse.json(
         {
-          error:
-            "No se pudo activar el plan con el cupón. Probá de nuevo o contactá soporte.",
+          error: `No se pudo activar el plan: ${
+            err instanceof Error ? err.message : "error desconocido"
+          }`,
         },
         { status: 500 },
       );
