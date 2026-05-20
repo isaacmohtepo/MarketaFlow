@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Smartphone, Loader2, Trash2, Star, StarOff, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
-import AddPaymentMethodModal from "./AddPaymentMethodModal";
 
 type PaymentMethod = {
   id: string;
@@ -61,7 +60,6 @@ export default function PaymentMethods({
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
   const [activeEnv, setActiveEnv] = useState<"sandbox" | "production" | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
   const { confirm } = useConfirm();
 
   async function load() {
@@ -131,14 +129,6 @@ export default function PaymentMethods({
     } finally {
       setBusy(null);
     }
-  }
-
-  function openAdd() {
-    if (isFree) {
-      toast.error("Suscribite a un plan pago primero para guardar un método.");
-      return;
-    }
-    setAddOpen(true);
   }
 
   async function addViaWompi() {
@@ -256,48 +246,32 @@ export default function PaymentMethods({
         </ul>
       )}
       {!isFree && (
-        <div className="mt-3 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium text-zinc-700">
-                Agregá tarjeta o Nequi
-              </p>
-              <p className="text-[11px] text-zinc-500">
-                Wompi valida la tarjeta con un cobro temporal de{" "}
-                <strong>$5.000 COP que se anula al instante</strong>. Si la
-                anulación no llega a tiempo, queda como crédito en tu próxima
-                factura. <span className="text-zinc-400">🔒 Procesado por Wompi · PCI DSS Level 1</span>
-              </p>
-            </div>
-            <button
-              onClick={openAdd}
-              className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12.5px] font-semibold"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Agregar método
-            </button>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-medium text-zinc-700">
+              Agregá tarjeta o Nequi
+            </p>
+            <p className="text-[11px] text-zinc-500">
+              Pagás en la página segura de Wompi (Bancolombia · PCI DSS Level 1).
+              Cobramos <strong>$5.000 COP de validación que se anula al
+              instante</strong> — si no se anula a tiempo, queda como crédito en
+              tu próxima factura. 🔒
+            </p>
           </div>
-          {/* Opción secundaria: pagar en la página de Wompi (full redirect).
-              Útil para users que quieran ver el branding completo de Wompi.
-              Cuidado: tiene problemas de anti-fraude WS02 que el modal no
-              tiene — por eso es secundario. */}
           <button
             onClick={addViaWompi}
             disabled={busy === "validate"}
-            className="text-[11px] font-medium text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline disabled:opacity-60"
+            className="btn-gradient inline-flex flex-shrink-0 items-center gap-1.5 rounded-md px-3.5 py-2 text-[12.5px] font-semibold disabled:opacity-60"
           >
-            {busy === "validate" ? "Generando link…" : "o pagar en la página de Wompi"}
+            {busy === "validate" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
+            {busy === "validate" ? "Abriendo Wompi…" : "Agregar método"}
           </button>
         </div>
       )}
-      <AddPaymentMethodModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdded={() => {
-          load();
-          router.refresh();
-        }}
-      />
     </div>
   );
 }
