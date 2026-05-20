@@ -8,7 +8,8 @@ import { createPaymentLink, chargeWithToken, generateReference } from "@/lib/wom
 import { resolveWompiEnvironment } from "@/lib/integrations";
 import { hasPermission } from "@/lib/permissions";
 import { cancelPriorPendingInvoices } from "@/lib/invoice-cleanup";
-import { validateCoupon } from "@/lib/coupons";
+import { validateCoupon, recordRedemption } from "@/lib/coupons";
+import { nextInvoiceNumber } from "@/lib/invoice-number";
 
 const schema = z.object({
   planId: z.enum(["pro", "agency"]),
@@ -151,6 +152,65 @@ export async function POST(req: Request) {
       pendingBillingCycle: body.cycle,
     },
   });
+
+  // CUPÓN 100% (o monto que deja el total en $0): NO pasamos por Wompi
+  // (rechaza cobros de $0). Activamos el plan directo, marcamos el invoice
+  // como paid $0, registramos la redención del cupón, y mandamos al user
+  // a la pantalla de éxito.
+  if (amountInCents <= 0) {
+    const invoiceNumber = await nextInvoiceNumber();
+    const nextChargeAt = new Date(periodEnd.getTime() - 24 * 60 * 60 * 1000);
+    await prisma.$transaction(async (tx) => {
+      await tx.invoice.update({
+        where: { wompiReference: reference },
+        data: {
+          status: "paid",
+          amount: 0,
+          invoiceNumber,
+          paidAt: new Date(),
+        },
+      });
+      await tx.subscription.update({
+        where: { id: sub.id },
+        data: {
+          plan: body.planId,
+          billingCycle: body.cycle,
+          status: "active",
+          currentPeriodStart: periodStart,
+          currentPeriodEnd: periodEnd,
+          nextChargeAt,
+          trialEndsAt: null,
+          pastDueSinceAt: null,
+          lastDunningSentAt: null,
+          lastDunningStage: null,
+          cancelAtPeriodEnd: false,
+          canceledAt: null,
+          pendingPlan: null,
+          pendingBillingCycle: null,
+        },
+      });
+      if (appliedCoupon) {
+        await recordRedemption({
+          code: appliedCoupon.code,
+          agencyId: ownership.agencyId,
+          invoiceId: (
+            await tx.invoice.findUnique({
+              where: { wompiReference: reference },
+              select: { id: true },
+            })
+          )!.id,
+          amountSavedCents: appliedCoupon.discountCents,
+          tx,
+        });
+      }
+    });
+
+    return NextResponse.json({
+      free: true,
+      redirectUrl: `/billing/return?ref=${reference}`,
+      message: "Plan activado con tu cupón — sin cargo.",
+    });
+  }
 
   // Resolución del base URL para el redirect, en orden de preferencia:
   // 1. APP_URL explícita (deploy custom)

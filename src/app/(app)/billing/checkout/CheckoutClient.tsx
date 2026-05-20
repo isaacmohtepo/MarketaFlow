@@ -149,6 +149,12 @@ export default function CheckoutClient({
         }),
       });
       const j = await res.json();
+      // Cupón 100% → el backend activó el plan sin cobrar y devuelve
+      // redirectUrl (sin checkoutUrl). Redirigimos a la pantalla de éxito.
+      if (res.ok && j.free && j.redirectUrl) {
+        window.location.href = j.redirectUrl;
+        return;
+      }
       if (!res.ok || !j.checkoutUrl) {
         setError(j.error ?? "No se pudo iniciar el pago.");
         setSubmitting(null);
@@ -311,7 +317,9 @@ export default function CheckoutClient({
             {submitting === "wompi" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : null}
-            Pagar con Wompi
+            {validation?.valid && (validation.finalCents ?? 1) <= 0
+              ? "Activar plan gratis"
+              : "Pagar con Wompi"}
           </button>
         )}
 
