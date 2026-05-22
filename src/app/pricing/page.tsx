@@ -10,7 +10,7 @@ const FAQ = [
   },
   {
     q: "¿Puedo cambiar de plan en cualquier momento?",
-    a: "Sí. Subir o bajar es inmediato y prorrateamos lo no usado del ciclo en curso.",
+    a: "Sí. Subir de plan es inmediato — pagás el nuevo plan y arranca al toque. Bajar se programa para el fin de tu período actual, así aprovechás lo que ya pagaste.",
   },
   {
     q: "¿La auto-publicación funciona en cuentas personales?",

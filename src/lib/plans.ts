@@ -105,7 +105,7 @@ export const PLANS: Record<PlanId, Plan> = {
       "Carrusel multi-imagen",
       "Plantillas y biblioteca de hashtags",
       "AI Caption Assist ilimitado",
-      "Reportes mensuales + activity feed",
+      "Reportes + historial de actividad",
     ],
     limits: {
       maxBrands: 5,
@@ -134,10 +134,10 @@ export const PLANS: Record<PlanId, Plan> = {
       "Equipo ilimitado con roles personalizados",
       "Posts y clientes ilimitados",
       "White-label con tu logo",
-      "Auto-publicación a IG + Facebook + TikTok",
+      "Programación a Instagram",
+      "Aprobación interna multi-etapa",
       "AI Caption Assist ilimitado",
       "Reportes y métricas avanzadas",
-      "API access",
       "Soporte prioritario (SLA 24h)",
     ],
     limits: {

@@ -4,7 +4,7 @@ import {
   MessageSquare,
   CalendarClock,
   CheckCircle2,
-  Images,
+  Video,
   Bell,
   Layers,
 } from "lucide-react";
@@ -19,37 +19,37 @@ const FEATURES = [
   {
     icon: MessageSquare,
     title: "Comentarios anclados",
-    body: "Tu cliente clickea sobre la imagen para dejar feedback exacto. Adiós a los audios de WhatsApp.",
+    body: "Tu cliente clickea sobre la imagen para dejar feedback exacto, justo donde va el cambio. Adiós a los audios de WhatsApp.",
     tint: "from-blue-500 to-indigo-600",
   },
   {
     icon: CheckCircle2,
     title: "Aprobación de un click",
-    body: "Botón único para aprobar o pedir cambios con nota. Histórico completo y auditable.",
+    body: "Botón único para aprobar o pedir cambios con nota. Historial completo y auditable de cada decisión.",
     tint: "from-emerald-500 to-teal-600",
   },
   {
-    icon: CalendarClock,
-    title: "Auto-publicación",
-    body: "Conectas Instagram una vez y MarketaFlow publica solo cuando llega la fecha programada.",
+    icon: Video,
+    title: "Video y diseño web también",
+    body: "No solo posts: revisá reels con comentarios anclados al segundo exacto, y sitios web con feedback sobre el diseño en vivo.",
     tint: "from-fuchsia-500 to-purple-600",
   },
   {
     icon: Layers,
-    title: "Vista feed y calendario",
-    body: "Mira el feed planeado como en tu perfil de IG, o cambia a calendario mensual.",
+    title: "Feed planeado como en IG",
+    body: "Mirá el feed completo como va a quedar en el perfil antes de publicar. Reordenás los posts arrastrando.",
     tint: "from-rose-500 to-orange-500",
   },
   {
-    icon: Images,
-    title: "Carrusel multi-imagen",
-    body: "Subes varias imágenes, las reordenas arrastrando y la portada se elige sola.",
+    icon: CalendarClock,
+    title: "Programación a Instagram",
+    body: "Conectás Instagram una vez y MarketaFlow publica solo cuando llega la fecha programada.",
     tint: "from-amber-500 to-orange-600",
   },
   {
     icon: Bell,
-    title: "Notificaciones inteligentes",
-    body: "Avisos en tiempo real al cliente cuando hay algo para revisar y a la agencia cuando aprueba.",
+    title: "Notificaciones en tiempo real",
+    body: "Avisos al instante al cliente cuando hay algo para revisar, y a la agencia cuando aprueba o pide cambios.",
     tint: "from-pink-500 to-rose-600",
   },
 ];
@@ -153,18 +153,76 @@ export default async function Home() {
           <InteractiveFeedDemo />
         </div>
 
-        {/* Logos / brands strip */}
+        {/* Tipos de contenido que se revisan */}
         <div className="relative pb-12">
           <p className="mx-auto max-w-2xl text-center text-sm text-zinc-400">
-            Publica en las plataformas que{" "}
-            <span className="font-semibold text-white">ya usas</span> con tus clientes.
+            Revisá y aprobá{" "}
+            <span className="font-semibold text-white">cualquier entregable</span>{" "}
+            con tu cliente.
           </p>
           <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-6 text-zinc-300">
-            <BrandLabel name="Instagram" />
-            <BrandLabel name="Facebook" />
-            <BrandLabel name="TikTok" />
-            <BrandLabel name="Meta Ads" />
-            <BrandLabel name="LinkedIn" />
+            <BrandLabel name="Posts de Instagram" />
+            <BrandLabel name="Videos / Reels" />
+            <BrandLabel name="Diseño web" />
+            <BrandLabel name="Piezas gráficas" />
+          </div>
+        </div>
+      </section>
+
+      {/* CÓMO FUNCIONA — 3 pasos */}
+      <section className="border-t divider bg-black">
+        <div className="mx-auto w-full max-w-6xl px-6 py-20">
+          <div className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-widest brand-gradient-text">
+              Cómo funciona
+            </p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl">
+              De idea a publicado
+              <br />
+              <span className="text-zinc-500">en 3 pasos.</span>
+            </h2>
+          </div>
+          <div className="mt-14 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                n: "01",
+                title: "Subís el feed planeado",
+                body: "Cargás los posts del mes — imágenes, carruseles, reels, captions. Reordenás arrastrando y ves cómo queda el feed como en IG.",
+              },
+              {
+                n: "02",
+                title: "Tu cliente aprueba",
+                body: "Le mandás el link. Comenta clickeando sobre la imagen, aprueba o pide cambios con un click. Sin WhatsApp, sin audios, todo auditable.",
+              },
+              {
+                n: "03",
+                title: "Se publica solo",
+                body: "Conectás Instagram una vez. Cuando llega la fecha programada, MarketaFlow publica automático. Vos te enterás, no tenés que estar ahí.",
+              },
+            ].map((step, i) => (
+              <div
+                key={step.n}
+                className="card relative overflow-hidden p-6"
+              >
+                <span className="brand-gradient-text text-4xl font-black tracking-tight opacity-90">
+                  {step.n}
+                </span>
+                {i < 2 && (
+                  <span
+                    aria-hidden
+                    className="absolute right-5 top-7 hidden text-zinc-700 sm:block"
+                  >
+                    →
+                  </span>
+                )}
+                <h3 className="mt-3 text-base font-semibold tracking-tight text-white">
+                  {step.title}
+                </h3>
+                <p className="mt-1.5 text-[14px] leading-relaxed text-zinc-400">
+                  {step.body}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
