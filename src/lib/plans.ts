@@ -134,7 +134,7 @@ export const PLANS: Record<PlanId, Plan> = {
       "Equipo ilimitado con roles personalizados",
       "Posts y clientes ilimitados",
       "White-label con tu logo",
-      "Programación a Instagram",
+      "Revisión de video y diseño web",
       "Aprobación interna multi-etapa",
       "AI Caption Assist ilimitado",
       "Reportes y métricas avanzadas",

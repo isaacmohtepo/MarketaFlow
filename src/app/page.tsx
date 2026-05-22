@@ -42,8 +42,8 @@ const FEATURES = [
   },
   {
     icon: CalendarClock,
-    title: "Programación a Instagram",
-    body: "Conectás Instagram una vez y MarketaFlow publica solo cuando llega la fecha programada.",
+    title: "Listo para publicar",
+    body: "Cuando el cliente aprueba, tenés la imagen final y el caption listos para subir a Instagram en segundos. Sin idas y vueltas.",
     tint: "from-amber-500 to-orange-600",
   },
   {
@@ -125,8 +125,8 @@ export default async function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-zinc-300 sm:text-lg">
-            Sube el feed planeado, tu cliente aprueba con un click y MarketaFlow
-            programa la publicación. Cero fricción, todo auditable.
+            Subís el feed planeado, tu cliente comenta y aprueba con un click,
+            y queda listo para publicar. Cero fricción, todo auditable.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -177,7 +177,7 @@ export default async function Home() {
               Cómo funciona
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              De idea a publicado
+              De idea a aprobado
               <br />
               <span className="text-zinc-500">en 3 pasos.</span>
             </h2>
@@ -196,8 +196,8 @@ export default async function Home() {
               },
               {
                 n: "03",
-                title: "Se publica solo",
-                body: "Conectás Instagram una vez. Cuando llega la fecha programada, MarketaFlow publica automático. Vos te enterás, no tenés que estar ahí.",
+                title: "Listo para publicar",
+                body: "Cuando el cliente aprueba, descargás la pieza final y el caption listos para subir a Instagram. Sin malentendidos, con todo el historial guardado.",
               },
             ].map((step, i) => (
               <div

@@ -13,8 +13,8 @@ const FAQ = [
     a: "Sí. Subir de plan es inmediato — pagás el nuevo plan y arranca al toque. Bajar se programa para el fin de tu período actual, así aprovechás lo que ya pagaste.",
   },
   {
-    q: "¿La auto-publicación funciona en cuentas personales?",
-    a: "No. Instagram solo permite publicar via API en cuentas Business o Creator vinculadas a una página de Facebook.",
+    q: "¿Cómo publico el contenido aprobado?",
+    a: "Una vez que tu cliente aprueba, tenés la imagen final y el caption listos para subir a Instagram. La pieza queda marcada como aprobada con todo el historial de comentarios.",
   },
   {
     q: "¿Cuántos clientes puedo invitar a una marca?",
