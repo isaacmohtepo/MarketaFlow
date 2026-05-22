@@ -224,12 +224,10 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       console.error("free coupon activation failed", err);
-      // Exponemos el detalle temporalmente para debug (sin acceso a logs prod).
       return NextResponse.json(
         {
-          error: `No se pudo activar el plan: ${
-            err instanceof Error ? err.message : "error desconocido"
-          }`,
+          error:
+            "No se pudo activar el plan con el cupón. Probá de nuevo o contactá soporte.",
         },
         { status: 500 },
       );
