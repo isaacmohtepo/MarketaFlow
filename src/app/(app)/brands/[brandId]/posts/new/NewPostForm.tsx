@@ -10,7 +10,6 @@ import CaptionAssist from "./CaptionAssist";
 import HashtagPicker from "./HashtagPicker";
 import TemplatePicker from "./TemplatePicker";
 import {
-  ASSET_TYPES,
   ASSET_TYPE_LABEL,
   ASSET_TYPE_CAPTION_LABEL,
   ASSET_TYPE_CAPTION_PLACEHOLDER,
@@ -18,6 +17,16 @@ import {
   isAssetType,
   type AssetType,
 } from "@/lib/asset-types";
+
+// Solo los tipos con tab activo en la vista de marca. "branding" y "other"
+// están descontinuados del modal — no tienen tab propio y confunden al user.
+const MODAL_ASSET_TYPES = [
+  "social_post",
+  "web_design",
+  "video",
+  "graphic",
+  "ad",
+] as const satisfies AssetType[];
 import { extractVideoThumbnail } from "@/lib/video-thumbnail";
 import RecentMediaPicker from "./RecentMediaPicker";
 
@@ -516,7 +525,7 @@ export default function NewPostForm({
           </span>
         </label>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {ASSET_TYPES.map((t) => (
+          {MODAL_ASSET_TYPES.map((t) => (
             <button
               key={t}
               type="button"
