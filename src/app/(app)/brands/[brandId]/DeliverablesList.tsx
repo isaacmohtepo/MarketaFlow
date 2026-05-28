@@ -67,17 +67,19 @@ const VIDEO_EXT_RE = /\.(mp4|mov|webm|m4v|avi|mkv|ogv)(?:\?|#|$)/i;
 function CoverPreview({ d }: { d: Deliverable }) {
   // Si videoUrl no vino pero el imageUrl tiene extensión de video, usalo igual.
   // Cubre el caso legacy donde Post.imageUrl quedó apuntando al archivo de video
-  // (no había imagen real para cover).
+  // (no había imagen real para cover). Aplica también para ads — un ad puede
+  // ser estático O un video (reel ads, TikTok ads, YouTube ads).
+  const canBeVideo = d.assetType === "video" || d.assetType === "ad";
   const effectiveVideoUrl =
     d.videoUrl ??
-    (d.assetType === "video" && d.imageUrl && VIDEO_EXT_RE.test(d.imageUrl)
+    (canBeVideo && d.imageUrl && VIDEO_EXT_RE.test(d.imageUrl)
       ? d.imageUrl
       : null);
 
   // Video file subido → renderizar <video preload="metadata"> que carga el
   // primer frame automáticamente como poster, sin necesidad de guardar una
   // thumbnail aparte. Overlay con play icon + gradient brand para identificarlo.
-  if (d.assetType === "video" && effectiveVideoUrl) {
+  if (canBeVideo && effectiveVideoUrl) {
     return (
       <div className="relative h-full w-full bg-zinc-900">
         <video

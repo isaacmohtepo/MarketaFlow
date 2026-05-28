@@ -833,7 +833,9 @@ export default function NewPostForm({
               ? "Mockups o capturas"
               : assetType === "video"
                 ? "Archivo de video"
-                : "Archivos"}
+                : assetType === "ad"
+                  ? "Creativos del anuncio"
+                  : "Archivos"}
           <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
             {assetType === "social_post"
               ? "varias para carrusel · acepta reels mp4"
@@ -841,7 +843,9 @@ export default function NewPostForm({
                 ? "opcional"
                 : assetType === "video"
                   ? "alternativa a la URL externa"
-                  : "PDF, ZIP, AI, PSD, lo que necesites"}
+                  : assetType === "ad"
+                    ? "imagen, video, GIF · varias para A/B test"
+                    : "PDF, ZIP, AI, PSD, lo que necesites"}
           </span>
         </label>
 
@@ -853,7 +857,9 @@ export default function NewPostForm({
               ? "image/*,video/*"
               : assetType === "video"
                 ? "video/*"
-                : undefined
+                : assetType === "ad"
+                  ? "image/*,video/*,image/gif"
+                  : undefined
           }
           multiple={assetType !== "video"}
           className="sr-only"
@@ -901,7 +907,9 @@ export default function NewPostForm({
               <p className="text-[11px] text-zinc-500">
                 {assetType === "social_post"
                   ? "PNG, JPG, WEBP — puedes seleccionar varias"
-                  : "Cualquier formato hasta 25MB · podés seleccionar varios"}
+                  : assetType === "ad"
+                    ? "JPG, PNG, MP4, GIF — varias para variantes A/B"
+                    : "Cualquier formato hasta 25MB · podés seleccionar varios"}
               </p>
             </div>
           </button>
