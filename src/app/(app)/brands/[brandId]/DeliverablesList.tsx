@@ -25,6 +25,7 @@ import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
 import {
   ASSET_TYPE_LABEL,
   ASSET_TYPE_NEW_CTA,
+  getAdPlatformMeta,
   type AssetType,
 } from "@/lib/asset-types";
 
@@ -35,6 +36,8 @@ type Deliverable = {
   caption: string;
   scheduledAt: string | null;
   assetType: string;
+  /** Plataforma del post — para ads identifica si es Meta/Google/TikTok/etc */
+  platform: string | null;
   sourceUrl: string | null;
   /** URL del archivo de video subido — para auto-thumbnail via preload=metadata */
   videoUrl?: string | null;
@@ -313,9 +316,20 @@ export default function DeliverablesList({
                     </span>
                   )}
                 </div>
-                <span className="rounded-full bg-white/85 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 backdrop-blur-md">
-                  {ASSET_TYPE_LABEL[d.assetType as AssetType] ?? d.assetType}
-                </span>
+                {d.assetType === "ad" && getAdPlatformMeta(d.platform) ? (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider ring-1 backdrop-blur-md ${
+                      getAdPlatformMeta(d.platform)!.chipClass
+                    }`}
+                    title={`Plataforma: ${getAdPlatformMeta(d.platform)!.label}`}
+                  >
+                    {getAdPlatformMeta(d.platform)!.shortLabel}
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-white/85 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 backdrop-blur-md">
+                    {ASSET_TYPE_LABEL[d.assetType as AssetType] ?? d.assetType}
+                  </span>
+                )}
               </div>
 
               {d.imageCount > 1 && (

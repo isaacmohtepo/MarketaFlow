@@ -7,7 +7,7 @@ import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
-import { ASSET_TYPE_TAB_LABEL, assetTypeLabel, assetTypeTint, isAssetType } from "@/lib/asset-types";
+import { ASSET_TYPE_TAB_LABEL, assetTypeLabel, assetTypeTint, getAdPlatformMeta, isAssetType } from "@/lib/asset-types";
 import { FileList } from "@/components/AssetPreview";
 import PostBoard from "./PostBoard";
 import WebDesignBoard from "./WebDesignBoard";
@@ -133,6 +133,17 @@ export default async function PostPage({
               >
                 {assetTypeLabel(post.assetType)}
               </span>
+              {/* Para ads: chip extra con la plataforma (Meta, Google, TikTok…) */}
+              {post.assetType === "ad" && getAdPlatformMeta(post.platform) && (
+                <span
+                  className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${
+                    getAdPlatformMeta(post.platform)!.chipClass
+                  }`}
+                  title={`Plataforma del anuncio: ${getAdPlatformMeta(post.platform)!.label}`}
+                >
+                  {getAdPlatformMeta(post.platform)!.label}
+                </span>
+              )}
             </div>
             <h1 className="mt-2 text-2xl font-bold text-zinc-900">
               {post.title ?? "Post"}

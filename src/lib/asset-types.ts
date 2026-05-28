@@ -117,3 +117,55 @@ export function assetTypeTint(value: string | null | undefined): string {
   if (!value) return ASSET_TYPE_TINT.social_post;
   return isAssetType(value) ? ASSET_TYPE_TINT[value] : ASSET_TYPE_TINT.other;
 }
+
+/**
+ * Metadata visual para cada plataforma de anuncio (assetType="ad").
+ * Se guarda en Post.platform — la grid + post detail lo muestran con
+ * el color de marca de cada plataforma para identificarlo de un vistazo.
+ */
+export const AD_PLATFORM_META: Record<
+  string,
+  { label: string; shortLabel: string; chipClass: string }
+> = {
+  meta_ads: {
+    label: "Meta Ads",
+    shortLabel: "Meta",
+    // Azul Facebook
+    chipClass: "bg-blue-50 text-blue-700 ring-blue-200",
+  },
+  google_ads: {
+    label: "Google Ads",
+    shortLabel: "Google",
+    // Verde / multicolor Google → optamos por verde para legibilidad
+    chipClass: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  },
+  tiktok_ads: {
+    label: "TikTok Ads",
+    shortLabel: "TikTok",
+    // Negro/cyan TikTok
+    chipClass: "bg-zinc-900 text-cyan-300 ring-zinc-700",
+  },
+  linkedin_ads: {
+    label: "LinkedIn Ads",
+    shortLabel: "LinkedIn",
+    chipClass: "bg-sky-50 text-sky-700 ring-sky-200",
+  },
+  x_ads: {
+    label: "X Ads",
+    shortLabel: "X",
+    chipClass: "bg-zinc-900 text-white ring-zinc-700",
+  },
+  other_ads: {
+    label: "Otra plataforma",
+    shortLabel: "Otra",
+    chipClass: "bg-zinc-100 text-zinc-700 ring-zinc-300",
+  },
+};
+
+/** Devuelve el meta de plataforma de ad, o null si no es un valor reconocido. */
+export function getAdPlatformMeta(
+  platform: string | null | undefined,
+): (typeof AD_PLATFORM_META)[string] | null {
+  if (!platform) return null;
+  return AD_PLATFORM_META[platform] ?? null;
+}

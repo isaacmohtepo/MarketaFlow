@@ -273,6 +273,7 @@ export default async function BrandContent({
                 caption: p.caption,
                 scheduledAt: p.scheduledAt ? p.scheduledAt.toISOString() : null,
                 assetType: p.assetType ?? "other",
+                platform: p.platform,
                 sourceUrl: p.sourceUrl,
                 videoUrl: videoUrlMap.get(p.id) ?? null,
                 imageCount: p._count.images || (p.imageUrl ? 1 : 0),
