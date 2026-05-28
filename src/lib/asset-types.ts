@@ -12,6 +12,7 @@ export const ASSET_TYPES = [
   "graphic",
   "video",
   "branding",
+  "ad",
   "other",
 ] as const;
 
@@ -23,6 +24,7 @@ export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
   graphic: "Pieza gráfica",
   video: "Video",
   branding: "Identidad",
+  ad: "Anuncio",
   other: "Otro",
 };
 
@@ -33,6 +35,7 @@ export const ASSET_TYPE_SINGULAR: Record<AssetType, string> = {
   graphic: "pieza gráfica",
   video: "video",
   branding: "pieza de identidad",
+  ad: "anuncio",
   other: "archivo",
 };
 
@@ -43,6 +46,7 @@ export const ASSET_TYPE_PLURAL: Record<AssetType, string> = {
   graphic: "piezas gráficas",
   video: "videos",
   branding: "piezas de identidad",
+  ad: "anuncios",
   other: "archivos",
 };
 
@@ -53,6 +57,7 @@ export const ASSET_TYPE_TAB_LABEL: Record<AssetType, string> = {
   graphic: "Gráficos",
   video: "Videos",
   branding: "Identidad",
+  ad: "Ads",
   other: "Otros",
 };
 
@@ -63,6 +68,7 @@ export const ASSET_TYPE_NEW_CTA: Record<AssetType, string> = {
   graphic: "Nueva pieza",
   video: "Nuevo video",
   branding: "Nueva pieza de identidad",
+  ad: "Nuevo anuncio",
   other: "Nuevo archivo",
 };
 
@@ -73,6 +79,7 @@ export const ASSET_TYPE_CAPTION_LABEL: Record<AssetType, string> = {
   graphic: "Descripción",
   video: "Descripción / guion",
   branding: "Notas",
+  ad: "Copy del anuncio / brief",
   other: "Descripción",
 };
 
@@ -83,6 +90,7 @@ export const ASSET_TYPE_CAPTION_PLACEHOLDER: Record<AssetType, string> = {
   graphic: "Qué es esta pieza, dónde se va a usar…",
   video: "De qué trata este video, duración, plataforma…",
   branding: "Qué incluye esta entrega de identidad…",
+  ad: "Copy del anuncio, plataforma (Meta / Google / TikTok), objetivo, audiencia…",
   other: "Notas sobre este archivo…",
 };
 
@@ -92,6 +100,7 @@ export const ASSET_TYPE_TINT: Record<AssetType, string> = {
   graphic: "bg-amber-50 text-amber-700 ring-amber-100",
   video: "bg-rose-50 text-rose-700 ring-rose-100",
   branding: "bg-violet-50 text-violet-700 ring-violet-100",
+  ad: "bg-emerald-50 text-emerald-700 ring-emerald-100",
   other: "bg-zinc-100 text-zinc-700 ring-zinc-200",
 };
 

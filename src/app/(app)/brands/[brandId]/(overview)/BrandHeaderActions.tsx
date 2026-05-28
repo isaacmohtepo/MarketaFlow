@@ -8,7 +8,7 @@ import NewPostButton from "@/app/(app)/dashboard/NewPostButton";
 import BulkUploadButton from "../BulkUploadButton";
 import { usePermissions } from "@/components/PermissionsProvider";
 
-const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "other"] as const;
+const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "ad", "other"] as const;
 type AT = (typeof ALL_TYPES)[number];
 
 /**

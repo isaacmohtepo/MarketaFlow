@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { FeedGridSkeleton, Skeleton } from "@/components/Skeleton";
 import BrandContent from "./BrandContent";
 
-const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "other"] as const;
+const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "ad", "other"] as const;
 type AT = (typeof ALL_TYPES)[number];
 
 /**

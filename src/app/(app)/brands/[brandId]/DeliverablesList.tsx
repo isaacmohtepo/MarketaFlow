@@ -238,6 +238,10 @@ export default function DeliverablesList({
       title: "Sin identidad todavía",
       hint: "Logos, manuales y sistemas visuales para revisión.",
     },
+    ad: {
+      title: "Sin anuncios todavía",
+      hint: "Subí los creativos y el copy de tus campañas (Meta, Google, TikTok) para que el cliente apruebe antes de publicar.",
+    },
     other: {
       title: "Sin archivos todavía",
       hint: "Cualquier archivo o documento que necesite aprobación del cliente.",

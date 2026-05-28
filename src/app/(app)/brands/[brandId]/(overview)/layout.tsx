@@ -54,11 +54,12 @@ export default async function BrandOverviewLayout({
     web_design: 0,
     video: 0,
     graphic: 0,
+    ad: 0,
   };
   for (const row of typeCountsRows) {
     // Posts legacy sin assetType cuentan como social_post.
     // branding (identidad) y other se agrupan bajo "graphic" — el tab
-    // visible los muestra todos juntos.
+    // visible los muestra todos juntos. "ad" tiene su propio bucket.
     const raw = row.assetType ?? "social_post";
     const bucket =
       raw === "branding" || raw === "other" ? "graphic" : raw;

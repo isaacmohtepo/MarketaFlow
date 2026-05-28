@@ -10,7 +10,7 @@ import FeedFilters from "../FeedFilters";
 import PhonePreview from "../PhonePreview";
 import DeliverablesList from "../DeliverablesList";
 
-const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "other"] as const;
+const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "ad", "other"] as const;
 type AT = (typeof ALL_TYPES)[number];
 
 /**
@@ -168,6 +168,7 @@ export default async function BrandContent({
                 if (activeType === "video") return n === 1 ? "video pendiente" : "videos pendientes";
                 if (activeType === "branding") return n === 1 ? "pieza de identidad pendiente" : "piezas de identidad pendientes";
                 if (activeType === "graphic") return n === 1 ? "pieza pendiente" : "piezas pendientes";
+                if (activeType === "ad") return n === 1 ? "anuncio pendiente" : "anuncios pendientes";
                 return n === 1 ? "entregable pendiente" : "entregables pendientes";
               })()}{" "}
               para revisar

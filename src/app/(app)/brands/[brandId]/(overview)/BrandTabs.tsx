@@ -11,6 +11,10 @@ const TABS = [
   // (cualquier otro deliverable como PSDs, ZIPs, etc). Antes eran 3 tabs
   // separadas que confundían al user.
   { type: "graphic", icon: "🎨", label: "Gráficos" },
+  // Tab dedicado a aprobación de anuncios pagados (Meta Ads, Google Ads,
+  // TikTok Ads). Va separado de "graphic" porque típicamente lleva flujo
+  // de aprobación distinto (copy + creative + audiencia + objetivo).
+  { type: "ad", icon: "📣", label: "Ads" },
 ] as const;
 
 const ALL_TYPES = TABS.map((t) => t.type) as readonly string[];
