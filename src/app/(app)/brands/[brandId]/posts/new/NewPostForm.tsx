@@ -27,6 +27,18 @@ const MODAL_ASSET_TYPES = [
   "graphic",
   "ad",
 ] as const satisfies AssetType[];
+
+// Plataformas para anuncios pagados. Se guardan en `Post.platform` igual que
+// para social_post (reutilizamos el campo), pero el set de valores difiere.
+const AD_PLATFORMS = [
+  { value: "meta_ads", label: "Meta Ads", hint: "Facebook + Instagram" },
+  { value: "google_ads", label: "Google Ads", hint: "Search · Display · YouTube" },
+  { value: "tiktok_ads", label: "TikTok Ads", hint: "" },
+  { value: "linkedin_ads", label: "LinkedIn Ads", hint: "" },
+  { value: "x_ads", label: "X Ads", hint: "Twitter" },
+  { value: "other_ads", label: "Otra plataforma", hint: "" },
+] as const;
+const AD_PLATFORM_VALUES = AD_PLATFORMS.map((p) => p.value) as readonly string[];
 import { extractVideoThumbnail } from "@/lib/video-thumbnail";
 import RecentMediaPicker from "./RecentMediaPicker";
 
@@ -120,6 +132,21 @@ export default function NewPostForm({
   const planBlocking =
     !!diagnostics?.plan && !diagnostics.plan.canCreateMore;
   const storageBlocking = diagnostics?.storage.configured === false;
+
+  // Cuando el user cambia entre tipos, normalizamos `platform`:
+  //  - Si entra a "ad" y la plataforma actual NO es una de ad → default meta_ads.
+  //  - Si sale de "ad" hacia social_post y la plataforma sigue siendo de ad
+  //    → default instagram para no romper el selector de social.
+  useEffect(() => {
+    if (assetType === "ad" && !AD_PLATFORM_VALUES.includes(platform)) {
+      setPlatform("meta_ads");
+    } else if (
+      assetType === "social_post" &&
+      AD_PLATFORM_VALUES.includes(platform)
+    ) {
+      setPlatform("instagram");
+    }
+  }, [assetType, platform]);
   const { confirm: confirmDialog } = useConfirm();
   const apiFetch = useApiFetch();
   const hydratedRef = useRef(false);
@@ -1040,8 +1067,59 @@ export default function NewPostForm({
           </div>
         </div>
       )}
-      {/* Hidden inputs para que el form siempre envíe estos campos cuando assetType !== social_post */}
-      {assetType !== "social_post" && (
+
+      {/* Selector específico para anuncios pagados */}
+      {assetType === "ad" && (
+        <div>
+          <label className="block text-[13px] font-medium text-zinc-700">
+            Plataforma del anuncio
+            <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
+              dónde se va a pautar
+            </span>
+          </label>
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {AD_PLATFORMS.map((p) => {
+              const active = platform === p.value;
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPlatform(p.value)}
+                  className={`flex flex-col items-start rounded-lg border px-3 py-2 text-left transition ${
+                    active
+                      ? "border-emerald-400 bg-emerald-50 ring-1 ring-emerald-200"
+                      : "border-zinc-200 bg-white hover:border-zinc-300"
+                  }`}
+                >
+                  <span
+                    className={`text-[12.5px] font-semibold ${
+                      active ? "text-emerald-900" : "text-zinc-800"
+                    }`}
+                  >
+                    {p.label}
+                  </span>
+                  {p.hint && (
+                    <span
+                      className={`text-[10.5px] ${
+                        active ? "text-emerald-700" : "text-zinc-500"
+                      }`}
+                    >
+                      {p.hint}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <input type="hidden" name="platform" value={platform} />
+          <input type="hidden" name="postType" value="ad" />
+        </div>
+      )}
+
+      {/* Hidden inputs para que el form siempre envíe estos campos cuando
+          assetType es uno donde no hay selector visible (web_design, video,
+          graphic). "ad" tiene sus propios hidden inputs arriba. */}
+      {assetType !== "social_post" && assetType !== "ad" && (
         <>
           <input type="hidden" name="platform" value={platform} />
           <input type="hidden" name="postType" value="feed" />
