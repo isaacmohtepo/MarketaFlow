@@ -40,6 +40,32 @@ export async function POST(
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
+  // Bloquear aprobación si quedan comentarios públicos sin resolver.
+  // Los comentarios internos (del equipo) no bloquean — son notas privadas
+  // que el cliente nunca ve. Solo los comentarios públicos deben estar
+  // atendidos antes de marcar algo como aprobado.
+  if (body.decision === "approved") {
+    const unresolvedCount = await prisma.comment.count({
+      where: {
+        postId: id,
+        resolved: false,
+        internal: false,
+        parentId: null, // solo hilos raíz (las respuestas van dentro del hilo)
+      },
+    });
+    if (unresolvedCount > 0) {
+      return NextResponse.json(
+        {
+          error: `No se puede aprobar: hay ${unresolvedCount} ${
+            unresolvedCount === 1 ? "comentario pendiente" : "comentarios pendientes"
+          } sin resolver. Resolvelós antes de aprobar.`,
+          unresolvedCount,
+        },
+        { status: 422 },
+      );
+    }
+  }
+
   await prisma.approval.create({
     data: {
       postId: id,

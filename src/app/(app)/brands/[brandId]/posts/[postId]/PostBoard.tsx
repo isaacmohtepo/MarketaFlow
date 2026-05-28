@@ -379,6 +379,10 @@ export default function PostBoard({
   const pinIndex = new Map(positionalComments.map((c, i) => [c.id, i + 1]));
   const hovered = comments.find((c) => c.id === hoverId);
 
+  // Comentarios públicos (no internos) sin resolver — bloquean la aprobación.
+  // Los internos son notas del equipo que el cliente nunca ve, no deben bloquear.
+  const unresolvedPublicCount = parents.filter((c) => !c.resolved && !c.internal).length;
+
   function onImageClick(e: React.MouseEvent<HTMLDivElement>) {
     if (!canWriteComments) return;
     const wrap = imgWrapRef.current;
@@ -1225,8 +1229,34 @@ export default function PostBoard({
 
         {!isDeleted && canApprovePost &&
           (liveStatus === "in_review" || liveStatus === "changes_requested") && (
-            <div className="rounded-md border divider bg-white px-2.5 py-1.5">
-              {!confirmingApprove ? (
+            <div className={`rounded-md border px-2.5 py-1.5 ${
+              unresolvedPublicCount > 0
+                ? "border-amber-200 bg-amber-50"
+                : "border divider bg-white"
+            }`}>
+              {unresolvedPublicCount > 0 ? (
+                /* Bloqueado: hay comentarios sin resolver */
+                <div className="flex items-center gap-2">
+                  <span className="text-base leading-none">⚠️</span>
+                  <p className="flex-1 text-[11.5px] text-amber-800">
+                    <span className="font-semibold">
+                      {unresolvedPublicCount}{" "}
+                      {unresolvedPublicCount === 1
+                        ? "comentario pendiente"
+                        : "comentarios pendientes"}{" "}
+                      sin resolver.
+                    </span>{" "}
+                    Reolvelos antes de aprobar.
+                  </p>
+                  <button
+                    disabled
+                    className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-zinc-200 px-3 py-1 text-[12px] font-semibold text-zinc-400 cursor-not-allowed"
+                  >
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                    Aprobar
+                  </button>
+                </div>
+              ) : !confirmingApprove ? (
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
                   <p
