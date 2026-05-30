@@ -48,6 +48,8 @@ model User {
   sessions      Session[]
   notifications Notification[]
   activities    Activity[]
+  tasksAssigned Task[]    @relation("TaskAssignee")
+  tasksCreated  Task[]    @relation("TaskCreator")
 }
 
 model Notification {
@@ -130,6 +132,7 @@ model Agency {
   invitations  TeamInvitation[]
   customRoles  Role[]
   subscription Subscription?
+  tasks        Task[]
 }
 
 /// Suscripción 1:1 con Agency. Define qué plan tiene activo, su estado de
@@ -649,6 +652,7 @@ model Brand {
   memberships  Membership[]
   hashtagSets  HashtagSet[]
   templates    PostTemplate[]
+  tasks        Task[]
 }
 
 model HashtagSet {
@@ -738,6 +742,7 @@ model Post {
   images      PostImage[]
   versions    PostVersion[]
   activities  Activity[]
+  tasks       Task[]
 }
 
 model Activity {
@@ -840,4 +845,72 @@ model Approval {
   createdAt DateTime @default(now())
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Tareas internas del equipo de la agencia — Kanban-style con drag-and-drop
+/// entre columnas (todo / in_progress / review / done). Pueden ser:
+///   - de agencia (brandId=null): ops, admin, sin marca puntual
+///   - de marca (brandId=X): atadas a una marca específica
+///   - linkeadas a un post (postId=X, brandId siempre obligado entonces):
+///     contexto rápido tipo "ajustar caption del post X"
+///
+/// CLIENTS NUNCA VEN TAREAS — son internas del equipo agency. Las queries
+/// SIEMPRE filtran por agencyId del user actual.
+model Task {
+  id          String    @id @default(cuid())
+  agencyId    String
+  brandId     String?
+  postId      String?
+
+  title       String    @db.VarChar(200)
+  description String?   @db.Text
+
+  /// status del kanban: "todo" | "in_progress" | "review" | "done"
+  status      String    @default("todo")
+  /// "low" | "normal" | "high" | "urgent"
+  priority    String    @default("normal")
+
+  assigneeId  String?
+  /// Quién la creó. NUNCA se borra (no cascade) — si el creator deja la
+  /// agencia, la tarea sobrevive con creatorId apuntando a un user que ya
+  /// no pertenece (se filtra a runtime).
+  creatorId   String
+
+  dueDate     DateTime?
+  /// Orden dentro de su columna. Drag-and-drop reescribe esto en bulk.
+  /// Floats permiten insertar entre dos cards sin reescribir todos
+  /// (ej. mid = (prev.pos + next.pos) / 2). Pero usamos Int por simpleza
+  /// y reescribimos en bulk con paso 1000.
+  position    Int       @default(0)
+  completedAt DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  agency      Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  brand       Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  post        Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  creator     User      @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  subtasks    Subtask[]
+
+  @@index([agencyId, status])
+  @@index([assigneeId, status])
+  @@index([brandId])
+  @@index([dueDate])
+}
+
+/// Checklist dentro de una tarea (subtareas tipo Trello). Se marcan
+/// completadas con un click — útiles para descomponer una tarea grande.
+model Subtask {
+  id        String   @id @default(cuid())
+  taskId    String
+  title     String   @db.VarChar(200)
+  completed Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }

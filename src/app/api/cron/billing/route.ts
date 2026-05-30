@@ -242,6 +242,16 @@ export async function GET(req: Request) {
     };
   }
 
+  // Reminders de tareas con due-date próxima o vencida
+  try {
+    const { runTaskDueReminders } = await import("@/lib/notifications-tasks");
+    childResults.taskReminders = await runTaskDueReminders();
+  } catch (err) {
+    childResults.taskReminders = {
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
   return NextResponse.json({
     ok: true,
     stats,

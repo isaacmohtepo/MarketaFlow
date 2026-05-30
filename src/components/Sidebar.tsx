@@ -31,6 +31,7 @@ import {
   Receipt,
   HelpCircle,
   Package,
+  ListTodo,
 } from "lucide-react";
 
 type NavItem = {
@@ -49,9 +50,11 @@ type Section = { title: string; items: NavItem[] };
 function buildSections({
   isAdmin,
   canViewBilling,
+  canViewTasks,
 }: {
   isAdmin: boolean;
   canViewBilling: boolean;
+  canViewTasks: boolean;
 }): Section[] {
   const sections: Section[] = [
     {
@@ -75,6 +78,16 @@ function buildSections({
           icon: Inbox,
           match: (p) => p.startsWith("/inbox"),
         },
+        ...(canViewTasks
+          ? [
+              {
+                label: "Tareas",
+                href: "/tasks",
+                icon: ListTodo,
+                match: (p: string) => p.startsWith("/tasks"),
+              } as NavItem,
+            ]
+          : []),
       ],
     },
     {
@@ -232,13 +245,15 @@ export default function Sidebar({
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [inboxCount, setInboxCount] = useState<number>(0);
+  const [tasksCount, setTasksCount] = useState<number>(0);
   const { has } = usePermissions();
   // Billing solo visible si el user tiene billing.view (owner + manager por
   // default; cualquier custom role que tenga ese perm). Antes era owner-only.
   const canViewBilling = isOwner || has("billing.view");
+  const canViewTasks = isOwner || has("tasks.read");
   const SECTIONS = useMemo(
-    () => buildSections({ isAdmin, canViewBilling }),
-    [isAdmin, canViewBilling],
+    () => buildSections({ isAdmin, canViewBilling, canViewTasks }),
+    [isAdmin, canViewBilling, canViewTasks],
   );
 
   // Expanded state per item. Default: expandido si algún hijo matchea el path.
@@ -280,6 +295,26 @@ export default function Sidebar({
       clearInterval(id);
     };
   }, []);
+
+  // Tasks count para el badge — solo polling si el user tiene acceso.
+  useEffect(() => {
+    if (!canViewTasks) return;
+    let alive = true;
+    async function load() {
+      try {
+        const r = await fetch("/api/tasks/my-count", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (alive) setTasksCount(j.count ?? 0);
+      } catch {}
+    }
+    load();
+    const id = setInterval(load, 30000); // tareas cambian menos que inbox
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [canViewTasks]);
 
   function toggle(label: string) {
     setExpanded((e) => ({ ...e, [label]: !e[label] }));
@@ -396,6 +431,7 @@ export default function Sidebar({
                     item={item}
                     pathname={pathname}
                     inboxCount={inboxCount}
+                    tasksCount={tasksCount}
                     onNavigate={onNavigate}
                   />
                 );
@@ -661,11 +697,13 @@ function LeafItem({
   item,
   pathname,
   inboxCount,
+  tasksCount,
   onNavigate,
 }: {
   item: NavItem;
   pathname: string;
   inboxCount: number;
+  tasksCount: number;
   onNavigate?: () => void;
 }) {
   const active = isItemActive(item, pathname);
@@ -691,6 +729,11 @@ function LeafItem({
       {item.label === "Inbox" && inboxCount > 0 && (
         <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white brand-gradient tabular-nums">
           {inboxCount > 99 ? "99+" : inboxCount}
+        </span>
+      )}
+      {item.label === "Tareas" && tasksCount > 0 && (
+        <span className="rounded-full bg-fuchsia-500 px-1.5 py-0.5 text-[9px] font-bold text-white tabular-nums">
+          {tasksCount > 99 ? "99+" : tasksCount}
         </span>
       )}
       {item.soon && (

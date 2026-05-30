@@ -91,6 +91,15 @@ export const PERMISSION_GROUPS = [
     ],
   },
   {
+    key: "tasks",
+    label: "Tareas internas",
+    permissions: [
+      { key: "tasks.read", label: "Ver el tablero de tareas del equipo" },
+      { key: "tasks.write", label: "Crear, editar y borrar tareas" },
+      { key: "tasks.assign", label: "Asignar tareas a otros miembros" },
+    ],
+  },
+  {
     key: "analytics",
     label: "Analytics y auditoría",
     permissions: [
@@ -190,6 +199,9 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "analytics.view",
       "audit.view",
       "agency.settings",
+      "tasks.read",
+      "tasks.write",
+      "tasks.assign",
     ],
     noScope: true,
   },
@@ -210,6 +222,8 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "inbox.reply",
       "analytics.view",
       "clients.invite",
+      "tasks.read",
+      "tasks.write",
     ],
   },
   designer: {
@@ -223,6 +237,8 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "posts.upload_media",
       "comments.write",
       "analytics.view",
+      "tasks.read",
+      "tasks.write",
     ],
   },
   copywriter: {
@@ -236,6 +252,8 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "posts.edit_caption",
       "comments.write",
       "analytics.view",
+      "tasks.read",
+      "tasks.write",
     ],
   },
   strategist: {
@@ -248,6 +266,8 @@ export const SYSTEM_ROLES: Record<SystemRoleSlug, SystemRoleDef> = {
       "posts.view",
       "comments.write",
       "analytics.view",
+      "tasks.read",
+      "tasks.write",
     ],
   },
   client: {
