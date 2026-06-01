@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   };
 
   // Nota: los emails de "trial ending in N days" los maneja /api/cron/trial-emails
-  // que tiene su propio schedule diario. Acá solo nos preocupa cobrar y bajar planes.
+  // que tiene su propio schedule diario. Aquí solo nos preocupa cobrar y bajar planes.
 
   // 1. Trials expirados → bajar a free (no tienen tarjeta así que no podemos cobrar)
   const expiredTrials = await prisma.subscription.findMany({
@@ -297,7 +297,7 @@ async function runDunning(now: Date): Promise<number> {
             agencyId: sub.agencyId,
             agencyName: sub.agency.name,
             amountCents: 0,
-            reason: `Pasaron los ${graceDays} días de gracia sin renovar tu plan ${planName}. Bajamos tu cuenta a Free — no borramos nada, solo quedan limitados los extras (marcas/miembros). Cuando quieras volver, renová tu plan desde /billing/plan.`,
+            reason: `Pasaron los ${graceDays} días de gracia sin renovar tu plan ${planName}. Bajamos tu cuenta a Free — no borramos nada, solo quedan limitados los extras (marcas/miembros). Cuando quieras volver, renueva tu plan desde /billing/plan.`,
           });
         } catch (err) {
           console.error("dunning final email failed", sub.id, err);
@@ -329,7 +329,7 @@ async function runDunning(now: Date): Promise<number> {
         agencyId: sub.agencyId,
         agencyName: sub.agency.name,
         amountCents: 0,
-        reason: `Tu plan ${planName} venció. Renová pagando desde /billing/plan para seguir usándolo. Te ${daysLeft === 1 ? "queda 1 día" : `quedan ${daysLeft} días`} antes de bajar a Free (no se borra nada).`,
+        reason: `Tu plan ${planName} venció. Renueva pagando desde /billing/plan para seguir usandolo. Te ${daysLeft === 1 ? "queda 1 día" : `quedan ${daysLeft} días`} antes de bajar a Free (no se borra nada).`,
       });
       await prisma.subscription.update({
         where: { id: sub.id },
@@ -428,26 +428,32 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     creditApplied > 0
       ? `${description} − $${(creditApplied / 100).toLocaleString("es-CO")} crédito aplicado`
       : description;
-  const invoice = await prisma.invoice.create({
-    data: {
-      subscriptionId: sub.id,
-      amount,
-      currency: "COP",
-      status: "pending",
-      wompiReference: reference,
-      periodStart,
-      periodEnd,
-      description: finalDescription,
-    },
-  });
-
-  // Descontar el crédito usado del balance de la suscripción.
-  if (creditApplied > 0) {
-    await prisma.subscription.update({
-      where: { id: sub.id },
-      data: { creditCents: { decrement: creditApplied } },
+  // Atómico: crear la factura + descontar el crédito usado en una sola
+  // transacción. Antes eran 2 updates separados — si el segundo fallaba, el
+  // user conservaba el crédito que ya había aplicado (doble gasto).
+  // El decremento va guardado (creditCents >= creditApplied) para no dejar
+  // el balance negativo si hubo una mutación concurrente.
+  const invoice = await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.create({
+      data: {
+        subscriptionId: sub.id,
+        amount,
+        currency: "COP",
+        status: "pending",
+        wompiReference: reference,
+        periodStart,
+        periodEnd,
+        description: finalDescription,
+      },
     });
-  }
+    if (creditApplied > 0) {
+      await tx.subscription.updateMany({
+        where: { id: sub.id, creditCents: { gte: creditApplied } },
+        data: { creditCents: { decrement: creditApplied } },
+      });
+    }
+    return inv;
+  });
 
   // Si el crédito cubrió todo, marcamos invoice paid sin pasar por Wompi.
   if (amount === 0) {
@@ -477,7 +483,7 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
     return true;
   }
 
-  // Resolvé environment dinámico (production si está habilitado en
+  // Resuelve environment dinámico (production si está habilitado en
   // /admin/integrations, sino sandbox). ANTES estaba hardcoded a
   // "sandbox" — bug crítico que rompía cobros en producción.
   const environment = await resolveWompiEnvironment();
@@ -565,7 +571,7 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
           data: {
             status: "failed",
             failedAt: now,
-            failedReason: `La tarjeta ${pm.brand ?? ""} ····${pm.last4 ?? ""} venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agregá una nueva en /billing.`,
+            failedReason: `La tarjeta ${pm.brand ?? ""} ····${pm.last4 ?? ""} venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agrega una nueva en /billing.`,
           },
         }),
         prisma.subscription.update({
@@ -580,7 +586,7 @@ async function tryRecurringCharge(subscriptionId: string): Promise<boolean> {
         agencyId: sub.agencyId,
         agencyName: sub.agency.name,
         amountCents: amount,
-        reason: `Tu tarjeta terminada en ${pm.last4 ?? "????"} venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agregá una tarjeta nueva en MarketaFlow para que sigamos cobrando tu suscripción.`,
+        reason: `Tu tarjeta terminada en ${pm.last4 ?? "????"} venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agrega una tarjeta nueva en MarketaFlow para que sigamos cobrando tu suscripción.`,
       }).catch((e) => console.error("expired-card email failed", e));
       return false;
     }

@@ -19,7 +19,7 @@ export default function DeleteBrandButton({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const { confirm } = useConfirm();
+  const { confirm, prompt } = useConfirm();
 
   async function handleDelete() {
     const ok = await confirm({
@@ -32,10 +32,16 @@ export default function DeleteBrandButton({
     });
     if (!ok) return;
 
-    // Doble confirm: pedir tipear el nombre exacto vía browser prompt.
-    const typed = window.prompt(
-      `Para confirmar, tipeá exactamente: ${brandName}`,
-    );
+    // Doble confirm: pedir tipear el nombre exacto en el prompt del app.
+    const typed = await prompt({
+      title: "Confirmación final",
+      description: `Para confirmar la eliminación, escribe exactamente:\n\n${brandName}`,
+      placeholder: brandName,
+      required: true,
+      confirmLabel: "Eliminar marca",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
     if (typed === null) return;
     if (typed.trim() !== brandName) {
       toast.error("El nombre no coincide. La marca NO se eliminó.");

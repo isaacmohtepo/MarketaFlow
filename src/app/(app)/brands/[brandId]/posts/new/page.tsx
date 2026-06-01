@@ -22,13 +22,13 @@ export default async function NewPostPage({
   if (!user) redirect("/login");
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
-  const canCreate = await hasPermission(user.id, access.agencyId, "posts.create", brandId);
+  const canCreate = await hasPermission(user.id, access.agencyId, "posts.create", access.brandId);
   if (!canCreate) redirect(`/brands/${brandId}`);
   const [agencyName, brand, widgetPings] = await Promise.all([
     getUserAgencyName(user.id),
-    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.brand.findUnique({ where: { id: access.brandId } }),
     prisma.widgetPing.findMany({
-      where: { brandId },
+      where: { brandId: access.brandId },
       orderBy: { lastSeenAt: "desc" },
       take: 50,
       select: { origin: true, lastSeenAt: true },

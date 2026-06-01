@@ -16,7 +16,7 @@ import { createContext, useContext, type ReactNode } from "react";
  *   <Gated perm="brands.create"><CreateButton /></Gated>
  *
  * Para gates brand-scoped (un user puede ser CM solo en ciertas brands),
- * el provider acepta `brandPermissions` map { [brandId]: string[] }. Pasá
+ * el provider acepta `brandPermissions` map { [brandId]: string[] }. Pasa
  * `brandId` al hook/Gated y se chequea brand-scoped + agency-wide.
  */
 
@@ -25,8 +25,14 @@ type PermissionsContextValue = {
   agencyPermissions: Set<string>;
   /** Permisos por brand específica (memberships brand-scoped). */
   brandPermissions: Map<string, Set<string>>;
-  /** ¿Tiene el permiso? Si pasás brandId, suma los brand-scoped. */
+  /** ¿Tiene el permiso? Si pasas brandId, suma los brand-scoped. */
   has: (perm: string, brandId?: string | null) => boolean;
+  /**
+   * ¿Tiene el permiso en CUALQUIER scope (agency-wide o en alguna brand)?
+   * Para features agency-globales (ej. tasks.*) que un miembro brand-scoped
+   * igual debe poder usar. Equivalente client-side de `hasAgencyPermission`.
+   */
+  hasAnyScope: (perm: string) => boolean;
   /** Roles del user (agency-wide), para mostrar badges/labels. */
   roles: readonly string[];
 };
@@ -59,12 +65,21 @@ export function PermissionsProvider({
     return false;
   };
 
+  const hasAnyScope = (perm: string): boolean => {
+    if (agencySet.has(perm)) return true;
+    for (const bset of brandMap.values()) {
+      if (bset.has(perm)) return true;
+    }
+    return false;
+  };
+
   return (
     <Ctx.Provider
       value={{
         agencyPermissions: agencySet,
         brandPermissions: brandMap,
         has,
+        hasAnyScope,
         roles,
       }}
     >
@@ -83,6 +98,7 @@ export function usePermissions(): PermissionsContextValue {
       agencyPermissions: new Set(),
       brandPermissions: new Map(),
       has: () => false,
+      hasAnyScope: () => false,
       roles: [],
     };
   }

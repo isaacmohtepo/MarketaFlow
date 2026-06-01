@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { hasPermission } from "@/lib/permissions";
 
 /**
@@ -13,10 +14,7 @@ export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const ownership = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const ownership = await getActiveAgencyMembership(user.id);
   if (!ownership) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }

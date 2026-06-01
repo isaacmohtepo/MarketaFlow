@@ -104,8 +104,8 @@ export default async function BillingInvoicesPage({
             </p>
             <p className="mt-1 text-[11.5px] text-zinc-500">
               {totalCount === 0
-                ? "Cuando hagas un pago vas a verlo acá."
-                : "Probá limpiar los filtros."}
+                ? "Cuando hagas un pago vas a verlo aquí."
+                : "Prueba limpiar los filtros."}
             </p>
           </div>
         ) : (
@@ -154,7 +154,7 @@ export default async function BillingInvoicesPage({
                       </td>
                       <td className="py-3 text-right">
                         <Link
-                          href={`/billing/invoices/${inv.id}`}
+                          href={`/billing/invoices/${inv.invoiceNumber ?? inv.id}`}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                         >
                           Ver
@@ -205,7 +205,7 @@ function NoOwner() {
       <div className="card mt-6 p-8 text-center">
         <CreditCard className="mx-auto h-10 w-10 text-zinc-300" />
         <p className="mt-4 text-[14px] font-semibold text-zinc-900">
-          No sos owner de ninguna agencia
+          No eres owner de ninguna agencia
         </p>
         <Link
           href="/dashboard"

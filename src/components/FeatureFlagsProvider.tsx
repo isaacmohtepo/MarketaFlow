@@ -5,7 +5,7 @@ import { createContext, useContext, type ReactNode } from "react";
 /**
  * Provider client-side para feature flags globales del SaaS.
  *
- * El layout server computa `getFeatureFlags()` desde env y los inyecta acá.
+ * El layout server computa `getFeatureFlags()` desde env y los inyecta aquí.
  * Componentes client usan `useFeatureFlags()` para esconder UI de features
  * deshabilitadas. Default: todos en false (deny-by-default si no hay
  * provider, ej. en páginas públicas).

@@ -203,7 +203,7 @@ export default async function AccountPage({
               subtitle={
                 full?.passwordChangedAt
                   ? `Última actualización: ${full.passwordChangedAt.toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" })}`
-                  : "Nunca cambiada (usás la inicial de registro)"
+                  : "Nunca cambiada (usas la inicial de registro)"
               }
             >
               <PasswordChange />
@@ -235,7 +235,7 @@ export default async function AccountPage({
             <Section
               icon={<Bell className="h-3.5 w-3.5" />}
               title="Notificaciones en la app"
-              subtitle="Sonido y notificaciones del sistema mientras usás MarketaFlow."
+              subtitle="Sonido y notificaciones del sistema mientras usas MarketaFlow."
             >
               <InAppNotifPrefs />
             </Section>

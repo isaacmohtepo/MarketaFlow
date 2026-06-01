@@ -17,7 +17,7 @@ import { audit } from "@/lib/audit";
  * scope), usamos un header X-Admin-Replay con el secret de la cookie de
  * admin como bypass autenticado.
  *
- * NOTA: por simplicidad acá implementamos solo replay para wompi y solo
+ * NOTA: por simplicidad aquí implementamos solo replay para wompi y solo
  * llamando a handleTransactionUpdated directamente.
  */
 export async function POST(

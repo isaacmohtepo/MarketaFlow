@@ -18,7 +18,7 @@ export default function CreateUserButton() {
 
   async function submit() {
     if (!form.email || !form.name || !form.password) {
-      toast.error("Completá todos los campos");
+      toast.error("Completa todos los campos");
       return;
     }
     setBusy(true);
@@ -72,7 +72,7 @@ export default function CreateUserButton() {
                 </h3>
                 <p className="mt-0.5 text-[12px] text-zinc-500">
                   El usuario podrá loguearse inmediatamente con la contraseña
-                  que asignes acá.
+                  que asignes aquí.
                 </p>
               </div>
               <button

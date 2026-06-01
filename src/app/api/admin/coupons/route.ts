@@ -30,7 +30,7 @@ const createSchema = z
   })
   .refine(
     (d) => (d.percentOff != null) !== (d.amountOffCents != null),
-    "Tenés que especificar EXACTAMENTE uno: percentOff o amountOffCents.",
+    "Tienes que especificar EXACTAMENTE uno: percentOff o amountOffCents.",
   );
 
 export async function GET() {

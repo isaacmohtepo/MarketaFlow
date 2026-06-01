@@ -56,7 +56,7 @@ export async function PATCH(
 
   if (!body.default) {
     return NextResponse.json(
-      { error: "Solo se permite marcar uno como default. Para quitar default, marcá otro." },
+      { error: "Solo se permite marcar uno como default. Para quitar default, marca otro." },
       { status: 400 },
     );
   }

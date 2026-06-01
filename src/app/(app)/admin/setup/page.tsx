@@ -40,7 +40,7 @@ export default async function AdminSetup() {
               Master key de encriptación
             </h2>
             <p className="mt-1 text-[13px] text-zinc-500">
-              Esta llave protege con AES-256-GCM todas las API keys que guardás
+              Esta llave protege con AES-256-GCM todas las API keys que guardas
               en el panel de integraciones (Wompi, Stripe, etc.). Se genera una
               sola vez y vive en la DB. No se puede ver — solo se usa.
             </p>
@@ -58,7 +58,7 @@ export default async function AdminSetup() {
                   <>
                     Encriptando {configsCount}{" "}
                     {configsCount === 1 ? "integración" : "integraciones"}. Las
-                    llaves de Wompi/Stripe que guardás en{" "}
+                    llaves de Wompi/Stripe que guardas en{" "}
                     <a
                       href="/admin/integrations"
                       className="font-semibold underline hover:no-underline"
@@ -69,7 +69,7 @@ export default async function AdminSetup() {
                   </>
                 ) : (
                   <>
-                    Configurada y lista. Ya podés ir a{" "}
+                    Configurada y lista. Ya puedes ir a{" "}
                     <a
                       href="/admin/integrations"
                       className="font-semibold underline hover:no-underline"
@@ -91,7 +91,7 @@ export default async function AdminSetup() {
                 Setup pendiente
               </p>
               <p className="mt-1 text-[12px] text-amber-800">
-                Antes de poder configurar pasarelas de pago, necesitás generar
+                Antes de poder configurar pasarelas de pago, necesitas generar
                 la master key. Es un solo click. La generamos del lado del
                 servidor con <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[10px]">crypto.randomBytes(32)</code>.
               </p>
@@ -118,7 +118,7 @@ export default async function AdminSetup() {
               2
             </span>
             <span>
-              Cuando configurás Wompi/Stripe en{" "}
+              Cuando configuras Wompi/Stripe en{" "}
               <code className="font-mono">/admin/integrations</code>, las llaves
               se encriptan con esta master key antes de guardarse.
             </span>
@@ -180,12 +180,12 @@ export default async function AdminSetup() {
         <h3 className="text-sm font-semibold text-zinc-900">⚠ Importante</h3>
         <ul className="mt-3 space-y-2 text-[12.5px] text-zinc-600">
           <li>
-            • Si borrás el row de SystemConfig (o se pierde el DB), las llaves
-            de pasarelas guardadas se vuelven irrecuperables. Tenés que
+            • Si borras el row de SystemConfig (o se pierde el DB), las llaves
+            de pasarelas guardadas se vuelven irrecuperables. Tienes que
             reconfigurarlas.
           </li>
           <li>
-            • Hacé backup de tu DB con regularidad (Neon tiene backups
+            • Haz backup de tu DB con regularidad (Neon tiene backups
             automáticos).
           </li>
           <li>

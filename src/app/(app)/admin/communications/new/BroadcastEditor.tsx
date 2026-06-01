@@ -42,7 +42,7 @@ export default function BroadcastEditor() {
       return;
     }
     if (schedule && !scheduledAt) {
-      toast.error("Elegí fecha y hora para programar el envío");
+      toast.error("Elige fecha y hora para programar el envío");
       return;
     }
     setBusy(true);
@@ -78,7 +78,7 @@ export default function BroadcastEditor() {
       <div className="card p-6">
         <h1 className="text-base font-bold text-zinc-900">Nuevo broadcast</h1>
         <p className="mt-0.5 text-[12px] text-zinc-500">
-          Creá el borrador. Vas a poder previsualizar y enviar desde la
+          Crea el borrador. Vas a poder previsualizar y enviar desde la
           siguiente pantalla.
         </p>
 

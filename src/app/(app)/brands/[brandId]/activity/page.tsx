@@ -93,7 +93,7 @@ export default async function BrandActivityPage({
   if (!access) notFound();
 
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     select: { name: true },
   });
   if (!brand) notFound();
@@ -104,7 +104,7 @@ export default async function BrandActivityPage({
   const [activities, approvals, comments] = await Promise.all([
     prisma.activity.findMany({
       where: {
-        post: { brandId, ...(isClient ? { status: { not: "draft" } } : {}) },
+        post: { brandId: access.brandId, ...(isClient ? { status: { not: "draft" } } : {}) },
         createdAt: { gte: since },
       },
       include: {
@@ -116,7 +116,7 @@ export default async function BrandActivityPage({
     }),
     prisma.approval.findMany({
       where: {
-        post: { brandId, ...(isClient ? { status: { not: "draft" } } : {}) },
+        post: { brandId: access.brandId, ...(isClient ? { status: { not: "draft" } } : {}) },
         createdAt: { gte: since },
       },
       include: {
@@ -128,7 +128,7 @@ export default async function BrandActivityPage({
     }),
     prisma.comment.findMany({
       where: {
-        post: { brandId, ...(isClient ? { status: { not: "draft" } } : {}) },
+        post: { brandId: access.brandId, ...(isClient ? { status: { not: "draft" } } : {}) },
         createdAt: { gte: since },
         ...(isClient ? { internal: false } : {}),
       },
@@ -279,7 +279,7 @@ export default async function BrandActivityPage({
           <ActivityIcon className="h-6 w-6 text-zinc-400" />
           <p className="text-[14px] font-semibold text-zinc-900">Sin actividad reciente</p>
           <p className="text-[12px] text-zinc-500">
-            Cuando hagas algo en esta marca, aparecerá acá.
+            Cuando hagas algo en esta marca, aparecerá aquí.
           </p>
         </div>
       ) : (

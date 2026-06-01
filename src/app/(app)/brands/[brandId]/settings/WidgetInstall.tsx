@@ -100,7 +100,7 @@ export default function WidgetInstall({
   async function revoke() {
     const ok = await confirmDialog({
       title: "¿Desactivar el widget?",
-      description: "El script en el sitio del cliente dejará de funcionar. Vas a tener que reinstalar si lo querés volver a usar.",
+      description: "El script en el sitio del cliente dejará de funcionar. Vas a tener que reinstalar si lo quieres volver a usar.",
       confirmLabel: "Desactivar",
       cancelLabel: "Cancelar",
       variant: "danger",
@@ -126,7 +126,7 @@ export default function WidgetInstall({
     return (
       <div className="space-y-3">
         <p className="text-[12.5px] text-zinc-600">
-          Activá el widget de feedback. Pegás un script en el sitio del cliente (típicamente staging
+          Activa el widget de feedback. Pegas un script en el sitio del cliente (típicamente staging
           o preview), y aparece un botón flotante. Cuando alguien comenta, el widget toma una captura
           pixel-perfect y la manda directo a este tablero como un nuevo entregable web.
         </p>
@@ -183,14 +183,14 @@ export default function WidgetInstall({
                 )}
                 {variant === "waiting" && (
                   <>
-                    <span className="font-bold">Esperando primera carga.</span> Pegá el script en
-                    el sitio y abrí cualquier página — vamos a detectar el ping al toque.
+                    <span className="font-bold">Esperando primera carga.</span> Pega el script en
+                    el sitio y abre cualquier página — vamos a detectar el ping al toque.
                   </>
                 )}
                 {variant === "stale" && lastPing && (
                   <>
                     <span className="font-bold">Sin actividad reciente.</span> Último ping{" "}
-                    {relativeTime(lastPing.lastSeenAt)}. Verificá que el script siga pegado.
+                    {relativeTime(lastPing.lastSeenAt)}. Verifica que el script siga pegado.
                   </>
                 )}
               </p>
@@ -210,7 +210,7 @@ export default function WidgetInstall({
 
       <div>
         <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-          Pegá esto en el &lt;head&gt; o antes de &lt;/body&gt; del sitio del cliente
+          Pega esto en el &lt;head&gt; o antes de &lt;/body&gt; del sitio del cliente
         </label>
         <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
           <code className="flex-1 overflow-x-auto rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-[11.5px] text-zinc-800">
@@ -259,8 +259,8 @@ export default function WidgetInstall({
             <div>
               <p className="font-semibold">Aún no detectamos el script.</p>
               <p className="mt-0.5 text-amber-800">
-                Pegá el snippet en el sitio del cliente. En cuanto cargue una página, va a aparecer acá
-                con el dominio y la última visita. Si ya lo pegaste, abrí la web una vez y refrescá.
+                Pega el snippet en el sitio del cliente. En cuanto cargue una página, va a aparecer aquí
+                con el dominio y la última visita. Si ya lo pegaste, abre la web una vez y refresca.
               </p>
             </div>
           </div>

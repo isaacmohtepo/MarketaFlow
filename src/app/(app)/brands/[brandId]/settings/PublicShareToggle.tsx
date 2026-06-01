@@ -33,7 +33,7 @@ export default function PublicShareToggle({
   async function revoke() {
     const ok = await confirmDialog({
       title: "¿Desactivar el link público?",
-      description: "Cualquiera con el link perderá acceso al instante. Podés generar uno nuevo después.",
+      description: "Cualquiera con el link perderá acceso al instante. Puedes generar uno nuevo después.",
       confirmLabel: "Desactivar",
       cancelLabel: "Cancelar",
       variant: "danger",

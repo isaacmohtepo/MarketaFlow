@@ -92,7 +92,7 @@ export default function UserActions(props: Props) {
       const ok = await confirm({
         title: "¿Deshabilitar usuario?",
         description:
-          "El usuario no podrá loguearse y todas sus sesiones se cerrarán al instante. Podés volver a habilitarlo después.",
+          "El usuario no podrá loguearse y todas sus sesiones se cerrarán al instante. Puedes volver a habilitarlo después.",
         confirmLabel: "Deshabilitar",
         cancelLabel: "Cancelar",
         variant: "warning",
@@ -192,7 +192,7 @@ export default function UserActions(props: Props) {
     const ok = await confirm({
       title: `¿Impersonar a ${props.email}?`,
       description:
-        "Vas a ver la app como este usuario. Quedará registrado en el audit log. Podés volver a tu cuenta con el botón rojo en la parte de arriba.",
+        "Vas a ver la app como este usuario. Quedará registrado en el audit log. Puedes volver a tu cuenta con el botón rojo en la parte de arriba.",
       confirmLabel: "Impersonar",
       cancelLabel: "Cancelar",
       variant: "warning",

@@ -38,7 +38,7 @@ export async function validateCoupon(args: {
   amountCents: number;
 }): Promise<ValidateResult> {
   const code = args.code.trim().toUpperCase();
-  if (!code) return { valid: false, reason: "Ingresá un código." };
+  if (!code) return { valid: false, reason: "Ingresa un código." };
 
   const coupon = await prisma.coupon.findUnique({
     where: { code },
@@ -130,7 +130,7 @@ export async function validateCoupon(args: {
  *    en invoiceId (que sí tiene unique constraint). Si dos webhooks
  *    paralelos intentan recordRedemption para invoices distintos pero
  *    misma agency, el segundo va a chocar al crear redemption porque
- *    validateCoupon habría devuelto false al hacer findFirst dentro del tx
+ *    validateCoupon habrea devuelto false al hacer findFirst dentro del tx
  *    (con Serializable isolation rompiendo el segundo commit).
  *
  * Retorna `true` si la redención se aplicó, `false` si fue rechazada por

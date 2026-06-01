@@ -64,7 +64,7 @@ export default function LoginForm() {
       <form onSubmit={onSubmit2fa} className="space-y-4">
         <div>
           <p className="text-sm text-zinc-300">
-            Tu cuenta tiene 2FA activado. Ingresá el código de 6 dígitos
+            Tu cuenta tiene 2FA activado. Ingresa el código de 6 dígitos
             de tu app autenticadora, o un código de recuperación.
           </p>
         </div>

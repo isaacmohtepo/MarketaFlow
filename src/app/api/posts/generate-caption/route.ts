@@ -167,7 +167,7 @@ export async function POST(req: Request) {
           ? `Tono solicitado: ${body.tone}. Las 3 variantes deben mantener este tono pero con ángulos distintos (descriptivo, beneficio, llamada a la acción).`
           : null,
         body.hashtags && body.hashtags.length > 0
-          ? `Hashtags REQUERIDOS (incluir SIEMPRE): ${body.hashtags.map((h) => "#" + h.replace(/^#/, "")).join(" ")}. Podés sumar 2-3 adicionales relevantes.`
+          ? `Hashtags REQUERIDOS (incluir SIEMPRE): ${body.hashtags.map((h) => "#" + h.replace(/^#/, "")).join(" ")}. Puedes sumar 2-3 adicionales relevantes.`
           : null,
         body.currentCaption
           ? `\nEl usuario ya escribió este borrador, mejóralo y propón 3 alternativas:\n"""${body.currentCaption}"""`

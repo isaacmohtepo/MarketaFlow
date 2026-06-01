@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -33,7 +34,9 @@ export async function POST(req: Request) {
     data: {
       totpSecret: null,
       totpEnabledAt: null,
-      recoveryCodesHash: undefined,
+      // null (no undefined): undefined hace que Prisma IGNORE el campo y los
+      // códigos de recuperación sobrevivirían al desactivar 2FA.
+      recoveryCodesHash: Prisma.DbNull,
     },
   });
 

@@ -33,7 +33,7 @@ export default async function AdminCommunicationsPage() {
             Aún no enviaste ninguna comunicación
           </p>
           <p className="mt-1 text-[12px] text-zinc-500">
-            Creá tu primer broadcast con el botón de arriba.
+            Crea tu primer broadcast con el botón de arriba.
           </p>
         </div>
       ) : (

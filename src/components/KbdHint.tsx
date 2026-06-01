@@ -13,7 +13,7 @@ function modKeyLabel(isMac: boolean): string {
  *
  * Renderiza inline plain text (apto para usar dentro de placeholder o tooltips
  * cuando se usa como string via {modKey()}). Para mostrarlo como kbd con estilo,
- * pasá `withStyle`.
+ * pasa `withStyle`.
  */
 export default function KbdHint({
   children,

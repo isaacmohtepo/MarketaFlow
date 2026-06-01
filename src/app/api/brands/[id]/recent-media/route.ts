@@ -17,12 +17,13 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: brandId } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const access = await getBrandAccess(user.id, brandId);
+  const access = await getBrandAccess(user.id, brandRef);
   if (!access) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
+  const brandId = access.brandId; // ref → id real
 
   const url = new URL(req.url);
   const limit = Math.min(

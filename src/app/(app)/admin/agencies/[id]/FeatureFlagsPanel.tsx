@@ -5,7 +5,7 @@ import { Loader2, Flag } from "lucide-react";
 import { toast } from "sonner";
 
 // Mantener corto: solo flags reales con código que los consulta. Si
-// agregás un flag nuevo, también agregalo a KNOWN_FLAGS en lib/features.ts.
+// agregas un flag nuevo, también agregalo a KNOWN_FLAGS en lib/features.ts.
 const FLAG_INFO: Record<string, { label: string; description: string }> = {
   ai_captions: {
     label: "AI Captions",
@@ -56,7 +56,7 @@ export default function FeatureFlagsPanel({ agencyId }: { agencyId: string }) {
         <h2 className="text-sm font-semibold text-zinc-900">Feature flags</h2>
       </div>
       <p className="mt-0.5 text-[11.5px] text-zinc-500">
-        Habilitá o deshabilitá features experimentales por agency.
+        Habilita o deshabilita features experimentales por agency.
         Cambios al instante — la app re-chequea con cada request.
       </p>
 

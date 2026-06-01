@@ -5,7 +5,7 @@
  *   import { t } from "@/lib/i18n";
  *   t("dashboard.greeting", "es", { name: "Isaac" })
  *
- * Default locale es "es". Para agregar nuevos strings, sumá al diccionario
+ * Default locale es "es". Para agregar nuevos strings, suma al diccionario
  * abajo. Strings que no estén en el dict de una locale caen al de español.
  *
  * No usamos next-intl/i18next porque agregan ~20kb y complejidad de routing.

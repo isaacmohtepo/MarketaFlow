@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   var TOKEN = '';
   try { TOKEN = new URL(SRC).searchParams.get('token') || ''; } catch(e){}
   if (!TOKEN) {
-    console.warn('[MarketaFlow] widget cargó sin token. Agregá ?token=tu_token al src.');
+    console.warn('[MarketaFlow] widget cargó sin token. Agrega ?token=tu_token al src.');
     return;
   }
 
@@ -295,7 +295,7 @@ export async function GET(req: Request) {
     }
 
     var lbl2 = el('label'); lbl2.textContent = 'Comentario';
-    var textarea = el('textarea', { rows: 4, placeholder: 'Describí lo que viste o el cambio que querés…' });
+    var textarea = el('textarea', { rows: 4, placeholder: 'Describe lo que viste o el cambio que quieres…' });
     popover.appendChild(lbl2);
     popover.appendChild(textarea);
 
@@ -317,7 +317,7 @@ export async function GET(req: Request) {
         if (!name) { err.textContent = 'Tu nombre es obligatorio'; return; }
       }
       var bodyText = textarea.value.trim();
-      if (!bodyText) { err.textContent = 'Escribí un comentario'; return; }
+      if (!bodyText) { err.textContent = 'Escribe un comentario'; return; }
       err.textContent = '';
       sendBtn.disabled = true; cancelBtn.disabled = true;
       sendBtn.textContent = 'Enviando…';
@@ -333,7 +333,7 @@ export async function GET(req: Request) {
           popover.appendChild(okMsg);
           setTimeout(closeDraft, 1500);
         } else {
-          err.textContent = 'No se pudo enviar. Probá de nuevo.';
+          err.textContent = 'No se pudo enviar. Prueba de nuevo.';
           sendBtn.disabled = false; cancelBtn.disabled = false;
           sendBtn.textContent = 'Enviar';
         }
@@ -395,7 +395,7 @@ export async function GET(req: Request) {
     var screenshot = await captureViewport();
     if (!screenshot) {
       removePin();
-      alert('[MarketaFlow] No se pudo capturar la página. Verificá que html2canvas pudo correr.');
+      alert('[MarketaFlow] No se pudo capturar la página. Verifica que html2canvas pudo correr.');
       return;
     }
     state.draft = {

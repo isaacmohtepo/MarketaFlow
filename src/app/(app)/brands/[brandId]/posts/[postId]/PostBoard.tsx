@@ -151,7 +151,7 @@ export default function PostBoard({
   // ===== Video commenting =====
   // El primer media item con mime video/* habilita el modo video. Solo
   // soportamos archivos subidos directamente (mp4/webm/mov), no embeds
-  // de YouTube/Vimeo (que viven en post.sourceUrl, no acá).
+  // de YouTube/Vimeo (que viven en post.sourceUrl, no aquí).
   const videoMedia = (mediaItems ?? []).find((m) =>
     (m.mime ?? "").startsWith("video/"),
   );
@@ -668,7 +668,7 @@ export default function PostBoard({
     const ok = await confirmDialog({
       title: `Restaurar versión ${versionNumber}`,
       description:
-        "Se guardará un snapshot del estado actual antes de sobrescribir, así podés volver atrás.",
+        "Se guardará un snapshot del estado actual antes de sobrescribir, así puedes volver atrás.",
       confirmLabel: "Restaurar",
       variant: "warning",
     });
@@ -753,7 +753,7 @@ export default function PostBoard({
           <div className={`mb-3 ${compareWith ? "hidden" : ""}`}>
             <VideoEmbed url={externalVideoUrl} />
             <p className="mt-2 text-[11px] text-zinc-500">
-              Comentá abajo. (Anclar comentarios a un momento del video solo funciona si subís el archivo directo, no con embeds de YouTube/Vimeo/Loom.)
+              Comenta abajo. (Anclar comentarios a un momento del video solo funciona si subes el archivo directo, no con embeds de YouTube/Vimeo/Loom.)
             </p>
           </div>
         )}
@@ -799,7 +799,7 @@ export default function PostBoard({
           ref={imgWrapRef}
           onClick={onImageClick}
           className={`relative aspect-square cursor-crosshair overflow-hidden rounded-xl card p-2 select-none ${
-            // Ocultá el carrusel si:
+            // Oculta el carrusel si:
             // - estamos comparando versiones, O
             // - no hay nada de imagen para mostrar (post video-only,
             //   etc) — antes mostraba un placeholder/icono roto.
@@ -964,7 +964,7 @@ export default function PostBoard({
                       multiline
                       rows={2}
                       autoFocus
-                      placeholder="Comenta sobre este punto… usá @ para mencionar"
+                      placeholder="Comenta sobre este punto… usa @ para mencionar"
                       className="w-full rounded-md input-soft px-2 py-1.5 text-[13px]"
                     />
                     <div className="mt-2 flex justify-end gap-2">
@@ -1205,7 +1205,7 @@ export default function PostBoard({
               Auto-publicación próximamente
             </p>
             <p className="mt-0.5 text-[11px] text-zinc-500">
-              Por ahora, copiá el caption y subí el contenido desde Instagram.
+              Por ahora, copia el caption y sube el contenido desde Instagram.
             </p>
           </div>
         )}
@@ -1261,7 +1261,7 @@ export default function PostBoard({
                   <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
                   <p
                     className="flex-1 truncate text-[11.5px] text-zinc-600"
-                    title="Si está listo, aprobalo. Si necesita ajustes, dejá un comentario y se enviará como pedido de cambios."
+                    title="Si está listo, aprobalo. Si necesita ajustes, deja un comentario y se enviará como pedido de cambios."
                   >
                     Listo para aprobar
                   </p>
@@ -1278,7 +1278,7 @@ export default function PostBoard({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <Check className="h-4 w-4 flex-shrink-0 text-emerald-600" strokeWidth={3} />
                   <p className="flex-1 min-w-[180px] text-[12.5px] font-medium text-zinc-800">
-                    ¿Confirmás la aprobación de este post?
+                    ¿Confirmas la aprobación de este post?
                   </p>
                   <button
                     onClick={() => setConfirmingApprove(false)}
@@ -1310,7 +1310,7 @@ export default function PostBoard({
               <span className="text-base leading-none">🔒</span>
               <p className="flex-1 leading-tight">
                 <span className="font-bold">Modo equipo.</span> Los comentarios nuevos quedan
-                privados — el cliente no ve este post ni los comentarios. Cambiá el status a{" "}
+                privados — el cliente no ve este post ni los comentarios. Cambia el status a{" "}
                 <span className="font-semibold">En revisión</span> cuando esté listo.
               </p>
             </div>
@@ -1457,7 +1457,7 @@ export default function PostBoard({
                           onChange={setReplyBody}
                           brandId={brandIdFromUrl ?? ""}
                           autoFocus
-                          placeholder="Escribe una respuesta… usá @ para mencionar"
+                          placeholder="Escribe una respuesta… usa @ para mencionar"
                           containerClassName="flex-1"
                           className="w-full rounded-md input-soft px-2 py-1.5 text-[13px]"
                           onKeyDown={(e) => {
@@ -1500,7 +1500,7 @@ export default function PostBoard({
                 value={body}
                 onChange={setBody}
                 brandId={brandIdFromUrl ?? ""}
-                placeholder="Escribir un comentario… usá @ para mencionar"
+                placeholder="Escribir un comentario… usa @ para mencionar"
                 inputRef={commentInputRef}
                 containerClassName="flex-1"
                 className="w-full rounded-lg input-soft pl-3 pr-3 py-2 text-sm"
@@ -1584,7 +1584,7 @@ export default function PostBoard({
           )}
           {canApprovePost && liveStatus === "in_review" ? (
             <p className="mt-1.5 text-[10.5px] text-zinc-500">
-              Si comentás, el post pasa automáticamente a <span className="font-semibold text-rose-600">Cambios solicitados</span> y se notifica a la agencia.
+              Si comentas, el post pasa automáticamente a <span className="font-semibold text-rose-600">Cambios solicitados</span> y se notifica a la agencia.
             </p>
           ) : (
             <p className="mt-1.5 text-[10.5px] text-zinc-400">

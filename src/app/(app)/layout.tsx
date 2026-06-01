@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
-import { getUserAgencyName } from "@/lib/agency";
+import {
+  getActiveAgencyMembership,
+  listUserWorkspaces,
+} from "@/lib/active-agency";
 import { prisma } from "@/lib/db";
 import AppShell from "@/components/AppShell";
 import ImpersonateBanner from "@/components/ImpersonateBanner";
@@ -30,8 +33,15 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [agencyName, userRow, ownerMembership, anyMembership] = await Promise.all([
-    getUserAgencyName(user.id),
+  // Workspace activo: el usuario puede pertenecer a varias agencias (la suya
+  // + las que lo invitaron). resolveActiveAgency lee la cookie mf_workspace
+  // (validada contra membership) y cae a un fallback determinista. TODO lo de
+  // abajo (permisos, branding, billing, banner) se computa sobre la agencia
+  // ACTIVA para que el selector de workspace sea coherente.
+  const active = await getActiveAgencyMembership(user.id);
+  const activeAgencyId = active?.agencyId ?? null;
+
+  const [userRow, activeAgencyRow, workspaces] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -41,40 +51,31 @@ export default async function AppLayout({
         createdAt: true,
       },
     }),
-    prisma.membership.findFirst({
-      where: { userId: user.id, role: "owner", brandId: null },
-      select: { id: true, agencyId: true },
-    }),
-    // Para detectar si la agency del user está suspended, traemos cualquier
-    // membership con la agency. Si tiene varias agencies y alguna está
-    // suspended, mostramos banner solo si la "primaria" (primera) lo está.
-    prisma.membership.findFirst({
-      where: { userId: user.id },
-      include: {
-        agency: {
+    activeAgencyId
+      ? prisma.agency.findUnique({
+          where: { id: activeAgencyId },
           select: {
             id: true,
             name: true,
             suspendedAt: true,
             suspendedReason: true,
           },
-        },
-      },
-      orderBy: { id: "asc" },
-    }),
+        })
+      : null,
+    listUserWorkspaces(user.id),
   ]);
 
   const isAdmin = userRow?.role === "admin";
-  const isOwner = !!ownerMembership;
-  const suspendedAgency =
-    anyMembership?.agency.suspendedAt
-      ? anyMembership.agency
-      : null;
+  // isOwner = owner DE LA AGENCIA ACTIVA (no de cualquiera). Los invitados a
+  // una agencia ajena no ven billing/owner-only de esa agencia.
+  const isOwner = active?.role === "owner";
+  const agencyName = activeAgencyRow?.name ?? null;
+  const suspendedAgency = activeAgencyRow?.suspendedAt ? activeAgencyRow : null;
 
-  // Computar permisos del user en su agency (agency-wide + brand-scoped).
+  // Computar permisos del user en su agency activa (agency-wide + brand-scoped).
   // Sirven para que la UI esconda lo que el user no puede hacer. Se computa
   // una sola vez por request y se pasa al cliente vía PermissionsProvider.
-  const agencyId = anyMembership?.agencyId;
+  const agencyId = activeAgencyId ?? undefined;
   const agencyPerms = new Set<string>();
   const brandPerms: Record<string, string[]> = {};
   const userRoles = new Set<string>();
@@ -112,9 +113,9 @@ export default async function AppLayout({
   // Banner de gracia: cuando el plan venció (past_due) mostramos aviso
   // diario con días restantes hasta bajar a Free.
   let pastDueGrace: { planName: string; daysLeft: number } | null = null;
-  if (isOwner && ownerMembership) {
+  if (isOwner && activeAgencyId) {
     try {
-      const summary = await getBillingSummary(ownerMembership.agencyId);
+      const summary = await getBillingSummary(activeAgencyId);
       const plan = PLANS[summary.planId];
       planCard = {
         planId: summary.planId,
@@ -177,14 +178,11 @@ export default async function AppLayout({
 
   const featureFlags = getFeatureFlags();
 
-  // Resolver white-label de la agency primaria del user. Si está
-  // activo, inyectamos las variables CSS y pasamos el logo/brandName
-  // al AppShell. Cuando no hay white-label, usamos branding default.
-  const primaryAgencyId =
-    ownerMembership?.agencyId ?? anyMembership?.agencyId ?? null;
-  const wl = primaryAgencyId
-    ? await getWhiteLabel(primaryAgencyId)
-    : null;
+  // Resolver white-label de la agencia ACTIVA. Si está activo, inyectamos las
+  // variables CSS y pasamos el logo/brandName al AppShell. Al cambiar de
+  // workspace, router.refresh() re-resuelve esto con el branding de la nueva
+  // agencia. Cuando no hay white-label, usamos branding default.
+  const wl = activeAgencyId ? await getWhiteLabel(activeAgencyId) : null;
   const wlCss = wl ? whiteLabelCssOverride(wl) : "";
 
   return (
@@ -213,6 +211,8 @@ export default async function AppLayout({
       isAdmin={isAdmin}
       isOwner={isOwner}
       planCard={planCard}
+      workspaces={workspaces}
+      activeAgencyId={activeAgencyId}
       banners={
         <>
           {impersonator && (

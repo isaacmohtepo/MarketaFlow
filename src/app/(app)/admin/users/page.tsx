@@ -82,7 +82,7 @@ export default async function AdminUsersPage({
             </p>
             {totalAll > 0 && (
               <p className="mt-1 text-[11.5px] text-zinc-500">
-                Probá limpiar la búsqueda.
+                Prueba limpiar la búsqueda.
               </p>
             )}
           </div>

@@ -130,6 +130,7 @@ export async function notifyBrandClients(opts: {
   type: string;
   body: string;
   actorName: string;
+  actorAvatarUrl?: string | null;
   // Si el actor también está en este pool (raro pero posible si un user
   // tiene rol "client" en su propia brand), lo excluimos para que no se
   // mande notificaciones a sí mismo.
@@ -152,6 +153,7 @@ export async function notifyBrandClients(opts: {
       brandId: opts.brandId,
       postId: opts.postId,
       actorName: opts.actorName,
+      actorAvatarUrl: opts.actorAvatarUrl ?? null,
     })),
   });
   // Email fire-and-forget
@@ -167,6 +169,7 @@ export async function notifyMentionedUsers(opts: {
   postId: string;
   body: string;
   actorName: string;
+  actorAvatarUrl?: string | null;
   // Defensa por si el caller no filtró: nunca notificar al propio actor.
   excludeUserId?: string;
 }) {
@@ -180,6 +183,7 @@ export async function notifyMentionedUsers(opts: {
       brandId: opts.brandId,
       postId: opts.postId,
       actorName: opts.actorName,
+      actorAvatarUrl: opts.actorAvatarUrl ?? null,
     })),
   });
   dispatchEmails(userIds, {
@@ -194,12 +198,13 @@ export async function notifyMentionedUsers(opts: {
 /**
  * Notifica a los miembros de la agencia que pueden hacer aprobación interna
  * (permiso `posts.approve_internal`) que hay un post esperando su revisión
- * antes de mandárselo al cliente.
+ * antes de mverselo al cliente.
  */
 export async function notifyAgencyForInternalReview(opts: {
   brandId: string;
   postId: string;
   actorName: string;
+  actorAvatarUrl?: string | null;
   excludeUserId?: string;
 }) {
   const brand = await prisma.brand.findUnique({
@@ -233,6 +238,7 @@ export async function notifyAgencyForInternalReview(opts: {
       brandId: opts.brandId,
       postId: opts.postId,
       actorName: opts.actorName,
+      actorAvatarUrl: opts.actorAvatarUrl ?? null,
     })),
   });
 
@@ -257,6 +263,7 @@ export async function notifyBrandAgency(opts: {
   type: string;
   body: string;
   actorName: string;
+  actorAvatarUrl?: string | null;
   excludeUserId?: string;
 }) {
   const brand = await prisma.brand.findUnique({ where: { id: opts.brandId } });
@@ -281,6 +288,7 @@ export async function notifyBrandAgency(opts: {
       brandId: opts.brandId,
       postId: opts.postId || null,
       actorName: opts.actorName,
+      actorAvatarUrl: opts.actorAvatarUrl ?? null,
     })),
   });
   dispatchEmails(targets, { ...opts, postId: opts.postId ?? "" }).catch((err) =>

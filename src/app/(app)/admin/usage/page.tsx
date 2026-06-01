@@ -285,8 +285,8 @@ export default async function AdminUsagePage() {
         )}
       </section>
 
-      {/* Editor de planes — collapsado por default. Si upgradeás un servicio,
-          venís acá y actualizas el tier + límite + costo */}
+      {/* Editor de planes — collapsado por default. Si actualizas un servicio,
+          vienes aquí y actualizas el tier + límite + costo */}
       <PlansEditor initial={plans} />
 
       {/* Alertas si algo se está acercando al límite */}

@@ -60,7 +60,7 @@ export default function DangerZone() {
           </p>
           <p className="mt-0.5 text-[11.5px] text-rose-800/80">
             Se borran tus comentarios, aprobaciones, notificaciones y se cierran todas tus sesiones.
-            Las marcas y posts quedan en la agencia. Si sos el único dueño de una agencia con otros miembros,
+            Las marcas y posts quedan en la agencia. Si eres el único dueño de una agencia con otros miembros,
             no podrás eliminar la cuenta hasta transferir la propiedad.
           </p>
         </div>

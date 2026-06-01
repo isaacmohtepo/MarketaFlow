@@ -29,7 +29,9 @@ export default function AcceptForm({
             name: fd.get("name"),
             email,
             password: fd.get("password"),
-            agencyName: "(invited)",
+            // Sin agencyName: el invitado NO obtiene agencia personal. Se une
+            // a la empresa que lo invitó (su workspace por defecto). El
+            // inviteToken le dice al register que es un registro por invitación.
             inviteToken: token,
           }
         : { email, password: fd.get("password") };

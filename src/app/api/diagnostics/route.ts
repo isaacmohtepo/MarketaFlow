@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { isAdmin } from "@/lib/admin";
 import { canCreatePost, getEffectiveLimits } from "@/lib/billing";
 import { isR2Configured } from "@/lib/storage";
@@ -41,10 +42,7 @@ export async function GET(req: Request) {
     if (brand) agencyId = brand.agencyId;
   }
   if (!agencyId) {
-    const m = await prisma.membership.findFirst({
-      where: { userId: user.id, brandId: null },
-      select: { agencyId: true },
-    });
+    const m = await getActiveAgencyMembership(user.id);
     agencyId = m?.agencyId ?? null;
   }
 
@@ -93,7 +91,7 @@ export async function GET(req: Request) {
     issues.push(
       adminMode
         ? "Storage no está configurado. Las imágenes y videos no se pueden persistir en producción. El admin tiene que setear R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL en las env vars de Vercel."
-        : "Storage no está configurado. Contactá al admin del sistema.",
+        : "Storage no está configurado. Contacta al admin del sistema.",
     );
   } else if (doWriteTest) {
     storage.writeTest = await runR2WriteTest();

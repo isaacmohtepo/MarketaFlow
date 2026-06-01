@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyId } from "@/lib/active-agency";
 import { hasPermission } from "@/lib/permissions";
 import { getEffectiveLimits } from "@/lib/billing";
 import { audit } from "@/lib/audit";
@@ -65,11 +66,7 @@ const patchSchema = z.object({
 });
 
 async function resolveAgencyId(userId: string): Promise<string | null> {
-  const m = await prisma.membership.findFirst({
-    where: { userId, brandId: null },
-    select: { agencyId: true },
-  });
-  return m?.agencyId ?? null;
+  return getActiveAgencyId(userId);
 }
 
 export async function GET() {
@@ -128,7 +125,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Tu plan no incluye white-label. Comprá el add-on White-label en /billing o subí a Agency.",
+          "Tu plan no incluye white-label. Compra el add-on White-label en /billing o sube a Agency.",
       },
       { status: 402 },
     );

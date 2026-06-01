@@ -102,6 +102,9 @@ export async function POST(
     maxAge: 60 * 60 * 8, // 8h máximo
     path: "/",
   });
+  // El workspace activo es del admin, no del target → limpiar para que el
+  // target caiga a su propio fallback.
+  jar.delete("mf_workspace");
 
   audit({
     category: "admin",

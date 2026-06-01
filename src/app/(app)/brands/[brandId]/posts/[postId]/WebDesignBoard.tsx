@@ -316,7 +316,7 @@ export default function WebDesignBoard({
   // este ancho exacto (no se ajusta al container). Si excede el espacio
   // disponible se escala visualmente con CSS transform para entrar — así el
   // sitio cree estar en widescreen (2400px) y aplica los CSS responsive
-  // correspondientes, pero vos ves un preview proporcional.
+  // correspondientes, pero tú ves un preview proporcional.
   const viewportWidth: number = (() => {
     if (viewport === "mobilePortrait") return Math.min(390, bp.mobilePortrait);
     if (viewport === "tabletPortrait") return bp.mobilePortrait + 1;
@@ -730,7 +730,7 @@ export default function WebDesignBoard({
 
   // Mandar al widget la lista de pines a trackear cuando cambian o cuando se
   // conecta. Solo enviamos pins de la página activa — comments de otra página
-  // tienen selectores que no van a matchear acá y aparecerían como orphan.
+  // tienen selectores que no van a matchear aquí y aparecerían como orphan.
   useEffect(() => {
     if (bridge.state !== "ready" || !sourceOrigin) return;
     const iframe = iframeRef.current;
@@ -783,7 +783,7 @@ export default function WebDesignBoard({
           return {
             state: "blocked",
             reason:
-              "El widget no respondió. Verificá que el script esté instalado en el sitio o que el sitio permita ser embebido (sin X-Frame-Options).",
+              "El widget no respondió. Verifica que el script esté instalado en el sitio o que el sitio permita ser embebido (sin X-Frame-Options).",
           };
         }
         return cur;
@@ -1358,7 +1358,7 @@ export default function WebDesignBoard({
           <span className="text-base leading-none">🔒</span>
           <p className="flex-1 leading-tight">
             <span className="font-bold">Modo equipo.</span> Los comentarios nuevos quedan privados —
-            el cliente no ve este entregable ni los comentarios. Cambiá el status a{" "}
+            el cliente no ve este entregable ni los comentarios. Cambia el status a{" "}
             <span className="font-semibold">En revisión</span> cuando estén listos.
           </p>
         </div>
@@ -1853,7 +1853,7 @@ export default function WebDesignBoard({
                 {capturing
                   ? "Anclando…"
                   : isUserOnMobile
-                    ? "Tocá un componente para comentar"
+                    ? "Toca un componente para comentar"
                     : "Click sobre el componente · Esc para salir"}
               </div>
             </div>
@@ -1969,7 +1969,7 @@ export default function WebDesignBoard({
             );
           })()}
 
-          {/* Click popover: tarjeta con acciones cuando seleccionás un pin.
+          {/* Click popover: tarjeta con acciones cuando seleccionas un pin.
               Counter-scale aplicado para que mantenga tamaño legible cuando
               el wrapper está escalado. Collision detection se calcula contra
               las dimensiones iframe-internas del viewport. */}
@@ -2286,16 +2286,16 @@ export default function WebDesignBoard({
                     <p className="mt-1 text-[12px] text-zinc-600">{bridge.reason}</p>
                     <ul className="mt-3 list-disc space-y-1 pl-5 text-[12px] text-zinc-700">
                       <li>
-                        Verificá que el script <span className="font-mono">widget.js</span> esté
+                        Verifica que el script <span className="font-mono">widget.js</span> esté
                         pegado en el sitio.
                       </li>
                       <li>
                         Si el sitio devuelve <span className="font-mono">X-Frame-Options: DENY</span>
                         {" "}o <span className="font-mono">CSP frame-ancestors</span>, no se puede
-                        embeber. Probá con staging.
+                        embeber. Prueba con staging.
                       </li>
                       <li>
-                        Si todo está bien, tocá <strong>Recargar</strong> arriba.
+                        Si todo está bien, toca <strong>Recargar</strong> arriba.
                       </li>
                     </ul>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -2482,20 +2482,20 @@ export default function WebDesignBoard({
                         : filterMode === "resolved"
                           ? "Aún no hay resueltos"
                           : filterMode === "mine"
-                            ? "No tenés comentarios propios"
+                            ? "No tienes comentarios propios"
                             : filterMode === "assigned_to_me"
-                              ? "Nada asignado a vos 🎉"
+                              ? "Nada asignado a tú 🎉"
                               : filterMode === "internal_only"
                                 ? "Sin notas internas del equipo"
                                 : filterMode === "public_only"
                                   ? "Sin comentarios públicos del cliente"
                                   : filterMode === "awaiting"
                                     ? "Todo respondido"
-                                    : "Nada por acá"}
+                                    : "Nada por aquí"}
                 </p>
                 {canComment && parents.length === 0 && bridge.state === "ready" && (
                   <p className="text-[11px] text-zinc-500">
-                    Tocá <span className="font-medium">Comentar</span> y hacé click sobre cualquier
+                    Toca <span className="font-medium">Comentar</span> y haz click sobre cualquier
                     componente del sitio para anclar feedback.
                   </p>
                 )}

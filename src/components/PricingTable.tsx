@@ -53,7 +53,7 @@ export default function PricingTable() {
 
       <p className="mt-6 text-center text-[12px] text-zinc-500">
         Precios en pesos colombianos. Cobramos via Wompi (PSE, Nequi, tarjeta).
-        Podés cancelar en cualquier momento.
+        Puedes cancelar en cualquier momento.
       </p>
     </div>
   );

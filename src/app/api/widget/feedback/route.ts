@@ -8,24 +8,10 @@ import { recordActivity } from "@/lib/activity";
 import { notifyBrandAgency } from "@/lib/notifications";
 import { getEffectiveLimits } from "@/lib/billing";
 import { rateLimit } from "@/lib/rate-limit";
+import { widgetCors as corsHeaders } from "@/lib/cors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/**
- * El widget se carga desde el dominio del CLIENTE (no de MarketaFlow), así
- * que CORS tiene que permitir cross-origin. En vez de "*" abierto, devolvemos
- * el `Origin` exacto que vino en el request — esto es válido y CORS-compliant
- * para POST/OPTIONS, y no expone headers a sitios distintos.
- */
-function corsHeaders(origin: string | null): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": origin ?? "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
-  };
-}
 
 export async function OPTIONS(req: Request) {
   return new Response(null, {
@@ -39,7 +25,7 @@ const schema = z.object({
   body: z.string().min(1).max(2000),
   reporterName: z.string().min(1).max(80),
   // reporterEmail removido — antes permitía indicar un email arbitrario
-  // que era usado para identificar al user, lo que abría un vector de
+  // que era usado para identificar al user, lo que abrea un vector de
   // overwriting de users reales. Ahora siempre generamos un email guest.
   // Restringir a http(s) — z.url() permite javascript:/data: que se renderizan
   // como link clickeable en el panel de comentarios → XSS si un attacker manda
@@ -77,7 +63,7 @@ export async function POST(req: Request) {
   if (!rl.ok) {
     return jsonCors(
       req,
-      { error: "Demasiados comentarios. Probá en unos minutos." },
+      { error: "Demasiados comentarios. Prueba en unos minutos." },
       429,
     );
   }
@@ -147,8 +133,8 @@ export async function POST(req: Request) {
   // 2) Resolver "reporter" como User. SIEMPRE generamos un email guest
   //    derivado del brand+nombre para evitar:
   //    a) "account takeover por nombre": un widget anónimo NO puede modificar
-  //       el name de un user real registrado (antes pasábamos reporterEmail
-  //       al server, si coincidía con un user real le cambiábamos el name).
+  //       el name de un user real registrado (antes pasabamos reporterEmail
+  //       al server, si coincidía con un user real le cambiabamos el name).
   //    b) Phishing reverso: alguien deja feedback como "support@google.com"
   //       y aparece como ese user en la timeline.
   //

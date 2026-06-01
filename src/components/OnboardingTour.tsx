@@ -32,27 +32,27 @@ const STEPS: Step[] = [
     icon: Layers,
     title: "Cada cliente, una marca",
     body: () =>
-      "Crea una marca por cada cliente. Cada una tiene su propio feed, equipo y aprobaciones. Empezá creando la primera desde el dashboard.",
+      "Crea una marca por cada cliente. Cada una tiene su propio feed, equipo y aprobaciones. Empieza creando la primera desde el dashboard.",
     cta: { label: "Ir a Marcas", href: "/brands" },
   },
   {
     icon: CheckCircle2,
     title: "Aprobación sin fricción",
     body: () =>
-      "Tu cliente abre un link sin registrarse, comenta sobre la imagen y aprueba con un click. Activá el link público desde Settings de la marca.",
+      "Tu cliente abre un link sin registrarse, comenta sobre la imagen y aprueba con un click. Activa el link público desde Settings de la marca.",
   },
   {
     icon: Bell,
     title: "Todo en tiempo real",
     body: () =>
-      "Comentarios, aprobaciones y menciones llegan al instante. Activa las notificaciones de escritorio en /account si querés enterarte aunque estés en otra pestaña.",
+      "Comentarios, aprobaciones y menciones llegan al instante. Activa las notificaciones de escritorio en /account si quieres enterarte aunque estés en otra pestaña.",
     cta: { label: "Configurar notificaciones", href: "/account" },
   },
   {
     icon: Keyboard,
     title: "Atajos para ir más rápido",
     body: (mod) =>
-      `Pulsá ${mod}+K para buscar y navegar, o ? en cualquier parte para ver todos los atajos. ¡A volar!`,
+      `Pulsa ${mod}+K para buscar y navegar, o ? en cualquier parte para ver todos los atajos. ¡A volar!`,
   },
 ];
 

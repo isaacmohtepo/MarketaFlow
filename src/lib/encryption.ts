@@ -48,7 +48,7 @@ async function getKey(): Promise<Buffer> {
   }
 
   throw new Error(
-    "No hay master key configurada. Andá a /admin/setup para generar una.",
+    "No hay master key configurada. Ve a /admin/setup para generar una.",
   );
 }
 
@@ -77,7 +77,7 @@ export async function generateAndSaveMasterKey(): Promise<{ generated: boolean }
   });
   if (existing) {
     throw new Error(
-      "Ya hay una master key configurada. Para rotar, usá la opción de rotación (re-encripta todo).",
+      "Ya hay una master key configurada. Para rotar, usa la opción de rotación (re-encripta todo).",
     );
   }
   const value = randomBytes(32).toString("hex");
@@ -199,7 +199,7 @@ export async function rotateMasterKey(args: {
       decrypted.push({ id: cfg.id, plaintext: plain });
     } catch {
       throw new Error(
-        `No se pudo desencriptar la config ${cfg.id} con la key actual. Rotación abortada — algo está corrupto. Contactá soporte antes de seguir.`,
+        `No se pudo desencriptar la config ${cfg.id} con la key actual. Rotación abortada — algo está corrupto. Contacta soporte antes de seguir.`,
       );
     }
   }

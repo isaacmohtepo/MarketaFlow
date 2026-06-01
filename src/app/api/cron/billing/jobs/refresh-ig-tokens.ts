@@ -5,6 +5,7 @@ import {
   markIgNeedsReconnect,
 } from "@/lib/instagram-token";
 import { sendEmail } from "@/lib/email";
+import { escapeHtml } from "@/lib/sanitize-html";
 
 /**
  * Refresh automático de tokens de Instagram.
@@ -100,7 +101,7 @@ export async function runIgTokenRefresh(): Promise<{
           if (ownerEmail && !ownerEmail.endsWith("@guest.local")) {
             await sendEmail({
               to: ownerEmail,
-              subject: `Reconectá Instagram para ${brand.name}`,
+              subject: `Reconecta Instagram para ${brand.name}`,
               html: `
                 <p style="font-family:system-ui,sans-serif;color:#1d1d1f;line-height:1.6">
                   Hola,<br/><br/>
@@ -108,7 +109,7 @@ export async function runIgTokenRefresh(): Promise<{
                   <strong>${escapeHtml(brand.name)}</strong> caducó o fue revocado.
                   Mientras no se reconecte, los posts programados no se van a
                   publicar automáticamente.<br/><br/>
-                  Andá a Configuración → Instagram en MarketaFlow y conectá
+                  Ve a Configuración → Instagram en MarketaFlow y conecta
                   la cuenta de nuevo. Es solo 1 click.
                 </p>
               `,
@@ -133,13 +134,4 @@ export async function runIgTokenRefresh(): Promise<{
     }
   }
   return stats;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }

@@ -9,6 +9,7 @@ import {
   type SystemRoleSlug,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 
 /**
  * Override de permisos de un system role para una agency.
@@ -25,10 +26,7 @@ import { audit } from "@/lib/audit";
  */
 
 async function getMyAgency(userId: string) {
-  return prisma.membership.findFirst({
-    where: { userId, brandId: null },
-    select: { agencyId: true, role: true },
-  });
+  return getActiveAgencyMembership(userId);
 }
 
 const putSchema = z.object({

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { validateCoupon } from "@/lib/coupons";
 
@@ -32,10 +32,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const m = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const m = await getActiveAgencyMembership(user.id);
   if (!m) return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
 
   const plan = PLANS[body.planId as PlanId];

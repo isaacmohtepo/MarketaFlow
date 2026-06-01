@@ -20,6 +20,7 @@ export default function BrandsAccessList({
 }: {
   brands: {
     id: string;
+    slug: string | null;
     name: string;
     logoUrl: string | null;
     color: string | null;
@@ -33,7 +34,7 @@ export default function BrandsAccessList({
         <Layers className="mx-auto h-6 w-6 text-zinc-300" />
         <p className="mt-2 text-[13px] font-medium text-zinc-700">Sin acceso a marcas</p>
         <p className="text-[11px] text-zinc-500">
-          Cuando te inviten a una marca aparecerá acá.
+          Cuando te inviten a una marca aparecerá aquí.
         </p>
       </div>
     );
@@ -48,7 +49,7 @@ export default function BrandsAccessList({
         return (
           <li key={b.id}>
             <Link
-              href={`/brands/${b.id}`}
+              href={`/brands/${b.slug ?? b.id}`}
               className="group flex items-center gap-3 p-3 transition hover:bg-zinc-50"
             >
               <span

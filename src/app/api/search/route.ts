@@ -51,7 +51,7 @@ export async function GET(req: Request) {
       },
       orderBy: { updatedAt: "desc" },
       take: 8,
-      include: { brand: { select: { id: true, name: true } } },
+      include: { brand: { select: { id: true, name: true, slug: true } } },
     }),
     prisma.brand.findMany({
       where: {
@@ -77,9 +77,10 @@ export async function GET(req: Request) {
         post: {
           select: {
             id: true,
+            number: true,
             brandId: true,
             imageUrl: true,
-            brand: { select: { name: true } },
+            brand: { select: { name: true, slug: true } },
           },
         },
       },
@@ -89,7 +90,9 @@ export async function GET(req: Request) {
   return NextResponse.json({
     posts: posts.map((p) => ({
       id: p.id,
+      number: p.number,
       brandId: p.brandId,
+      brandSlug: p.brand.slug,
       brandName: p.brand.name,
       caption: p.caption,
       imageUrl: p.imageUrl,
@@ -97,6 +100,7 @@ export async function GET(req: Request) {
     })),
     brands: brands.map((b) => ({
       id: b.id,
+      slug: b.slug,
       name: b.name,
       handle: b.handle,
     })),
@@ -105,7 +109,9 @@ export async function GET(req: Request) {
       body: c.body,
       authorName: c.user.name ?? c.user.email,
       postId: c.post.id,
+      postNumber: c.post.number,
       brandId: c.post.brandId,
+      brandSlug: c.post.brand.slug,
       brandName: c.post.brand.name,
       postImageUrl: c.post.imageUrl,
       createdAt: c.createdAt.toISOString(),

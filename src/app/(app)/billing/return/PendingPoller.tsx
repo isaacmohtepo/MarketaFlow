@@ -37,7 +37,7 @@ export default function PendingPoller({
     return (
       <p className="mt-3 text-[11px] text-zinc-400">
         Llevamos {Math.round(elapsedSec / 60)} minutos esperando confirmación.
-        Refrescá la página manualmente o contactá soporte si pasaron más de 10
+        Refresca la página manualmente o contacta soporte si pasaron más de 10
         minutos.
       </p>
     );

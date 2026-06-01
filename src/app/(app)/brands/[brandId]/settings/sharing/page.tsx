@@ -19,7 +19,7 @@ export default async function BrandSettingsSharing({
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     select: { publicToken: true, inviteCode: true },
   });
   if (!brand) notFound();

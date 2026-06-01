@@ -24,6 +24,8 @@ const TONE_COLOR: Record<"good" | "warn" | "bad" | "neutral", string> = {
 
 export type BrandRow = {
   id: string;
+  /** Slug legible para la URL. Si null (sin backfill), se cae al id. */
+  slug: string | null;
   name: string;
   handle: string | null;
   logoUrl: string | null;
@@ -36,15 +38,20 @@ export type BrandRow = {
   pending: number;
   published: number;
   kpis: BrandKpis;
+  /** Tareas abiertas (no completadas) ligadas a esta marca. */
+  openTasks: number;
+  /** De esas, cuántas están vencidas (due-date pasado). */
+  overdueTasks: number;
 };
 
-type SortKey = "name" | "active" | "pending" | "approval";
+type SortKey = "name" | "active" | "pending" | "approval" | "tasks";
 
 const SORT_LABELS: Record<SortKey, string> = {
   name: "Nombre",
   active: "Más activas",
   pending: "Más pendientes",
   approval: "Mejor aprobación",
+  tasks: "Más tareas",
 };
 
 const BRAND_COLORS = ["#3b5fff", "#8a2be2", "#ff4d8f", "#ff2d55", "#0ea5e9", "#22c55e"];
@@ -52,10 +59,13 @@ const BRAND_COLORS = ["#3b5fff", "#8a2be2", "#ff4d8f", "#ff2d55", "#0ea5e9", "#2
 export default function BrandsList({
   brands,
   canCreate,
+  canViewTasks = false,
   onCreatedRefresh,
 }: {
   brands: BrandRow[];
   canCreate: boolean;
+  /** Si false (ej. clientes), no se muestra la columna/orden de tareas. */
+  canViewTasks?: boolean;
   onCreatedRefresh?: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -81,6 +91,12 @@ export default function BrandsList({
           return b.pending - a.pending || b.total - a.total;
         case "approval":
           return (b.kpis.approvalRate ?? -1) - (a.kpis.approvalRate ?? -1);
+        case "tasks":
+          return (
+            b.overdueTasks - a.overdueTasks ||
+            b.openTasks - a.openTasks ||
+            b.pending - a.pending
+          );
         case "active":
         default:
           return (
@@ -117,7 +133,7 @@ export default function BrandsList({
         >
           Con pendientes
         </button>
-        <SortDropdown value={sort} onChange={setSort} />
+        <SortDropdown value={sort} onChange={setSort} canViewTasks={canViewTasks} />
       </div>
 
       {/* Conteo */}
@@ -129,7 +145,7 @@ export default function BrandsList({
       {/* Grid */}
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((b, i) => (
-          <BrandCard key={b.id} brand={b} colorFallback={BRAND_COLORS[i % BRAND_COLORS.length]} />
+          <BrandCard key={b.id} brand={b} colorFallback={BRAND_COLORS[i % BRAND_COLORS.length]} canViewTasks={canViewTasks} />
         ))}
         {filtered.length === 0 && (
           <div className="card sm:col-span-2 lg:col-span-3 p-10 text-center">
@@ -138,7 +154,7 @@ export default function BrandsList({
               No se encontraron marcas
             </p>
             <p className="text-[12px] text-zinc-500">
-              {query ? "Probá otra búsqueda." : "Ajustá los filtros."}
+              {query ? "Prueba otra búsqueda." : "Ajusta los filtros."}
             </p>
           </div>
         )}
@@ -147,8 +163,17 @@ export default function BrandsList({
   );
 }
 
-function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback: string }) {
+function BrandCard({
+  brand: b,
+  colorFallback,
+  canViewTasks,
+}: {
+  brand: BrandRow;
+  colorFallback: string;
+  canViewTasks: boolean;
+}) {
   const bg = b.color ?? colorFallback;
+  const ref = b.slug ?? b.id; // URL legible (slug) con fallback al id
   const tone = approvalRateTone(b.kpis.approvalRate);
   const { has } = usePermissions();
   const canEditBrand = has("brands.edit", b.id);
@@ -165,7 +190,7 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
         </div>
       )}
       <div className="flex items-start gap-3">
-        <Link href={`/brands/${b.id}`} className="flex min-w-0 flex-1 items-start gap-3">
+        <Link href={`/brands/${ref}`} className="flex min-w-0 flex-1 items-start gap-3">
           <span
             className="grid h-11 w-11 flex-shrink-0 place-items-center overflow-hidden rounded-lg text-[14px] font-bold text-white"
             style={{ background: bg }}
@@ -191,7 +216,7 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
         </Link>
         <div className="flex flex-col items-end gap-1">
           <Link
-            href={`/brands/${b.id}/report`}
+            href={`/brands/${ref}/report`}
             className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
             title="Reporte mensual"
           >
@@ -199,7 +224,7 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
           </Link>
           {canEditBrand && (
             <Link
-              href={`/brands/${b.id}/settings`}
+              href={`/brands/${ref}/settings`}
               className="grid h-7 w-7 place-items-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
               title="Configuración"
             >
@@ -211,7 +236,7 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
 
       {/* Stats row */}
       <Link
-        href={`/brands/${b.id}`}
+        href={`/brands/${ref}`}
         className="mt-4 flex items-center gap-3 border-t divider pt-3 text-[11px]"
       >
         <Stat label="Posts" value={b.total} />
@@ -219,11 +244,22 @@ function BrandCard({ brand: b, colorFallback }: { brand: BrandRow; colorFallback
         <Stat label="Pendientes" value={b.pending} accent={b.pending > 0 ? "rose" : undefined} />
         <span className="h-7 w-px bg-zinc-200" />
         <Stat label="Publicados" value={b.published} />
+        {canViewTasks && (
+          <>
+            <span className="h-7 w-px bg-zinc-200" />
+            <Stat
+              label="Tareas"
+              value={b.openTasks}
+              accent={b.overdueTasks > 0 ? "rose" : undefined}
+              hint={b.overdueTasks > 0 ? `${b.overdueTasks} vencida${b.overdueTasks === 1 ? "" : "s"}` : undefined}
+            />
+          </>
+        )}
       </Link>
 
       {/* KPIs */}
       <Link
-        href={`/brands/${b.id}`}
+        href={`/brands/${ref}`}
         className="mt-3 flex items-end justify-between gap-3 border-t divider pt-3"
       >
         <div className="flex flex-col gap-2">
@@ -261,10 +297,12 @@ function Stat({
   label,
   value,
   accent,
+  hint,
 }: {
   label: string;
   value: number;
   accent?: "rose";
+  hint?: string;
 }) {
   return (
     <div className="flex-1">
@@ -278,12 +316,24 @@ function Stat({
       >
         {value}
       </p>
+      {hint && <p className="text-[9px] font-medium text-rose-500">{hint}</p>}
     </div>
   );
 }
 
-function SortDropdown({ value, onChange }: { value: SortKey; onChange: (k: SortKey) => void }) {
+function SortDropdown({
+  value,
+  onChange,
+  canViewTasks,
+}: {
+  value: SortKey;
+  onChange: (k: SortKey) => void;
+  canViewTasks: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const keys = (Object.keys(SORT_LABELS) as SortKey[]).filter(
+    (k) => canViewTasks || k !== "tasks",
+  );
   return (
     <div className="relative">
       <button
@@ -296,7 +346,7 @@ function SortDropdown({ value, onChange }: { value: SortKey; onChange: (k: SortK
       </button>
       {open && (
         <div className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border bg-white shadow-lg divider">
-          {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+          {keys.map((k) => (
             <button
               key={k}
               onMouseDown={() => {

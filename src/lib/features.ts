@@ -17,12 +17,12 @@ import { prisma } from "./db";
 /**
  * Lista de flags conocidos. Mantener corta — agregar solo cuando hay
  * código real que consulte el flag con `hasFeature()`. Si un flag está
- * acá pero ningún componente lo lee, el toggle del admin no hace nada
+ * aquí pero ningún componente lo lee, el toggle del admin no hace nada
  * y confunde al user.
  *
  * Histórico: hubo placeholders (beta_analytics, white_label, v2_inbox,
  * scheduled_emails) que se quitaron porque no había implementación.
- * Cuando se construya alguno de esos features, agregar de vuelta acá.
+ * Cuando se construya alguno de esos features, agregar de vuelta aquí.
  */
 export const KNOWN_FLAGS = ["ai_captions"] as const;
 export type FeatureFlag = (typeof KNOWN_FLAGS)[number];

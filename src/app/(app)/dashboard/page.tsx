@@ -1,139 +1,71 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  Activity as ActivityIcon,
   ArrowRight,
+  ArrowUpRight,
   Bell,
-  CalendarClock,
   CheckCircle2,
-  ChevronRight,
+  CheckSquare,
   Circle,
   Clock,
-  FileText,
   Image as ImageIcon,
-  Inbox as InboxIcon,
   Layers,
-  MessageSquare,
   Plus,
-  RefreshCw,
-  Send,
   Sparkles,
   UserPlus,
-  XCircle,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { listUserBrands } from "@/lib/permissions";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
-import ExpandableList from "@/components/ExpandableList";
 import NewBrandTile from "./NewBrandTile";
 import NewPostButton from "./NewPostButton";
-import Sparkline from "./Sparkline";
 import AdminQuickAccess from "./AdminQuickAccess";
+import MediaThumb from "@/components/MediaThumb";
 import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
-import { getKpisForBrands } from "@/lib/kpis";
-import { approvalRateTone } from "@/lib/kpis-utils";
-
-const BRAND_COLORS = ["#3b5fff", "#8a2be2", "#ff4d8f", "#ff2d55", "#0ea5e9", "#22c55e"];
+import DashboardAnalytics from "./DashboardAnalytics";
 
 const MONTHS = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ];
-
-const APPROVAL_TONE_TEXT: Record<"good" | "warn" | "bad" | "neutral", string> = {
-  good: "text-emerald-600",
-  warn: "text-amber-600",
-  bad: "text-rose-600",
-  neutral: "text-zinc-400",
-};
 
 function formatToday() {
   const d = new Date();
   return `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
 }
 
-function formatRelative(date: Date) {
-  const diffMs = Date.now() - date.getTime();
-  const m = Math.floor(diffMs / 60000);
+function relTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
   if (m < 1) return "ahora";
-  if (m < 60) return `hace ${m} min`;
+  if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `hace ${h} h`;
+  if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
-  if (d < 7) return `hace ${d} d`;
-  return date.toLocaleDateString("es", { day: "numeric", month: "short" });
+  return `${d}d`;
 }
 
-function formatScheduledAt(date: Date) {
-  const now = new Date();
-  const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  const isTomorrow =
-    date.getFullYear() === tomorrow.getFullYear() &&
-    date.getMonth() === tomorrow.getMonth() &&
-    date.getDate() === tomorrow.getDate();
-  const time = date.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
-  if (sameDay) return `Hoy ${time}`;
-  if (isTomorrow) return `Mañana ${time}`;
-  return `${date.getDate()} ${MONTHS[date.getMonth()].slice(0, 3)} ${time}`;
-}
+const PRIORITY_DOT: Record<string, string> = {
+  urgent: "#ef4444",
+  high: "#f59e0b",
+  normal: "#3b82f6",
+  low: "#a1a1aa",
+};
 
-function describeNotification(type: string): { icon: typeof Plus; tone: string } {
-  switch (type) {
-    case "post_approved":
-      return { icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-600" };
-    case "post_changes_requested":
-      return { icon: XCircle, tone: "bg-rose-50 text-rose-600" };
-    case "post_published":
-      return { icon: Sparkles, tone: "bg-fuchsia-50 text-fuchsia-600" };
-    case "post_publish_failed":
-      return { icon: XCircle, tone: "bg-rose-50 text-rose-600" };
-    case "post_in_review":
-      return { icon: Clock, tone: "bg-amber-50 text-amber-600" };
-    default:
-      return { icon: InboxIcon, tone: "bg-zinc-50 text-zinc-600" };
-  }
-}
-
-function describeActivity(
-  type: string,
-  meta: Record<string, unknown>,
-): { icon: typeof Plus; label: string; tone: string } {
-  switch (type) {
-    case "created":
-      return { icon: Plus, label: "creó el post", tone: "text-zinc-600" };
-    case "status_changed": {
-      const to = typeof meta.to === "string" ? meta.to : "";
-      if (to === "approved") return { icon: CheckCircle2, label: "aprobó", tone: "text-emerald-600" };
-      if (to === "changes_requested")
-        return { icon: XCircle, label: "pidió cambios", tone: "text-rose-600" };
-      if (to === "in_review") return { icon: Clock, label: "envió a revisión", tone: "text-amber-600" };
-      if (to === "scheduled") return { icon: CalendarClock, label: "programó", tone: "text-blue-600" };
-      return { icon: RefreshCw, label: "cambió el estado", tone: "text-zinc-600" };
-    }
-    case "version_uploaded":
-      return { icon: RefreshCw, label: "subió nueva versión", tone: "text-fuchsia-600" };
-    case "published":
-      return { icon: Sparkles, label: "publicó", tone: "text-emerald-600" };
-    case "publish_failed":
-      return { icon: XCircle, label: "falló al publicar", tone: "text-rose-600" };
-    default:
-      return { icon: MessageSquare, label: type, tone: "text-zinc-600" };
-  }
+function dueLabel(iso: string | null): { text: string; tone: string } | null {
+  if (!iso) return null;
+  const due = new Date(iso);
+  const days = Math.ceil((due.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+  if (days < 0) return { text: "Vencida", tone: "text-rose-600 bg-rose-50" };
+  if (days === 0) return { text: "Hoy", tone: "text-amber-600 bg-amber-50" };
+  if (days === 1) return { text: "Mañana", tone: "text-amber-600 bg-amber-50" };
+  if (days <= 7) return { text: `${days}d`, tone: "text-zinc-500 bg-zinc-100" };
+  return {
+    text: due.toLocaleDateString("es", { day: "numeric", month: "short" }),
+    tone: "text-zinc-500 bg-zinc-100",
+  };
 }
 
 export default async function DashboardPage() {
@@ -163,51 +95,48 @@ export default async function DashboardPage() {
   // Empty state — sin marcas todavía
   if (brands.length === 0) {
     return (
-      <>
-        <div className="mx-auto max-w-3xl">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-[12px] font-medium text-zinc-500">{formatToday()}</p>
-              <h1 className="mt-1 text-[26px] font-semibold tracking-tight text-zinc-900">
-                Hola, {user.name ?? user.email.split("@")[0]}
-              </h1>
-            </div>
-          </div>
-
-          {/* Admin shortcut también en empty state */}
-          {isAdmin && <AdminQuickAccess />}
-
-          <div className="mt-10 card relative overflow-hidden p-8 text-center">
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full opacity-20 blur-3xl"
-              style={{
-                background:
-                  "radial-gradient(circle, #ff4d8f 0%, #8a2be2 50%, transparent 70%)",
-              }}
-            />
-            <span className="grid h-12 w-12 mx-auto place-items-center rounded-2xl brand-gradient text-white shadow-lg">
-              <Sparkles className="h-6 w-6" />
-            </span>
-            <h2 className="mt-5 text-[20px] font-semibold tracking-tight text-zinc-900">
-              Crea tu primera marca
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-[14px] text-zinc-500">
-              Cada marca es un cliente con su propio feed, equipo y aprobaciones.
-              Empieza creando una para subir el primer post.
-            </p>
-            {ownerMembership ? (
-              <div className="mt-6 inline-block">
-                <NewBrandTile />
-              </div>
-            ) : (
-              <p className="mt-6 text-[12px] text-zinc-500">
-                Pídele al dueño de tu agencia que te invite a una marca.
-              </p>
-            )}
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[12px] font-medium text-zinc-500">{formatToday()}</p>
+            <h1 className="mt-1 text-[26px] font-semibold tracking-tight text-zinc-900">
+              Hola, {user.name ?? user.email.split("@")[0]}
+            </h1>
           </div>
         </div>
-      </>
+
+        {isAdmin && <AdminQuickAccess />}
+
+        <div className="mt-10 card relative overflow-hidden p-8 text-center">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full opacity-20 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle, #ff4d8f 0%, #8a2be2 50%, transparent 70%)",
+            }}
+          />
+          <span className="grid h-12 w-12 mx-auto place-items-center rounded-2xl brand-gradient text-white shadow-lg">
+            <Sparkles className="h-6 w-6" />
+          </span>
+          <h2 className="mt-5 text-[20px] font-semibold tracking-tight text-zinc-900">
+            Crea tu primera marca
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-zinc-500">
+            Cada marca es un cliente con su propio feed, equipo y aprobaciones.
+            Empieza creando una para subir el primer post.
+          </p>
+          {ownerMembership ? (
+            <div className="mt-6 inline-block">
+              <NewBrandTile />
+            </div>
+          ) : (
+            <p className="mt-6 text-[12px] text-zinc-500">
+              Pídele al dueño de tu agencia que te invite a una marca.
+            </p>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -218,23 +147,32 @@ export default async function DashboardPage() {
 
   const brandIds = brands.map((b) => b.id);
 
+  // Ventana de 180 días para los charts (el cliente rebana 7/30/90).
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setTime(since.getTime() - 179 * 24 * 60 * 60 * 1000);
+
+  const myTasksWhere = {
+    agencyId: { in: agencyIds },
+    deletedAt: null,
+    status: { not: "done" },
+    OR: [{ assigneeId: user.id }, { assignees: { some: { id: user.id } } }],
+  };
+
   const [
     statusCounts,
     perBrandRaw,
     pendingPosts,
-    upcomingPosts,
     recentActivities,
-    brandKpis,
     recentNotifications,
     unreadNotifCount,
     clientCount,
     approvalCount,
+    myTasks,
+    myTasksTotal,
+    seriesPosts,
   ] = await Promise.all([
-    prisma.post.groupBy({
-      by: ["status"],
-      where: accessFilter,
-      _count: { _all: true },
-    }),
+    prisma.post.groupBy({ by: ["status"], where: accessFilter, _count: { _all: true } }),
     brandIds.length > 0
       ? prisma.post.groupBy({
           by: ["brandId", "status"],
@@ -245,87 +183,60 @@ export default async function DashboardPage() {
     prisma.post.findMany({
       where: { ...accessFilter, status: "in_review" },
       orderBy: { updatedAt: "desc" },
-      take: 12,
-      include: { brand: true },
-    }),
-    prisma.post.findMany({
-      where: {
-        ...accessFilter,
-        status: { in: ["scheduled", "approved"] },
-        scheduledAt: { gte: new Date() },
-      },
-      orderBy: { scheduledAt: "asc" },
-      take: 12,
+      take: 6,
       include: { brand: true },
     }),
     prisma.activity.findMany({
       where: { post: accessFilter },
       orderBy: { createdAt: "desc" },
-      take: 15,
-      include: {
-        user: true,
-        post: { include: { brand: true } },
-      },
+      take: 8,
+      include: { user: true, post: { include: { brand: true } } },
     }),
-    getKpisForBrands(brandIds),
     prisma.notification.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, archivedAt: null },
       orderBy: { createdAt: "desc" },
-      take: 4,
+      take: 5,
     }),
-    prisma.notification.count({ where: { userId: user.id, read: false } }),
+    prisma.notification.count({ where: { userId: user.id, read: false, archivedAt: null } }),
     isAgencySide && agencyIds.length > 0
-      ? prisma.membership.count({
-          where: { role: "client", agencyId: { in: agencyIds } },
+      ? prisma.membership.count({ where: { role: "client", agencyId: { in: agencyIds } } })
+      : Promise.resolve(0),
+    isAgencySide ? prisma.approval.count({ where: { post: accessFilter } }) : Promise.resolve(0),
+    agencyIds.length > 0
+      ? prisma.task.findMany({
+          where: myTasksWhere,
+          orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+          take: 6,
+          include: { brand: { select: { id: true, name: true, color: true } } },
         })
-      : Promise.resolve(0),
-    isAgencySide
-      ? prisma.approval.count({ where: { post: accessFilter } })
-      : Promise.resolve(0),
+      : Promise.resolve([]),
+    agencyIds.length > 0 ? prisma.task.count({ where: myTasksWhere }) : Promise.resolve(0),
+    prisma.post.findMany({
+      where: {
+        ...accessFilter,
+        OR: [{ createdAt: { gte: since } }, { publishedAt: { gte: since } }],
+      },
+      select: { createdAt: true, publishedAt: true },
+    }),
   ]);
 
-  // Onboarding checklist — solo para agency-side y mientras haya algo pendiente
-  const onboardingSteps = isAgencySide
-    ? [
-        {
-          done: brands.length > 0,
-          label: "Crear tu primera marca",
-          href: ownerMembership ? "#brands" : "/dashboard",
-          icon: Sparkles,
-        },
-        {
-          done: clientCount > 0,
-          label: "Invitar a tu cliente",
-          href: brands[0] ? `/brands/${brands[0].id}/settings` : "/dashboard",
-          icon: UserPlus,
-        },
-        {
-          done: false, // overridden below from totalPosts
-          label: "Crear tu primer post",
-          href: brands[0] ? `/brands/${brands[0].id}/posts/new` : "/dashboard",
-          icon: Plus,
-        },
-        {
-          done: approvalCount > 0,
-          label: "Recibir tu primera aprobación",
-          href: "/inbox",
-          icon: CheckCircle2,
-        },
-      ]
-    : [];
-
-  // Stats globales — solo conteos
+  // Stats globales
   let totalPosts = 0;
   let inReview = 0;
-  let published = 0;
   for (const row of statusCounts) {
     totalPosts += row._count._all;
     if (row.status === "in_review") inReview = row._count._all;
-    if (row.status === "published") published = row._count._all;
   }
 
-  // Override "primer post" basado en totalPosts (computado abajo del groupBy)
-  if (onboardingSteps.length > 0) onboardingSteps[2].done = totalPosts > 0;
+  // Onboarding checklist
+  const onboardingSteps = isAgencySide
+    ? [
+        { done: brands.length > 0, label: "Crear tu primera marca", href: "#brands", icon: Sparkles },
+        { done: clientCount > 0, label: "Invitar a tu cliente", href: brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/settings` : "/dashboard", icon: UserPlus },
+        { done: totalPosts > 0, label: "Crear tu primer post", href: brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/posts/new` : "/dashboard", icon: Plus },
+        { done: approvalCount > 0, label: "Recibir tu primera aprobación", href: "/inbox", icon: CheckCircle2 },
+      ]
+    : [];
   const onboardingDone = onboardingSteps.filter((s) => s.done).length;
   const onboardingTotal = onboardingSteps.length;
   const showOnboarding = onboardingTotal > 0 && onboardingDone < onboardingTotal;
@@ -337,524 +248,354 @@ export default async function DashboardPage() {
     if (!cur) continue;
     cur.total += row._count._all;
     if (row.status === "in_review") cur.pending += row._count._all;
-    if (row.status === "approved" || row.status === "scheduled" || row.status === "published")
+    if (["approved", "scheduled", "published"].includes(row.status))
       cur.approved += row._count._all;
   }
 
+  // === Datasets para charts ===
+  // Serie diaria de 180 días (posts creados + publicados). El cliente la
+  // "rebana" según el período elegido (7/30/90) y calcula tendencias.
+  const dayMs = 24 * 60 * 60 * 1000;
+  const lkey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const buckets: { date: string; creados: number; publicados: number; key: string }[] = [];
+  const bucketIdx = new Map<string, number>();
+  for (let i = 0; i < 180; i++) {
+    const d = new Date(since.getTime() + i * dayMs);
+    bucketIdx.set(lkey(d), i);
+    buckets.push({ key: lkey(d), date: `${d.getDate()}/${d.getMonth() + 1}`, creados: 0, publicados: 0 });
+  }
+  for (const p of seriesPosts) {
+    const ci = bucketIdx.get(lkey(p.createdAt));
+    if (ci !== undefined) buckets[ci].creados++;
+    if (p.publishedAt) {
+      const pi = bucketIdx.get(lkey(p.publishedAt));
+      if (pi !== undefined) buckets[pi].publicados++;
+    }
+  }
+  const daily = buckets.map(({ date, creados, publicados }) => ({ date, creados, publicados }));
+
+  // Tasa de aprobación: aprobados / revisados (con decisión tomada).
+  const sc: Record<string, number> = {};
+  for (const r of statusCounts) sc[r.status] = r._count._all;
+  const approvedish = (sc.approved ?? 0) + (sc.scheduled ?? 0) + (sc.published ?? 0);
+  const reviewed = approvedish + (sc.changes_requested ?? 0);
+  const approvalRatePct = reviewed > 0 ? Math.round((approvedish / reviewed) * 100) : 0;
+
+  // Distribución por estado (todos los posts).
+  const STATUS_META: Record<string, { label: string; color: string }> = {
+    draft: { label: "Borrador", color: "#a1a1aa" },
+    in_review: { label: "En revisión", color: "#f59e0b" },
+    internal_review: { label: "Rev. interna", color: "#fb923c" },
+    changes_requested: { label: "Cambios", color: "#f43f5e" },
+    approved: { label: "Aprobado", color: "#10b981" },
+    scheduled: { label: "Programado", color: "#3b82f6" },
+    published: { label: "Publicado", color: "#d946ef" },
+  };
+  const statusData = statusCounts
+    .map((r) => ({
+      name: STATUS_META[r.status]?.label ?? r.status,
+      value: r._count._all,
+      color: STATUS_META[r.status]?.color ?? "#a1a1aa",
+    }))
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  // Posts por marca (top 6).
+  const brandData = brands
+    .map((b) => ({
+      name: b.name.length > 11 ? b.name.slice(0, 10) + "…" : b.name,
+      posts: perBrand.get(b.id)?.total ?? 0,
+      color: b.color ?? "#a855f7",
+    }))
+    .sort((a, b) => b.posts - a.posts)
+    .slice(0, 6);
+
+  const firstName = user.name?.split(" ")[0] ?? user.email.split("@")[0];
+  const postableBrands = brands
+    .filter((b) => b.role === "owner" || b.role === "editor")
+    .map((b) => ({ id: b.id, name: b.name, logoUrl: b.logoUrl, color: b.color }));
+
   return (
-    <>
-      <div className="mx-auto max-w-6xl">
-        {/* Hero */}
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-[12px] font-medium text-zinc-500">{formatToday()}</p>
-            <h1 className="mt-1 text-[26px] font-semibold tracking-tight text-zinc-900">
-              Hola, {user.name ?? user.email.split("@")[0]}
-            </h1>
-          </div>
-          <NewPostButton
-            brands={brands
-              .filter((b) => b.role === "owner" || b.role === "editor")
-              .map((b) => ({
-                id: b.id,
-                name: b.name,
-                logoUrl: b.logoUrl,
-                color: b.color,
-              }))}
-          />
+    <div className="mx-auto max-w-6xl space-y-5">
+      {/* Header */}
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[12px] font-medium text-zinc-400">{formatToday()}</p>
+          <h1 className="mt-0.5 text-[24px] font-semibold tracking-tight text-zinc-900">
+            Hola, {firstName}
+          </h1>
+          {agencyName && (
+            <p className="mt-0.5 text-[12.5px] text-zinc-500">
+              Resumen de <span className="font-medium text-zinc-700">{agencyName}</span>
+            </p>
+          )}
         </div>
+        <NewPostButton brands={postableBrands} />
+      </header>
 
-        {/* Admin quick access — solo para users con role admin */}
-        {isAdmin && <AdminQuickAccess />}
+      {isAdmin && <AdminQuickAccess />}
 
-        {/* Stats — barra horizontal */}
-        <div className="mt-7 grid grid-cols-2 sm:grid-cols-4 card overflow-hidden">
-          <Stat
-            label="Marcas"
-            value={brands.length}
-            icon={Layers}
-            tint="bg-blue-50 text-blue-600"
-          />
-          <Stat
-            label="Total posts"
-            value={totalPosts}
-            divider
-            icon={FileText}
-            tint="bg-zinc-100 text-zinc-600"
-          />
-          <Stat
-            label="Pendientes"
-            value={inReview}
-            accentDot={inReview > 0 ? "#ff2d55" : undefined}
-            divider
-            icon={Clock}
-            tint="bg-amber-50 text-amber-600"
-          />
-          <Stat
-            label="Publicados"
-            value={published}
-            divider
-            icon={Send}
-            tint="bg-emerald-50 text-emerald-600"
-          />
-        </div>
-
-        {/* Onboarding checklist */}
-        {showOnboarding && (
-          <div className="mt-6 card relative overflow-hidden p-5">
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-15 blur-3xl"
-              style={{
-                background:
-                  "radial-gradient(circle, #ff4d8f 0%, #8a2be2 50%, transparent 70%)",
-              }}
-            />
-            <div className="flex flex-wrap items-end justify-between gap-3">
+      {/* Onboarding (sutil) */}
+      {showOnboarding && (
+        <div className="card overflow-hidden p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-8 w-8 place-items-center rounded-lg brand-gradient text-white">
+                <Sparkles className="h-4 w-4" />
+              </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider brand-gradient-text">
-                  Primeros pasos
-                </p>
-                <h2 className="mt-0.5 text-[15px] font-semibold tracking-tight text-zinc-900">
+                <p className="text-[13px] font-semibold tracking-tight text-zinc-900">
                   Pon tu agencia en marcha
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 w-32 overflow-hidden rounded-full bg-zinc-100">
-                  <div
-                    className="h-full brand-gradient transition-all"
-                    style={{ width: `${(onboardingDone / onboardingTotal) * 100}%` }}
-                  />
-                </div>
-                <p className="text-[11px] font-semibold tabular-nums text-zinc-600">
-                  {onboardingDone}/{onboardingTotal}
                 </p>
+                <p className="text-[11px] text-zinc-500">{onboardingDone} de {onboardingTotal} completados</p>
               </div>
             </div>
-            <ul className="relative mt-4 grid gap-1.5 sm:grid-cols-2">
-              {onboardingSteps.map((step) => {
-                const Icon = step.icon;
-                return (
-                  <li key={step.label}>
-                    <Link
-                      href={step.href}
-                      className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition ${
-                        step.done
-                          ? "text-zinc-500 hover:bg-zinc-50"
-                          : "text-zinc-900 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {step.done ? (
-                        <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                      ) : (
-                        <Circle className="h-4 w-4 flex-shrink-0 text-zinc-300" />
-                      )}
-                      <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${step.done ? "text-zinc-400" : "text-zinc-500"}`} />
-                      <span
-                        className={`flex-1 text-[12.5px] font-medium ${step.done ? "line-through" : ""}`}
-                      >
-                        {step.label}
-                      </span>
-                      {!step.done && (
-                        <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-zinc-400" />
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {/* Two-column: Brands + Pending */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="flex items-end justify-between">
-              <h2 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-zinc-500">
-                <Layers className="h-3.5 w-3.5" />
-                Marcas
-              </h2>
-              <p className="text-[12px] text-zinc-500 tabular-nums">{brands.length}</p>
+            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-zinc-100">
+              <div className="h-full brand-gradient transition-all" style={{ width: `${(onboardingDone / onboardingTotal) * 100}%` }} />
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {brands.map((b, i) => {
-                const stats = perBrand.get(b.id) ?? { total: 0, pending: 0, approved: 0 };
-                const kpis = brandKpis.get(b.id);
-                const bg = b.color ?? BRAND_COLORS[i % BRAND_COLORS.length];
-                const tone = approvalRateTone(kpis?.approvalRate ?? null);
+          </div>
+          <ul className="mt-3 grid gap-1 sm:grid-cols-2">
+            {onboardingSteps.map((step) => {
+              const Icon = step.icon;
+              return (
+                <li key={step.label}>
+                  <Link href={step.href} className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-zinc-50">
+                    {step.done ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" /> : <Circle className="h-4 w-4 flex-shrink-0 text-zinc-300" />}
+                    <Icon className="h-3.5 w-3.5 flex-shrink-0 text-zinc-400" />
+                    <span className={`flex-1 text-[12.5px] ${step.done ? "text-zinc-400 line-through" : "font-medium text-zinc-700"}`}>{step.label}</span>
+                    {!step.done && <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-zinc-300" />}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Analytics interactivo (selector de período + KPIs + charts + insights) */}
+      <DashboardAnalytics
+        daily={daily}
+        brandsCount={brands.length}
+        clientsCount={clientCount}
+        inReview={inReview}
+        statusData={statusData}
+        brandData={brandData}
+        approvalRatePct={approvalRatePct}
+      />
+
+      {/* Grilla principal */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {/* Columna principal */}
+        <div className="space-y-4 xl:col-span-2">
+          {/* Marcas */}
+          <Panel id="brands" title="Marcas" icon={Layers} count={brands.length} href="/brands" hrefLabel="Ver todas">
+            <div className="grid gap-2.5 p-3 sm:grid-cols-2">
+              {brands.slice(0, 6).map((b) => {
+                const s = perBrand.get(b.id) ?? { total: 0, pending: 0, approved: 0 };
+                const pct = s.total > 0 ? Math.round((s.approved / s.total) * 100) : 0;
                 return (
                   <Link
                     key={b.id}
-                    href={`/brands/${b.id}`}
-                    className="card group p-3.5 transition hover:border-zinc-300"
+                    href={`/brands/${b.slug ?? b.id}`}
+                    className="group rounded-xl border border-zinc-200/70 bg-white p-3 transition hover:border-zinc-300 hover:shadow-sm"
                   >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="grid h-9 w-9 flex-shrink-0 place-items-center overflow-hidden rounded-md text-[13px] font-bold text-white"
-                        style={{ background: bg }}
-                      >
-                        {b.logoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={b.logoUrl} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          b.name[0]?.toUpperCase()
-                        )}
-                      </span>
+                    <div className="flex items-center gap-2.5">
+                      {b.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={b.logoUrl} alt={b.name} className="h-9 w-9 flex-shrink-0 rounded-lg object-cover" />
+                      ) : (
+                        <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg text-[13px] font-bold text-white" style={{ background: b.color ?? "#a1a1aa" }}>
+                          {b.name[0]?.toUpperCase() ?? "?"}
+                        </span>
+                      )}
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-[13.5px] font-semibold text-zinc-900">
-                          {b.name}
-                        </h3>
-                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-zinc-500">
-                          <span className="tabular-nums">{stats.total} posts</span>
-                          {stats.pending > 0 && (
-                            <>
-                              <span className="text-zinc-300">·</span>
-                              <span className="flex items-center gap-1 text-rose-600">
-                                <span className="h-1 w-1 rounded-full bg-rose-500" />
-                                <span className="font-semibold tabular-nums">
-                                  {stats.pending}
-                                </span>
-                                <span>pendientes</span>
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        <p className="truncate text-[13px] font-semibold text-zinc-900">{b.name}</p>
+                        <p className="text-[11px] text-zinc-500">
+                          {s.total} {s.total === 1 ? "post" : "posts"}
+                          {s.pending > 0 && <span className="text-amber-600"> · {s.pending} pend.</span>}
+                        </p>
                       </div>
-                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-500" />
+                      <ArrowUpRight className="h-4 w-4 flex-shrink-0 text-zinc-300 transition group-hover:text-zinc-500" />
                     </div>
-
-                    {/* Mini KPIs */}
-                    {kpis && (
-                      <div className="mt-3 flex items-center justify-between gap-3 border-t divider pt-2.5">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                            Aprob. 7d
-                          </p>
-                          <p
-                            className={`text-[13px] font-semibold tabular-nums ${APPROVAL_TONE_TEXT[tone]}`}
-                          >
-                            {kpis.approvalRate !== null ? `${kpis.approvalRate}%` : "—"}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                            Public. 7d · {kpis.publishedTotal}
-                          </p>
-                          <Sparkline
-                            data={kpis.publishedSparkline}
-                            stroke={bg}
-                            width={80}
-                            height={20}
-                          />
-                        </div>
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                    )}
+                      <span className="text-[10.5px] font-semibold tabular-nums text-zinc-400">{pct}%</span>
+                    </div>
                   </Link>
                 );
               })}
-              {ownerMembership && <NewBrandTile />}
+              {ownerMembership && (
+                <Link
+                  href="/brands"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-200 p-3 text-[12.5px] font-medium text-zinc-400 transition hover:border-zinc-300 hover:text-zinc-600"
+                >
+                  <Plus className="h-4 w-4" /> Nueva marca
+                </Link>
+              )}
             </div>
-          </div>
+          </Panel>
 
-          {/* Inbox preview + Por revisar */}
-          <div className="space-y-6">
-            {recentNotifications.length > 0 && (
-              <div>
-                <div className="flex items-end justify-between">
-                  <h2 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-zinc-500">
-                    <Bell className="h-3.5 w-3.5" />
-                    Inbox
-                  </h2>
-                  {unreadNotifCount > 0 && (
-                    <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-semibold text-fuchsia-600 tabular-nums">
-                      {unreadNotifCount} sin leer
-                    </span>
-                  )}
-                </div>
-                <ul className="mt-3 card divide-y divide-zinc-100/80 overflow-hidden">
-                  {recentNotifications.slice(0, 3).map((n) => {
-                    const desc = describeNotification(n.type);
-                    const Icon = desc.icon;
-                    const href =
-                      n.brandId && n.postId
-                        ? `/brands/${n.brandId}/posts/${n.postId}`
-                        : n.brandId
-                          ? `/brands/${n.brandId}`
-                          : "/inbox";
-                    return (
-                      <li key={n.id}>
-                        <Link
-                          href={href}
-                          className={`flex items-start gap-2.5 p-2.5 transition hover:bg-zinc-50 ${
-                            !n.read ? "bg-fuchsia-50/40" : ""
-                          }`}
-                        >
-                          <span
-                            className={`mt-0.5 grid h-7 w-7 flex-shrink-0 place-items-center rounded-full ring-1 ring-zinc-100 ${desc.tone}`}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-[12px] leading-tight text-zinc-700">
-                              {n.body}
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-zinc-400 tabular-nums">
-                              {formatRelative(n.createdAt)}
-                            </p>
-                          </div>
-                          {!n.read && (
-                            <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-fuchsia-500" />
-                          )}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                  <li>
-                    <Link
-                      href="/inbox"
-                      className="flex items-center justify-center gap-1 px-3 py-2 text-[11px] font-semibold text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                    >
-                      Ver todo el inbox
-                      <ArrowRight className="h-3 w-3" />
+          {/* Por revisar */}
+          <Panel title="Por revisar" icon={Clock} count={inReview} href="/inbox" hrefLabel="Ver inbox" tint="text-amber-600 bg-amber-50">
+            {pendingPosts.length === 0 ? (
+              <Empty text="No hay nada esperando revisión. 🎉" />
+            ) : (
+              <ul className="divide-y divide-zinc-100/80">
+                {pendingPosts.map((p) => (
+                  <li key={p.id}>
+                    <Link href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`} className="flex items-center gap-3 px-3.5 py-2.5 transition hover:bg-zinc-50">
+                      <span className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-md bg-zinc-100">
+                        {p.imageUrl ? <MediaThumb url={p.imageUrl} className="h-full w-full object-cover" showPlayIcon={false} /> : <span className="grid h-full w-full place-items-center text-zinc-300"><ImageIcon className="h-4 w-4" /></span>}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12.5px] font-semibold text-zinc-800">{p.brand.name}</p>
+                        <p className="truncate text-[11.5px] text-zinc-500">{p.caption || "Sin caption"}</p>
+                      </div>
+                      <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}>
+                        {STATUS_LABEL[p.status] ?? p.status}
+                      </span>
                     </Link>
                   </li>
-                </ul>
-              </div>
+                ))}
+              </ul>
             )}
-
-            <div>
-            <div className="flex items-end justify-between">
-              <h2 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-zinc-500">
-                <Clock className="h-3.5 w-3.5" />
-                Por revisar
-              </h2>
-              {inReview > 0 && (
-                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-600 tabular-nums">
-                  {inReview}
-                </span>
-              )}
-            </div>
-            <div className="mt-3">
-              {pendingPosts.length === 0 ? (
-                <div className="card p-6 text-center text-[12px] text-zinc-500">
-                  ✨ Todo al día
-                </div>
-              ) : (
-                <ExpandableList initialCount={5}>
-                  {pendingPosts.map((p) => (
-                    <li key={p.id}>
-                      <Link
-                        href={`/brands/${p.brandId}/posts/${p.id}`}
-                        className="flex items-center gap-2.5 p-2.5 transition hover:bg-zinc-50"
-                      >
-                        {p.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={p.imageUrl}
-                            alt=""
-                            className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-[10px] text-zinc-400">
-                            <ImageIcon className="h-3.5 w-3.5" />
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[12px] font-semibold text-zinc-900">
-                            {p.brand.name}
-                          </p>
-                          <p className="truncate text-[11px] text-zinc-500">
-                            {p.caption || "Sin caption"}
-                          </p>
-                        </div>
-                        <span
-                          className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
-                        >
-                          {STATUS_LABEL[p.status] ?? p.status}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ExpandableList>
-              )}
-            </div>
-            </div>
-          </div>
+          </Panel>
         </div>
 
-        {/* Two-column: Próximas publicaciones + Actividad reciente */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="flex items-end justify-between">
-              <h2 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-zinc-500">
-                <CalendarClock className="h-3.5 w-3.5" />
-                Próximas publicaciones
-              </h2>
-              {upcomingPosts.length > 0 && (
-                <p className="text-[12px] text-zinc-500 tabular-nums">{upcomingPosts.length}</p>
-              )}
-            </div>
-            <div className="mt-3">
-              {upcomingPosts.length === 0 ? (
-                <div className="card p-8 text-center">
-                  <CalendarClock className="mx-auto h-7 w-7 text-zinc-300" />
-                  <p className="mt-2 text-[13px] font-medium text-zinc-700">
-                    Nada programado todavía
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-zinc-500">
-                    Programa la fecha en un post aprobado para que aparezca aquí.
-                  </p>
-                </div>
-              ) : (
-                <ExpandableList initialCount={5}>
-                  {upcomingPosts.map((p) => (
-                    <li key={p.id}>
-                      <Link
-                        href={`/brands/${p.brandId}/posts/${p.id}`}
-                        className="flex items-center gap-3 p-3 transition hover:bg-zinc-50"
-                      >
-                        {p.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={p.imageUrl}
-                            alt=""
-                            className="h-11 w-11 flex-shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-zinc-400">
-                            <ImageIcon className="h-4 w-4" />
-                          </span>
-                        )}
+        {/* Columna lateral */}
+        <div className="space-y-4">
+          {/* Mis tareas */}
+          <Panel title="Mis tareas" icon={CheckSquare} count={myTasksTotal} href="/tasks" hrefLabel="Ver todas" tint="text-fuchsia-600 bg-fuchsia-50">
+            {myTasks.length === 0 ? (
+              <Empty text="Sin tareas pendientes." />
+            ) : (
+              <ul className="divide-y divide-zinc-100/80">
+                {myTasks.map((t) => {
+                  const due = dueLabel(t.dueDate ? t.dueDate.toISOString() : null);
+                  return (
+                    <li key={t.id}>
+                      <Link href={`/tasks?open=${t.id}`} className="flex items-center gap-2.5 px-3.5 py-2.5 transition hover:bg-zinc-50">
+                        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: PRIORITY_DOT[t.priority] ?? "#a1a1aa" }} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-semibold text-zinc-900">
-                            {p.brand.name}
-                          </p>
-                          <p className="truncate text-[11.5px] text-zinc-500">
-                            {p.caption || "Sin caption"}
-                          </p>
+                          <p className="truncate text-[12.5px] font-medium text-zinc-800">{t.title}</p>
+                          {t.brand && <p className="truncate text-[11px] text-zinc-400">{t.brand.name}</p>}
                         </div>
-                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-                            <CalendarClock className="h-3 w-3" />
-                            {p.scheduledAt ? formatScheduledAt(p.scheduledAt) : "—"}
-                          </span>
-                          <span
-                            className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
-                          >
-                            {STATUS_LABEL[p.status] ?? p.status}
-                          </span>
-                        </div>
+                        {due && <span className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${due.tone}`}>{due.text}</span>}
                       </Link>
                     </li>
-                  ))}
-                </ExpandableList>
-              )}
-            </div>
-          </div>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+
+          {/* Notificaciones */}
+          <Panel title="Notificaciones" icon={Bell} count={unreadNotifCount} href="/inbox" hrefLabel="Ver inbox" tint="text-rose-600 bg-rose-50">
+            {recentNotifications.length === 0 ? (
+              <Empty text="Sin notificaciones." />
+            ) : (
+              <ul className="divide-y divide-zinc-100/80">
+                {recentNotifications.map((n) => (
+                  <li key={n.id} className={`flex items-start gap-2.5 px-3.5 py-2.5 ${n.read ? "" : "bg-fuchsia-50/20"}`}>
+                    {!n.read && <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full brand-gradient" />}
+                    <div className={`min-w-0 flex-1 ${n.read ? "pl-4" : ""}`}>
+                      <p className="line-clamp-2 text-[11.5px] leading-snug text-zinc-600">{n.body}</p>
+                      <p className="mt-0.5 text-[10px] text-zinc-400">{relTime(n.createdAt.toISOString())}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
 
           {/* Actividad reciente */}
-          <div>
-            <div className="flex items-end justify-between">
-              <h2 className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-zinc-500">
-                <RefreshCw className="h-3.5 w-3.5" />
-                Actividad reciente
-              </h2>
-            </div>
-            <div className="mt-3">
-              {recentActivities.length === 0 ? (
-                <div className="card p-6 text-center text-[12px] text-zinc-500">
-                  Aún no hay actividad
-                </div>
-              ) : (
-                <ExpandableList initialCount={5}>
-                  {recentActivities.map((a) => {
-                    let meta: Record<string, unknown> = {};
-                    try {
-                      meta = JSON.parse(a.meta);
-                    } catch {}
-                    const desc = describeActivity(a.type, meta);
-                    const Icon = desc.icon;
-                    const actor = a.user?.name ?? a.user?.email ?? "Sistema";
-                    return (
-                      <li key={a.id}>
-                        <Link
-                          href={`/brands/${a.post.brandId}/posts/${a.post.id}`}
-                          className="flex items-start gap-2.5 p-2.5 transition hover:bg-zinc-50"
-                        >
-                          <span
-                            className={`mt-0.5 grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-zinc-50 ring-1 ring-zinc-100 ${desc.tone}`}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[12px] leading-tight text-zinc-700">
-                              <span className="font-semibold text-zinc-900">{actor}</span>{" "}
-                              <span className={desc.tone}>{desc.label}</span>{" "}
-                              <span className="text-zinc-500">en</span>{" "}
-                              <span className="font-medium text-zinc-700">
-                                {a.post.brand.name}
-                              </span>
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-zinc-400 tabular-nums">
-                              {formatRelative(a.createdAt)}
-                            </p>
-                          </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ExpandableList>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  accentDot,
-  divider,
-  icon: Icon,
-  tint,
-}: {
-  label: string;
-  value: number;
-  accentDot?: string;
-  divider?: boolean;
-  icon?: typeof Plus;
-  tint?: string;
-}) {
-  return (
-    <div className={`px-5 py-4 ${divider ? "sm:border-l divider" : ""}`}>
-      <div className="flex items-center gap-2">
-        {Icon && (
-          <span
-            className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-lg ${tint ?? "bg-zinc-100 text-zinc-600"}`}
-          >
-            <Icon className="h-3.5 w-3.5" />
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            {accentDot && (
-              <span
-                className="h-1.5 w-1.5 rounded-full animate-pulse"
-                style={{ background: accentDot }}
-              />
+          <Panel title="Actividad" icon={ActivityIcon} href={brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/activity` : undefined} hrefLabel="Ver más" tint="text-zinc-600 bg-zinc-100">
+            {recentActivities.length === 0 ? (
+              <Empty text="Sin actividad reciente." />
+            ) : (
+              <ul className="space-y-0.5 p-2.5">
+                {recentActivities.map((a) => (
+                  <li key={a.id} className="flex items-start gap-2 rounded-lg px-1.5 py-1 text-[11.5px] leading-relaxed">
+                    <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-zinc-300" />
+                    <p className="min-w-0 flex-1 text-zinc-600">
+                      <span className="font-semibold text-zinc-800">{a.user?.name ?? "Alguien"}</span>{" "}
+                      {activityVerb(a.type)}{" "}
+                      <span className="text-zinc-500">en {a.post.brand.name}</span>
+                      <span className="text-zinc-400"> · {relTime(a.createdAt.toISOString())}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
             )}
-            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-              {label}
-            </p>
-          </div>
-          <p className="mt-1 text-[24px] font-semibold tracking-tight tabular-nums text-zinc-900 leading-none">
-            {value}
-          </p>
+          </Panel>
         </div>
       </div>
     </div>
   );
+}
+
+function activityVerb(type: string): string {
+  switch (type) {
+    case "created": return "creó el post";
+    case "status_changed": return "cambió el estado";
+    case "submitted_for_review": return "envió a revisión";
+    case "approved": return "aprobó";
+    case "changes_requested": return "pidió cambios";
+    case "published": return "publicó";
+    case "comment": return "comentó";
+    case "media_uploaded": return "subió media";
+    case "caption_edited": return "editó el caption";
+    case "scheduled": return "programó";
+    default: return "actualizó";
+  }
+}
+
+function Panel({
+  id,
+  title,
+  icon: Icon,
+  count,
+  href,
+  hrefLabel,
+  tint = "text-zinc-600 bg-zinc-100",
+  children,
+}: {
+  id?: string;
+  title: string;
+  icon: typeof Layers;
+  count?: number;
+  href?: string;
+  hrefLabel?: string;
+  tint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="card overflow-hidden p-0">
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-3.5 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className={`grid h-6 w-6 place-items-center rounded-md ${tint}`}>
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+          <h2 className="text-[13px] font-semibold tracking-tight text-zinc-900">{title}</h2>
+          {count !== undefined && count > 0 && (
+            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-600">
+              {count}
+            </span>
+          )}
+        </div>
+        {href && hrefLabel && (
+          <Link href={href} className="flex items-center gap-0.5 text-[11px] font-medium text-zinc-400 transition hover:text-zinc-700">
+            {hrefLabel} <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return <p className="px-3.5 py-6 text-center text-[12px] text-zinc-400">{text}</p>;
 }

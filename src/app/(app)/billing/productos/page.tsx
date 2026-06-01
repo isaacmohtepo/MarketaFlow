@@ -49,7 +49,7 @@ function NoOwner() {
       <div className="card mt-6 p-8 text-center">
         <CreditCard className="mx-auto h-10 w-10 text-zinc-300" />
         <p className="mt-4 text-[14px] font-semibold text-zinc-900">
-          No sos owner de ninguna agencia
+          No eres owner de ninguna agencia
         </p>
         <Link
           href="/dashboard"

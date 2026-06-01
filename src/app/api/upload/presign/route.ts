@@ -13,7 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
  * Hobby. Esencial para videos.
  *
  * Flow:
- *  1. Browser pide acá pasando { name, type, size }.
+ *  1. Browser pide aquí pasando { name, type, size }.
  *  2. Validamos auth + tipo + tamaño.
  *  3. Devolvemos { signedUrl, publicUrl }.
  *  4. Browser hace PUT signedUrl con el File como body.
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Upload directo no disponible: R2 no está configurado en este servidor. Usa archivos < 4 MB o pegá una URL externa.",
+          "Upload directo no disponible: R2 no está configurado en este servidor. Usa archivos < 4 MB o pega una URL externa.",
       },
       { status: 503 },
     );

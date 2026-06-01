@@ -126,7 +126,7 @@ export default function WhiteLabelEditor({
         toast.error(j.error ?? "No se pudo guardar");
         return;
       }
-      toast.success("Branding guardado — refrescá para ver el cambio en la app");
+      toast.success("Branding guardado — refresca para ver el cambio en la app");
       router.refresh();
     } finally {
       setSaving(false);
@@ -215,7 +215,7 @@ export default function WhiteLabelEditor({
           Cómo se muestra en el sidebar
         </label>
         <p className="mt-0.5 text-[11.5px] text-zinc-500">
-          Si tu logo ya incluye el nombre, elegí &quot;Solo logo&quot; para
+          Si tu logo ya incluye el nombre, elige &quot;Solo logo&quot; para
           evitar que aparezca duplicado.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -233,7 +233,7 @@ export default function WhiteLabelEditor({
             label="Solo logo"
             description="Logo más grande, sin texto al lado"
             disabled={!logoUrl}
-            disabledHint={!logoUrl ? "Subí un logo primero" : undefined}
+            disabledHint={!logoUrl ? "Sube un logo primero" : undefined}
           />
           <ModeOption
             active={effectiveMode === "text_only"}
@@ -308,7 +308,7 @@ export default function WhiteLabelEditor({
         </label>
         <p className="mt-0.5 text-[11.5px] text-zinc-500">
           Reemplaza &quot;MarketaFlow&quot; en sidebar, emails y páginas
-          públicas. Si lo dejás vacío, usamos el nombre de tu agencia (
+          públicas. Si lo dejas vacío, usamos el nombre de tu agencia (
           {agencyName}).
         </p>
         <input

@@ -135,6 +135,7 @@ export async function PATCH(
       postId: ctx.comment.postId,
       body: `Te asignaron este comentario: "${updated.body.slice(0, 120)}"`,
       actorName: user.name ?? user.email,
+      actorAvatarUrl: user.avatarUrl,
       excludeUserId: user.id,
     }).catch((err) => console.error("notify assign failed", err));
   }

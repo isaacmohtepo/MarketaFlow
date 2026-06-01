@@ -45,8 +45,9 @@ export async function POST(req: Request) {
     }
     jar.delete(SESSION_COOKIE);
     jar.delete(IMPERSONATOR_COOKIE);
+    jar.delete("mf_workspace");
     return NextResponse.json(
-      { error: "Tu sesión original expiró, volvé a loguearte" },
+      { error: "Tu sesión original expiró, vuelve a loguearte" },
       { status: 401 },
     );
   }
@@ -65,6 +66,8 @@ export async function POST(req: Request) {
     path: "/",
   });
   jar.delete(IMPERSONATOR_COOKIE);
+  // Limpiar el workspace del target para que el admin vuelva a su fallback.
+  jar.delete("mf_workspace");
 
   audit({
     category: "admin",

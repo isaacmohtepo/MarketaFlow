@@ -27,7 +27,7 @@ type Guard =
 
 const SUSPENDED_RESPONSE_BODY = {
   error:
-    "Esta agencia está suspendida — modo solo-lectura. Si sos el owner, andá a /billing para resolver.",
+    "Esta agencia está suspendida — modo solo-lectura. Si eres el owner, ve a /billing para resolver.",
   suspended: true,
 };
 

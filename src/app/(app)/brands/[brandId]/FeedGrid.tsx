@@ -25,6 +25,8 @@ import { assetTypeLabel } from "@/lib/asset-types";
 
 type FeedPost = {
   id: string;
+  /** Número legible por marca para la URL (o null → cae al id). */
+  number: number | null;
   imageUrl: string | null;
   status: string;
   imageCount: number;
@@ -298,7 +300,7 @@ export default function FeedGrid({
               } ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
               <Link
-                href={`/brands/${brandId}/posts/${p.id}`}
+                href={`/brands/${brandId}/posts/${p.number ?? p.id}`}
                 draggable={false}
                 className="block h-full w-full"
                 onClick={(e) => {
@@ -418,7 +420,7 @@ export default function FeedGrid({
                   title: `¿Mover ${selected.size} ${
                     selected.size === 1 ? "post" : "posts"
                   } a la papelera?`,
-                  description: "Podés restaurarlos desde la papelera durante 30 días.",
+                  description: "Puedes restaurarlos desde la papelera durante 30 días.",
                   confirmLabel: "Mover a papelera",
                   cancelLabel: "Cancelar",
                   variant: "danger",

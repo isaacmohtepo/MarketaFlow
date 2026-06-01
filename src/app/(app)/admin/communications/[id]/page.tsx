@@ -52,7 +52,7 @@ export default async function BroadcastDetailPage({
 
         {b.status === "sending" && (
           <div className="mt-4 rounded-md border border-blue-200 bg-blue-50/40 p-3 text-[12px] text-blue-900">
-            Enviando… {b.sentCount} de {b.totalCount} (refrescá para ver progreso).
+            Enviando… {b.sentCount} de {b.totalCount} (refresca para ver progreso).
           </div>
         )}
 

@@ -71,7 +71,7 @@ export default function PlansEditor({ initial }: { initial: UsagePlans }) {
               Editar planes y límites
             </p>
             <p className="text-[11px] text-zinc-500">
-              Cuando upgradees un servicio, actualizá acá su tier y límite.
+              Cuando upgradees un servicio, actualiza aquí su tier y límite.
             </p>
           </div>
         </div>

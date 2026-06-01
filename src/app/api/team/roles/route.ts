@@ -11,12 +11,10 @@ import {
   ASSIGNABLE_SYSTEM_ROLES,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 
 async function getMyAgency(userId: string) {
-  return prisma.membership.findFirst({
-    where: { userId, brandId: null },
-    select: { agencyId: true },
-  });
+  return getActiveAgencyMembership(userId);
 }
 
 export async function GET() {
@@ -120,7 +118,7 @@ export async function POST(req: Request) {
   // No permitir slugs que choquen con system roles
   if (isSystemRole(slug)) {
     return NextResponse.json(
-      { error: "Ese nombre choca con un rol del sistema. Probá otro." },
+      { error: "Ese nombre choca con un rol del sistema. Prueba otro." },
       { status: 409 },
     );
   }

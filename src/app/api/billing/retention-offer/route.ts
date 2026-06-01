@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { hasPermission } from "@/lib/permissions";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { audit } from "@/lib/audit";
@@ -28,10 +29,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const m = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const m = await getActiveAgencyMembership(user.id);
   if (!m) return NextResponse.json({ eligible: false });
 
   const sub = await prisma.subscription.findUnique({
@@ -77,10 +75,7 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const m = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const m = await getActiveAgencyMembership(user.id);
   if (!m) return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
 
   if (!(await hasPermission(user.id, m.agencyId, "billing.manage"))) {

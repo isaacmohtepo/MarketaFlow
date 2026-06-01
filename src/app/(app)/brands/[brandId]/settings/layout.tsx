@@ -23,7 +23,7 @@ export default async function SettingsLayout({
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     select: { name: true },
   });
   if (!brand) notFound();

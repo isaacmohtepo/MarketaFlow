@@ -12,10 +12,12 @@ import {
   Inbox,
   Sparkles,
   Trash2,
+  UserPlus,
   X,
   XCircle,
 } from "lucide-react";
 import MentionText from "./MentionText";
+import { useConfirm } from "./ConfirmDialog";
 
 type Notif = {
   id: string;
@@ -23,6 +25,7 @@ type Notif = {
   body: string;
   brandId: string | null;
   postId: string | null;
+  taskId: string | null;
   actorName: string | null;
   read: boolean;
   createdAt: string;
@@ -39,6 +42,10 @@ const TYPE_VISUAL: Record<
   post_publish_failed: { icon: XCircle, tint: "bg-rose-50 text-rose-600 ring-rose-100" },
   comment_mention: { icon: AtSign, tint: "bg-violet-50 text-violet-600 ring-violet-100" },
   scheduled: { icon: CalendarClock, tint: "bg-blue-50 text-blue-600 ring-blue-100" },
+  task_assigned: { icon: UserPlus, tint: "bg-violet-50 text-violet-600 ring-violet-100" },
+  task_mention: { icon: AtSign, tint: "bg-violet-50 text-violet-600 ring-violet-100" },
+  task_due_soon: { icon: CalendarClock, tint: "bg-amber-50 text-amber-600 ring-amber-100" },
+  task_due_overdue: { icon: XCircle, tint: "bg-rose-50 text-rose-600 ring-rose-100" },
 };
 
 // Lee preferencias guardadas en localStorage (default: ambas activas)
@@ -101,6 +108,7 @@ function formatRelative(iso: string) {
 }
 
 export default function NotificationsBell() {
+  const { confirm } = useConfirm();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
@@ -159,7 +167,9 @@ export default function NotificationsBell() {
             });
             desktop.onclick = () => {
               window.focus();
-              if (n.brandId && n.postId) {
+              if (n.taskId) {
+                window.location.href = `/tasks?open=${n.taskId}`;
+              } else if (n.brandId && n.postId) {
                 window.location.href = `/brands/${n.brandId}/posts/${n.postId}`;
               } else if (n.brandId) {
                 window.location.href = `/brands/${n.brandId}`;
@@ -240,7 +250,14 @@ export default function NotificationsBell() {
   async function deleteAllRead() {
     const readIds = items.filter((n) => n.read).map((n) => n.id);
     if (readIds.length === 0) return;
-    if (!confirm(`¿Borrar ${readIds.length} notificación${readIds.length === 1 ? "" : "es"} leída${readIds.length === 1 ? "" : "s"}?`)) return;
+    const ok = await confirm({
+      title: `¿Borrar ${readIds.length} ${readIds.length === 1 ? "notificación leída" : "notificaciones leídas"}?`,
+      description: "No se pueden recuperar.",
+      confirmLabel: "Borrar",
+      cancelLabel: "Cancelar",
+      variant: "danger",
+    });
+    if (!ok) return;
     setRemovingIds((s) => {
       const next = new Set(s);
       for (const id of readIds) next.add(id);
@@ -342,8 +359,8 @@ export default function NotificationsBell() {
                 </p>
                 <p className="text-[11px] text-zinc-500">
                   {filter === "unread"
-                    ? "No tenés notificaciones sin leer."
-                    : "No tenés notificaciones nuevas."}
+                    ? "No tienes notificaciones sin leer."
+                    : "No tienes notificaciones nuevas."}
                 </p>
               </div>
             ) : (
@@ -354,8 +371,9 @@ export default function NotificationsBell() {
                     tint: "bg-zinc-50 text-zinc-600 ring-zinc-100",
                   };
                   const Icon = visual.icon;
-                  const href =
-                    n.brandId && n.postId
+                  const href = n.taskId
+                    ? `/tasks?open=${n.taskId}`
+                    : n.brandId && n.postId
                       ? `/brands/${n.brandId}/posts/${n.postId}`
                       : n.brandId
                         ? `/brands/${n.brandId}`

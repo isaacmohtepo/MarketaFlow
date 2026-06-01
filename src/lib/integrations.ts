@@ -1,9 +1,9 @@
 /**
  * Resolver de configs de integraciones. Cualquier código que necesita las
- * llaves de Wompi/Stripe/Slack/etc. pasa por acá — leemos la config activa
+ * llaves de Wompi/Stripe/Slack/etc. pasa por aquí — leemos la config activa
  * de DB, desencriptamos, y devolvemos el config tipado.
  *
- * El admin panel (/admin/integrations) escribe acá. Resto del código
+ * El admin panel (/admin/integrations) escribe aquí. Resto del código
  * solo lee.
  */
 
@@ -132,7 +132,7 @@ export async function getWompiConfig(
   const cfg = await getActiveConfig<WompiConfig>("wompi", environment);
   if (!cfg) {
     throw new Error(
-      `No hay configuración activa de Wompi (${environment}). Configurá las llaves en /admin/integrations.`,
+      `No hay configuración activa de Wompi (${environment}). Configura las llaves en /admin/integrations.`,
     );
   }
   return cfg;

@@ -22,6 +22,7 @@ export type ToastNotif = {
   body: string;
   brandId: string | null;
   postId: string | null;
+  taskId: string | null;
   actorName: string | null;
   read: boolean;
   createdAt: string;
@@ -41,6 +42,10 @@ const TYPE_VISUAL: Record<string, { icon: typeof Bell; tint: string; label: stri
   comment_assigned: { icon: UserPlus, tint: "bg-violet-50 text-violet-600 ring-violet-100", label: "Asignado" },
   widget_first_ping: { icon: Sparkles, tint: "bg-emerald-50 text-emerald-600 ring-emerald-100", label: "Widget activo" },
   scheduled: { icon: CalendarClock, tint: "bg-blue-50 text-blue-600 ring-blue-100", label: "Programado" },
+  task_assigned: { icon: UserPlus, tint: "bg-violet-50 text-violet-600 ring-violet-100", label: "Tarea asignada" },
+  task_mention: { icon: AtSign, tint: "bg-violet-50 text-violet-600 ring-violet-100", label: "Mención" },
+  task_due_soon: { icon: CalendarClock, tint: "bg-amber-50 text-amber-600 ring-amber-100", label: "Vence pronto" },
+  task_due_overdue: { icon: XCircle, tint: "bg-rose-50 text-rose-600 ring-rose-100", label: "Tarea vencida" },
 };
 
 const AUTO_DISMISS_MS = 6_000;
@@ -82,8 +87,9 @@ export default function NotificationToaster() {
           label: "Notificación",
         };
         const Icon = visual.icon;
-        const href =
-          n.brandId && n.postId
+        const href = n.taskId
+          ? `/tasks?open=${n.taskId}`
+          : n.brandId && n.postId
             ? `/brands/${n.brandId}/posts/${n.postId}`
             : n.brandId
               ? `/brands/${n.brandId}`

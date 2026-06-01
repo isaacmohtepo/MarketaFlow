@@ -67,7 +67,7 @@ export default function UnsavedDraftBanner({ brandId }: { brandId: string }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-semibold text-zinc-900">
-          Tenés un borrador sin guardar para esta marca
+          Tienes un borrador sin guardar para esta marca
         </p>
         <p className="truncate text-[11.5px] text-zinc-600">
           {captionPreview ? `"${captionPreview}${draft.caption.length > 80 ? "…" : ""}"` : "Sin caption"}

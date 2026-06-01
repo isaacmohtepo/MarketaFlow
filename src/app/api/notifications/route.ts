@@ -63,6 +63,7 @@ export async function GET(req: Request) {
       body: n.body,
       brandId: n.brandId,
       postId: n.postId,
+      taskId: n.taskId,
       actorName: n.actorName,
       read: n.read,
       snoozedUntil: n.snoozedUntil?.toISOString() ?? null,

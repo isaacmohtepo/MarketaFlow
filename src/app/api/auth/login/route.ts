@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   if (!byEmail.ok) {
     return rateLimitResponse(
       byEmail,
-      "Demasiados intentos para esta cuenta. Probá en unos minutos.",
+      "Demasiados intentos para esta cuenta. Prueba en unos minutos.",
     );
   }
 
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   // credenciales para no filtrar el estado de la cuenta a un attacker).
   if (user.disabledAt) {
     return NextResponse.json(
-      { error: "Esta cuenta fue deshabilitada. Contactá soporte." },
+      { error: "Esta cuenta fue deshabilitada. Contacta soporte." },
       { status: 403 },
     );
   }
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "MarketaFlow está en mantenimiento. Volvé a intentar en unos minutos.",
+          "MarketaFlow está en mantenimiento. Vuelve a intentar en unos minutos.",
         maintenance: true,
       },
       { status: 503 },
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Tu cuenta admin requiere 2FA activado. Contactá a otro admin para resetear esto si perdiste acceso.",
+            "Tu cuenta admin requiere 2FA activado. Contacta a otro admin para resetear esto si perdiste acceso.",
           requires2faSetup: true,
         },
         { status: 403 },
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
   if (user.totpEnabledAt && user.totpSecret) {
     if (!body.totpToken) {
       return NextResponse.json(
-        { requires2fa: true, message: "Ingresá tu código de 6 dígitos." },
+        { requires2fa: true, message: "Ingresa tu código de 6 dígitos." },
         { status: 401 },
       );
     }
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     // password fue válido, un atacante podía brute-forcear 6-dígitos (1M
     // combinaciones) o probar todos los 10 recovery codes sin límite. Los
     // rate limits de arriba (login:ip + login:email) cuentan TODO intento
-    // de login, así que también ayudan, pero acá agregamos un límite más
+    // de login, así que también ayudan, pero aquí agregamos un límite más
     // estricto: 8 intentos / 15 min por user-id.
     const twoFaRl = await rateLimitAsync(req, {
       key: "login:2fa",

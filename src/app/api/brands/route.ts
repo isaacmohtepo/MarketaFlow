@@ -2,15 +2,23 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { canCreateBrand } from "@/lib/billing";
 import { assertAgencyNotSuspended } from "@/lib/suspension";
 import { hasPermission } from "@/lib/permissions";
+import { generateBrandSlug } from "@/lib/slugs";
 
 const schema = z.object({
   // Cap defensivo: nombres muy largos rompen layout en emails, sidebar y
   // public pages. 80 chars cubre cualquier nombre real de marca.
   name: z.string().trim().min(1).max(80),
   handle: z.string().trim().max(40).optional().nullable(),
+  // Color hex de la marca (acento visual). Formato #RRGGBB o #RGB.
+  color: z
+    .string()
+    .regex(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+    .optional()
+    .nullable(),
 });
 
 export async function POST(req: Request) {
@@ -24,10 +32,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const owner = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const owner = await getActiveAgencyMembership(user.id);
   if (!owner) {
     return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
   }
@@ -40,6 +45,9 @@ export async function POST(req: Request) {
   }
   const suspendGuard = await assertAgencyNotSuspended(owner.agencyId);
   if (!suspendGuard.ok) return suspendGuard.response;
+
+  // Slug legible único para la URL (`/brands/<slug>`).
+  const slug = await generateBrandSlug(body.name);
 
   // Plan limits enforcement con Serializable transaction para cerrar la
   // race condition (TOCTOU). Sin esto, dos POST paralelos pasarían ambos
@@ -54,9 +62,12 @@ export async function POST(req: Request) {
       const brand = await tx.brand.create({
         data: {
           name: body.name,
+          slug,
           handle: body.handle || null,
+          color: body.color || null,
           agencyId: owner.agencyId,
         },
+        select: { id: true, slug: true, name: true, color: true, logoUrl: true },
       });
       return { ok: true as const, brand };
     },
@@ -74,5 +85,5 @@ export async function POST(req: Request) {
       { status: 402 },
     );
   }
-  return NextResponse.json({ id: result.brand.id });
+  return NextResponse.json({ brand: result.brand });
 }

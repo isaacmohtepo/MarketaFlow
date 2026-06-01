@@ -31,16 +31,17 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: brandId } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const access = await getBrandAccess(user.id, brandId);
+  const access = await getBrandAccess(user.id, brandRef);
   // El audit log incluye comentarios internos del equipo. Los clients NO
   // deberían poder descargarlo. Restringimos a audit.view.
   if (!access) {
     return new Response("Forbidden", { status: 403 });
   }
+  const brandId = access.brandId; // ref → id real
   const ok = await hasPermission(user.id, access.agencyId, "audit.view", brandId);
   if (!ok) {
     return new Response("Forbidden: audit.view", { status: 403 });

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { usePermissions } from "./PermissionsProvider";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
+import type { Workspace } from "@/lib/active-agency";
 import {
   LayoutDashboard,
   Layers,
@@ -102,7 +104,7 @@ function buildSections({
         ...(canViewBilling
           ? [
               // Plan = todo lo que tiene que ver con la SUSCRIPCIÓN:
-              // qué plan tenés activo y qué add-ons sumás encima.
+              // qué plan tienes activo y qué add-ons sumas encima.
               {
                 label: "Plan",
                 icon: Sparkles,
@@ -225,6 +227,8 @@ export default function Sidebar({
   isAdmin = false,
   isOwner = false,
   planCard = null,
+  workspaces = [],
+  activeAgencyId = null,
 }: {
   agencyName: string | null;
   /** Si está set, reemplaza "MarketaFlow" en el header. */
@@ -242,15 +246,21 @@ export default function Sidebar({
   isAdmin?: boolean;
   isOwner?: boolean;
   planCard?: PlanCardData | null;
+  /** Agencias del user para el selector de workspace. Si <=1, no se muestra. */
+  workspaces?: Workspace[];
+  /** Agencia activa actual (para marcar la seleccionada en el switcher). */
+  activeAgencyId?: string | null;
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const [inboxCount, setInboxCount] = useState<number>(0);
   const [tasksCount, setTasksCount] = useState<number>(0);
-  const { has } = usePermissions();
+  const { has, hasAnyScope } = usePermissions();
   // Billing solo visible si el user tiene billing.view (owner + manager por
   // default; cualquier custom role que tenga ese perm). Antes era owner-only.
   const canViewBilling = isOwner || has("billing.view");
-  const canViewTasks = isOwner || has("tasks.read");
+  // Tareas es agency-global: un miembro brand-scoped (ej. diseñador asignado
+  // a marcas puntuales) igual debe ver el tablero. Por eso hasAnyScope y no has.
+  const canViewTasks = isOwner || hasAnyScope("tasks.read");
   const SECTIONS = useMemo(
     () => buildSections({ isAdmin, canViewBilling, canViewTasks }),
     [isAdmin, canViewBilling, canViewTasks],
@@ -388,22 +398,16 @@ export default function Sidebar({
             >
               {brandName ?? "MarketaFlow"}
             </p>
-            {agencyName && agencyName !== brandName && (
-              <p
-                className={`truncate text-[11px] text-zinc-500 ${
-                  brandHeaderAlign === "center"
-                    ? "text-center"
-                    : brandHeaderAlign === "right"
-                      ? "text-right"
-                      : "text-left"
-                }`}
-              >
-                {agencyName}
-              </p>
-            )}
+            {/* El nombre de la agencia lo muestra el WorkspaceSwitcher de abajo
+                (evitamos duplicarlo aquí). */}
           </div>
         )}
       </div>
+
+      <WorkspaceSwitcher
+        workspaces={workspaces}
+        activeAgencyId={activeAgencyId}
+      />
 
       <nav className="scroll-dark flex-1 overflow-y-auto px-2 pb-3">
         {SECTIONS.map((section) => (
@@ -501,7 +505,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
           <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-fuchsia-400" />
         </div>
         <p className="mt-1 text-[12px] font-semibold brand-gradient-text">
-          Subí a Pro
+          Sube a Pro
         </p>
         <p className="mt-0.5 text-[11px] text-zinc-500">
           Marcas y posts ilimitados
@@ -535,7 +539,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
           {daysLeft} {daysLeft === 1 ? "día restante" : "días restantes"}
         </p>
         <p className="mt-0.5 text-[11px] text-zinc-500">
-          Activá tu suscripción para no perder features
+          Activa tu suscripción para no perder features
         </p>
       </Link>
     );
@@ -555,7 +559,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
           <ArrowUpRight className="h-3.5 w-3.5 text-rose-300" />
         </div>
         <p className="mt-1 text-[12px] font-semibold text-white">
-          Renová tu plan
+          Renueva tu plan
         </p>
         <p className="mt-0.5 text-[11px] text-rose-200/80">
           Unos días de gracia antes de bajar a Free
@@ -582,7 +586,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
           Cancela el {formatDate(data.currentPeriodEnd)}
         </p>
         <p className="mt-0.5 text-[11px] text-zinc-500">
-          Tocá para reactivar
+          Toca para reactivar
         </p>
       </Link>
     );
@@ -607,7 +611,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
       </p>
       <p className="mt-0.5 text-[11px] text-zinc-500">
         {data.nextChargeAt
-          ? `Renovás ${formatDate(data.nextChargeAt)}`
+          ? `Renuevas ${formatDate(data.nextChargeAt)}`
           : data.billingCycle === "yearly"
             ? "Facturado anual"
             : "Activa"}

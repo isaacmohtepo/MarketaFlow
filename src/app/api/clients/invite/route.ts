@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveMembershipWithAgency } from "@/lib/active-agency";
 import { sendEmail, appUrl } from "@/lib/email";
 import { audit } from "@/lib/audit";
 import { hasPermission } from "@/lib/permissions";
@@ -33,11 +34,7 @@ const schema = z.object({
 });
 
 async function getUserAgency(userId: string) {
-  return prisma.membership.findFirst({
-    where: { userId, brandId: null },
-    include: { agency: true },
-    orderBy: { id: "asc" },
-  });
+  return getActiveMembershipWithAgency(userId);
 }
 
 export async function GET() {
@@ -80,7 +77,7 @@ export async function POST(req: Request) {
 
   if (!(await hasPermission(user.id, m.agencyId, "clients.invite"))) {
     return NextResponse.json(
-      { error: "No tenés permiso para invitar clientes" },
+      { error: "No tienes permiso para invitar clientes" },
       { status: 403 },
     );
   }

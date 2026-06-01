@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import Sidebar, { type PlanCardData } from "./Sidebar";
+import type { Workspace } from "@/lib/active-agency";
 import TopBar from "./TopBar";
 import ShortcutsOverlay from "./ShortcutsOverlay";
 import CommandPalette from "./CommandPalette";
@@ -29,6 +30,8 @@ export default function AppShell({
   isAdmin = false,
   isOwner = false,
   planCard = null,
+  workspaces = [],
+  activeAgencyId = null,
   banners = null,
   children,
 }: {
@@ -50,6 +53,10 @@ export default function AppShell({
   isAdmin?: boolean;
   isOwner?: boolean;
   planCard?: PlanCardData | null;
+  /** Agencias del user para el selector de workspace. */
+  workspaces?: Workspace[];
+  /** Agencia activa actual. */
+  activeAgencyId?: string | null;
   /// Banners renderizados antes del topbar, full-width edge-to-edge.
   /// Cada uno se pasa como ReactNode independiente para poder ser sticky.
   banners?: ReactNode;
@@ -73,6 +80,8 @@ export default function AppShell({
         isAdmin={isAdmin}
         isOwner={isOwner}
         planCard={planCard}
+        workspaces={workspaces}
+        activeAgencyId={activeAgencyId}
       />
 
       {/* Drawer mobile */}
@@ -95,6 +104,8 @@ export default function AppShell({
               isAdmin={isAdmin}
               isOwner={isOwner}
               planCard={planCard}
+              workspaces={workspaces}
+              activeAgencyId={activeAgencyId}
               onNavigate={() => setMobileOpen(false)}
             />
           </div>

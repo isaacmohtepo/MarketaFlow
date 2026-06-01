@@ -5,7 +5,7 @@ import { timingSafeEqual } from "node:crypto";
  * token o X-Cron-Secret header).
  *
  * Vercel Cron incluye automáticamente el header `Authorization: Bearer
- * <CRON_SECRET>` cuando configurás el cron en vercel.json y la env var
+ * <CRON_SECRET>` cuando configuras el cron en vercel.json y la env var
  * está seteada. También aceptamos `X-Cron-Secret: <secret>` como header
  * legacy para invocación manual via curl.
  */

@@ -24,7 +24,7 @@ export default async function SharePage({
       where: { userId: user.id, brandId: brand.id },
     });
     if (existingBrandMember) {
-      redirect(`/brands/${brand.id}`);
+      redirect(`/brands/${brand.slug ?? brand.id}`);
     }
     // ¿Es miembro AGENCY-level de la misma agencia? → ya tiene acceso por
     // default (owner/editor). No creamos client membership extra.
@@ -32,7 +32,7 @@ export default async function SharePage({
       where: { userId: user.id, agencyId: brand.agencyId, brandId: null },
     });
     if (agencyMember) {
-      redirect(`/brands/${brand.id}`);
+      redirect(`/brands/${brand.slug ?? brand.id}`);
     }
     // Crear membership client — sujeto a plan limit (igual que vía API).
     const check = await canInviteClient(brand.id);
@@ -45,7 +45,7 @@ export default async function SharePage({
             </p>
             <p className="mt-2 text-[13px] text-zinc-500">
               Esta marca alcanzó el límite de clientes en su plan actual.
-              Contactá a la agencia para que te invite directamente.
+              Contacta a la agencia para que te invite directamente.
             </p>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default async function SharePage({
         role: "client",
       },
     });
-    redirect(`/brands/${brand.id}`);
+    redirect(`/brands/${brand.slug ?? brand.id}`);
   }
 
   const wl = await getWhiteLabel(brand.agencyId);

@@ -11,6 +11,7 @@ export default function TrashRow({
 }: {
   post: {
     id: string;
+    number: number | null;
     imageUrl: string | null;
     caption: string;
     status: string;
@@ -50,7 +51,7 @@ export default function TrashRow({
   return (
     <li className="group flex items-center gap-3 p-3 transition hover:bg-zinc-50">
       <Link
-        href={brandId ? `/brands/${brandId}/posts/${post.id}` : "#"}
+        href={brandId ? `/brands/${brandId}/posts/${post.number ?? post.id}` : "#"}
         className="flex flex-1 items-center gap-3"
       >
         {post.imageUrl ? (

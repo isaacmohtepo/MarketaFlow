@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveMembershipWithAgency } from "@/lib/active-agency";
 import { sendEmail, appUrl } from "@/lib/email";
+import { escapeHtml } from "@/lib/sanitize-html";
 import { canInviteTeamMember } from "@/lib/billing";
 import { audit } from "@/lib/audit";
 import {
@@ -19,11 +21,7 @@ import {
  * hasPermission() después.
  */
 async function getUserAgency(userId: string) {
-  return prisma.membership.findFirst({
-    where: { userId, brandId: null },
-    include: { agency: true },
-    orderBy: { id: "asc" },
-  });
+  return getActiveMembershipWithAgency(userId);
 }
 
 const inviteSchema = z.object({
@@ -169,7 +167,7 @@ export async function POST(req: Request) {
   // Permiso: cualquiera con team.invite. Owner siempre puede.
   if (!(await hasPermission(user.id, m.agencyId, "team.invite"))) {
     return NextResponse.json(
-      { error: "No tenés permiso para invitar miembros" },
+      { error: "No tienes permiso para invitar miembros" },
       { status: 403 },
     );
   }
@@ -300,13 +298,6 @@ export async function POST(req: Request) {
   });
 
   const acceptUrl = appUrl(`/team/accept/${inv.token}`);
-  const escapeHtml = (s: string) =>
-    s
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
   const inviterName = escapeHtml(user.name ?? user.email);
   const agencyName = escapeHtml(m.agency.name);
   const roleLabel = escapeHtml(sysRole?.name ?? body.role);

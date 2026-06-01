@@ -9,6 +9,7 @@ import { assertBrandNotSuspended } from "@/lib/suspension";
 import { assertBrandUnlocked } from "@/lib/brand-lock";
 import { ASSET_TYPES } from "@/lib/asset-types";
 import { canCreatePost } from "@/lib/billing";
+import { assignPostNumber } from "@/lib/slugs";
 
 /**
  * URLs de imágenes deben ser http(s) (R2 público o externas) o paths
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
   }
 
   // posts.create gateway: cualquier rol con este permiso (CM, Designer NO,
-  // Manager, Owner). Designer entra por upload_media en PATCH, no acá.
+  // Manager, Owner). Designer entra por upload_media en PATCH, no aquí.
   const brandForGate = await prisma.brand.findUnique({
     where: { id: body.brandId },
     select: { agencyId: true },
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "El widget no se detectó en este dominio. Pegá el script del widget en el sitio, abrí una página, y volvé a comprobar antes de enviar a revisión.",
+            "El widget no se detectó en este dominio. Pega el script del widget en el sitio, abre una página, y vuelve a comprobar antes de enviar a revisión.",
         },
         { status: 400 },
       );
@@ -193,6 +194,8 @@ export async function POST(req: Request) {
     );
   }
   const post = txResult.post;
+  // Número legible secuencial por marca (para /brands/<slug>/posts/<n>).
+  await assignPostNumber(post.id, post.brandId);
   await recordActivity({
     postId: post.id,
     userId: user.id,

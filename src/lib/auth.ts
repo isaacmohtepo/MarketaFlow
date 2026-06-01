@@ -66,11 +66,13 @@ export async function destroySession() {
     await prisma.session.deleteMany({ where: { token } });
   }
   jar.delete(COOKIE);
+  // No heredar el workspace activo al próximo user que loguee en este device.
+  jar.delete("mf_workspace");
 }
 
 /**
  * Devuelve el user actual SIN relations cargadas. Versión liviana — usar
- * por default. Si necesitás memberships/brands, llamá
+ * por default. Si necesitas memberships/brands, llama
  * `getCurrentUserWithMemberships`.
  *
  * Performance: 1 JOIN session×user en vez de 4 niveles. Reducir el payload

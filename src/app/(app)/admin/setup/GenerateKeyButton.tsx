@@ -19,7 +19,7 @@ export default function GenerateKeyButton() {
         return;
       }
       toast.success("Master key generada y guardada", {
-        description: "Ya podés configurar pasarelas de pago.",
+        description: "Ya puedes configurar pasarelas de pago.",
       });
       router.refresh();
     } catch {

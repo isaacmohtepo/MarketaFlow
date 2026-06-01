@@ -34,7 +34,7 @@ export default function InstagramConnector({
 
   async function connect() {
     if (!form.igUserId.trim() || !form.igAccessToken.trim()) {
-      toast.error("Completá los 2 campos");
+      toast.error("Completa los 2 campos");
       return;
     }
     setBusy(true);
@@ -66,7 +66,7 @@ export default function InstagramConnector({
     const ok = await confirm({
       title: "¿Desconectar Instagram?",
       description:
-        "La marca dejará de poder publicar automáticamente. Las credenciales se borran de la DB. Podés volver a conectar después.",
+        "La marca dejará de poder publicar automáticamente. Las credenciales se borran de la DB. Puedes volver a conectar después.",
       confirmLabel: "Desconectar",
       cancelLabel: "Cancelar",
       variant: "warning",
@@ -96,7 +96,7 @@ export default function InstagramConnector({
       {needsReconnect && connected && (
         <div className="card border-rose-300 bg-rose-50/60 p-4">
           <p className="text-[13px] font-bold text-rose-900">
-            Reconectá Instagram
+            Reconecta Instagram
           </p>
           <p className="mt-1 text-[12px] text-rose-800">
             El token de acceso caducó o fue revocado. Mientras no se
@@ -145,7 +145,7 @@ export default function InstagramConnector({
               Conectar con un click
             </h2>
             <p className="mt-0.5 text-[12px] text-zinc-600">
-              Te redirigimos a Meta, autorizás los permisos, y volvés con la
+              Te redirigimos a Meta, autorizas los permisos, y vuelves con la
               cuenta conectada. Sin pegar tokens manualmente.
             </p>
           </div>
@@ -161,7 +161,7 @@ export default function InstagramConnector({
           Requiere que el admin de la plataforma haya configurado{" "}
           <code className="rounded bg-zinc-100 px-1">META_APP_ID</code> y{" "}
           <code className="rounded bg-zinc-100 px-1">META_APP_SECRET</code> en
-          Vercel. Si no, usá la conexión manual abajo.
+          Vercel. Si no, usa la conexión manual abajo.
         </p>
       </section>
 
@@ -171,7 +171,7 @@ export default function InstagramConnector({
           {connected ? "Reemplazar credenciales (manual)" : "Conexión manual"}
         </h2>
         <p className="mt-1 text-[12px] text-zinc-500">
-          Necesitás un{" "}
+          Necesitas un{" "}
           <strong>Instagram Business Account ID</strong> y un{" "}
           <strong>long-lived access token</strong> de Meta con los permisos:{" "}
           <code className="rounded bg-zinc-100 px-1 text-[10.5px]">instagram_basic</code>
@@ -197,7 +197,7 @@ export default function InstagramConnector({
               className="input-soft w-full rounded-md px-3 py-2 text-[13px] font-mono"
             />
             <p className="mt-1 text-[10.5px] text-zinc-500">
-              No es el @username — es un número largo. Lo encontrás en Meta
+              No es el @username — es un número largo. Lo encuentras en Meta
               Business Suite → Configuración → Cuentas → Instagram.
             </p>
           </Field>
@@ -263,12 +263,12 @@ export default function InstagramConnector({
         </h2>
         <ol className="mt-3 space-y-2 text-[12.5px] text-zinc-700 list-decimal pl-5">
           <li>
-            Tenés que tener una{" "}
+            Tienes que tener una{" "}
             <strong>cuenta Instagram Business o Creator</strong> conectada a
             una página de Facebook.
           </li>
           <li>
-            Andá a{" "}
+            Ve a{" "}
             <a
               href="https://developers.facebook.com/apps"
               target="_blank"
@@ -278,13 +278,13 @@ export default function InstagramConnector({
               developers.facebook.com/apps
               <ExternalLink className="h-3 w-3" />
             </a>{" "}
-            y creá una app tipo "Business".
+            y crea una app tipo "Business".
           </li>
           <li>
-            Agregá el producto "Instagram Graph API" + "Pages API".
+            Agrega el producto "Instagram Graph API" + "Pages API".
           </li>
           <li>
-            Generá un User Access Token con los permisos arriba mencionados.
+            Genera un User Access Token con los permisos arriba mencionados.
           </li>
           <li>
             Convertilo a{" "}
@@ -295,7 +295,7 @@ export default function InstagramConnector({
             .
           </li>
           <li>
-            Tu IG Business Account ID lo conseguís con{" "}
+            Tu IG Business Account ID lo consigues con{" "}
             <code className="rounded bg-zinc-100 px-1 text-[10.5px]">
               GET /{"{page-id}"}?fields=instagram_business_account
             </code>
@@ -303,7 +303,7 @@ export default function InstagramConnector({
           </li>
         </ol>
         <p className="mt-3 text-[11px] text-zinc-500">
-          Si necesitás ayuda con esto, escribinos a soporte@marketaflow.app y
+          Si necesitas ayuda con esto, escribinos a soporte@marketaflow.app y
           te guiamos en el setup.
         </p>
       </section>

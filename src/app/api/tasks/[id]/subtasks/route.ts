@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { hasAgencyPermission } from "@/lib/permissions";
 import { getUserTaskAgency } from "@/lib/tasks";
 
 const schema = z.object({ title: z.string().min(1).max(200) });
@@ -25,7 +25,7 @@ export async function POST(
   const agency = await getUserTaskAgency(user.id);
   if (!agency || agency.agencyId !== task.agencyId)
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
-  const canWrite = await hasPermission(user.id, task.agencyId, "tasks.write");
+  const canWrite = await hasAgencyPermission(user.id, task.agencyId, "tasks.write");
   if (!canWrite)
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
 
@@ -49,6 +49,11 @@ export async function POST(
       title: body.title.trim().slice(0, 200),
       position,
     },
+  });
+  // Bump del padre → el SSE del board emite la tarea con la subtarea nueva.
+  await prisma.task.update({
+    where: { id },
+    data: { updatedAt: new Date() },
   });
   return NextResponse.json({ subtask: sub });
 }

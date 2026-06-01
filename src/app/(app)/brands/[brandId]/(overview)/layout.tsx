@@ -8,6 +8,7 @@ import BrandShortcuts from "../BrandShortcuts";
 import UnsavedDraftBanner from "../UnsavedDraftBanner";
 import BrandHeaderActions from "./BrandHeaderActions";
 import BrandTabs from "./BrandTabs";
+import BrandTasksCard from "../BrandTasksCard";
 
 /**
  * Layout para la vista principal de una marca (`/brands/[brandId]`). Persiste
@@ -31,16 +32,16 @@ export default async function BrandOverviewLayout({
   if (!access) notFound();
 
   const [brand, kpis, allBrands, trashCount, typeCountsRows] = await Promise.all([
-    prisma.brand.findUnique({ where: { id: brandId } }),
-    getBrandKpis(brandId),
+    prisma.brand.findUnique({ where: { id: access.brandId } }),
+    getBrandKpis(access.brandId),
     access.canEdit ? listUserBrands(user.id) : Promise.resolve([]),
     access.canEdit
-      ? prisma.post.count({ where: { brandId, deletedAt: { not: null } } })
+      ? prisma.post.count({ where: { brandId: access.brandId, deletedAt: { not: null } } })
       : Promise.resolve(0),
     prisma.post.groupBy({
       by: ["assetType"],
       where: {
-        brandId,
+        brandId: access.brandId,
         deletedAt: null,
         ...(access.role === "client" ? { status: { not: "draft" } } : {}),
       },
@@ -100,6 +101,8 @@ export default async function BrandOverviewLayout({
       <div className="mt-6">
         <BrandKpiBlock kpis={kpis} brandColor={brand.color} />
       </div>
+
+      {access.canEdit && <BrandTasksCard brandId={brandId} />}
 
       <BrandTabs brandId={brandId} typeCounts={typeCounts} />
 

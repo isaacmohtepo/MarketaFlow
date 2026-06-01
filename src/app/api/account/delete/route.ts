@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             error:
-              "Sos el único dueño de una agencia con otros miembros. Transferí la propiedad o eliminá la agencia primero.",
+              "Eres el único dueño de una agencia con otros miembros. Transfiere la propiedad o elimina la agencia primero.",
           },
           { status: 400 },
         );

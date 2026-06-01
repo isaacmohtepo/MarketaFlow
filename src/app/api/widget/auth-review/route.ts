@@ -1,24 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
+import { widgetCors } from "@/lib/cors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-export function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS });
+export function OPTIONS(req: Request) {
+  return new Response(null, {
+    status: 204,
+    headers: widgetCors(req.headers.get("origin")),
+  });
 }
 
 // Valida que un token de review (= brand.publicToken) corresponda al widgetToken.
 // Si coinciden ambos en la misma brand, devuelve {ok, brandName}.
 // Lo llama el widget cuando detecta ?mfreview=<token> en la URL.
 export async function POST(req: Request) {
+  const CORS = widgetCors(req.headers.get("origin"));
   // Rate limit: 20/min por IP — el widget llama esto 1 vez por carga,
   // 20 cubre uso real y bloquea attempts de brute force de tokens.
   const rl = rateLimit(req, {

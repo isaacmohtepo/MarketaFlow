@@ -234,7 +234,7 @@ export default function NewPostForm({
     if (arr.length === 0) return;
     if (planBlocking) {
       setError(
-        "Llegaste al límite de tu plan. Upgradeá para crear más posts.",
+        "Llegaste al límite de tu plan. Mejora para crear más posts.",
       );
       return;
     }
@@ -390,18 +390,18 @@ export default function NewPostForm({
       }
       if (sendForReview && assetType === "web_design") {
         if (!trimmedUrl) {
-          setError("Agregá la URL del sitio para enviar a revisión.");
+          setError("Agrega la URL del sitio para enviar a revisión.");
           return;
         }
         if (urlCheck.state !== "ok") {
           setError(
-            "Tocá 'Comprobar' al lado de la URL antes de enviar a revisión.",
+            "Toca 'Comprobar' al lado de la URL antes de enviar a revisión.",
           );
           return;
         }
         if (!urlCheck.widgetOnDomain) {
           setError(
-            "El widget no está corriendo en este dominio. Instalá el script en el sitio y volvé a comprobar.",
+            "El widget no está corriendo en este dominio. Instala el script en el sitio y vuelve a comprobar.",
           );
           return;
         }
@@ -504,7 +504,7 @@ export default function NewPostForm({
               <p className="mt-0.5 text-[12.5px] text-amber-800">
                 El admin tiene que setear las env vars de Cloudflare R2 en
                 Vercel (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
-                R2_BUCKET, R2_PUBLIC_URL). Mientras tanto podés crear posts
+                R2_BUCKET, R2_PUBLIC_URL). Mientras tanto puedes crear posts
                 con URL externa de YouTube/Vimeo o usar el modo
                 planificación.
               </p>
@@ -575,19 +575,19 @@ export default function NewPostForm({
           <p className="flex items-center gap-1.5 text-[13px] font-bold text-amber-900">
             ⚠️ {widgetHasToken
               ? "Aún no detectamos el widget en ningún sitio"
-              : "Activá el widget primero"}
+              : "Activa el widget primero"}
           </p>
           <p className="mt-1 text-[12px] text-amber-800">
             {widgetHasToken ? (
               <>
-                Tenés el token generado, pero el script todavía no pingueó desde ningún dominio.
-                Pegá <span className="font-mono">&lt;script src=&quot;…/widget.js?token=…&quot;&gt;</span> en
-                el sitio del cliente y abrí una página. En cuanto detectemos la primera carga,
+                Tienes el token generado, pero el script todavía no pingueó desde ningún dominio.
+                Pega <span className="font-mono">&lt;script src=&quot;…/widget.js?token=…&quot;&gt;</span> en
+                el sitio del cliente y abre una página. En cuanto detectemos la primera carga,
                 vas a poder crear el entregable web.
               </>
             ) : (
               <>
-                Para crear un entregable web necesitás tener el widget de feedback instalado en el
+                Para crear un entregable web necesitas tener el widget de feedback instalado en el
                 sitio del cliente. Así puede dejar comentarios in-context con captura pixel-perfect,
                 en cualquier dominio donde pegues el script.
               </>
@@ -610,7 +610,7 @@ export default function NewPostForm({
             </button>
           </div>
           <p className="mt-2 text-[11px] text-amber-700">
-            Tip: igual podés escribir la URL abajo y tocar <strong>Comprobar</strong> ahí — eso valida
+            Tip: igual puedes escribir la URL abajo y tocar <strong>Comprobar</strong> ahí — eso valida
             la URL específica.
           </p>
         </div>
@@ -676,7 +676,7 @@ export default function NewPostForm({
                   if (!u || !isValidHttpUrl(u)) {
                     setUrlCheck({
                       state: "error",
-                      message: "Ingresá una URL válida (http:// o https://)",
+                      message: "Ingresa una URL válida (http:// o https://)",
                     });
                     return;
                   }
@@ -760,9 +760,9 @@ export default function NewPostForm({
                   </p>
                   <p className="mt-1 text-rose-800">
                     El sitio responde (status {urlCheck.status}) pero{" "}
-                    <strong>no detectamos pings del widget desde este dominio todavía</strong>. Pegá el
-                    snippet del widget en el sitio del cliente, abrí cualquier página al menos una
-                    vez, y volvé a comprobar.
+                    <strong>no detectamos pings del widget desde este dominio todavía</strong>. Pega el
+                    snippet del widget en el sitio del cliente, abre cualquier página al menos una
+                    vez, y vuelve a comprobar.
                   </p>
                   {urlCheck.detectedOrigins.length > 0 && (
                     <p className="mt-1.5 text-[10.5px] text-rose-700">
@@ -909,7 +909,7 @@ export default function NewPostForm({
                   ? "PNG, JPG, WEBP — puedes seleccionar varias"
                   : assetType === "ad"
                     ? "JPG, PNG, MP4, GIF — varias para variantes A/B"
-                    : "Cualquier formato hasta 25MB · podés seleccionar varios"}
+                    : "Cualquier formato hasta 25MB · puedes seleccionar varios"}
               </p>
             </div>
           </button>

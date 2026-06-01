@@ -121,8 +121,8 @@ function UpgradeModal({
           )}
 
           <p className="text-[13px] text-zinc-600">
-            Pasá a <strong className="text-zinc-900">{planLabel}</strong> para
-            seguir creciendo. Tenés 14 días de trial gratis.
+            Pasa a <strong className="text-zinc-900">{planLabel}</strong> para
+            seguir creciendo. Tienes 14 días de trial gratis.
           </p>
 
           <div className="mt-5 flex flex-col gap-2">

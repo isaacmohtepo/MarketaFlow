@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
 import { startTrialForAgency, canInviteClient } from "@/lib/billing";
 import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
+import { generateAgencySlug } from "@/lib/slugs";
 
 /**
  * Password policy: mínimo 8 caracteres + al menos 1 letra y 1 dígito.
@@ -30,7 +31,12 @@ const schema = z.object({
     .transform((s) => s.toLowerCase().trim()),
   password: passwordSchema,
   agencyName: z.string().trim().min(1).max(80).optional(),
+  /** Invite code de marca (cliente externo a una brand). */
   inviteCode: z.string().max(64).optional(),
+  /** Token de invitación de equipo. Si viene, el user se UNE a la empresa
+   *  que lo invitó y NO se le crea agencia personal (ni trial). La membership
+   *  la crea /api/team/accept después del registro. */
+  inviteToken: z.string().max(64).optional(),
 });
 
 export async function POST(req: Request) {
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Los registros están temporalmente deshabilitados. Si tenés invitación, usá el link directo.",
+            "Los registros están temporalmente deshabilitados. Si tienes invitación, usa el link directo.",
         },
         { status: 503 },
       );
@@ -63,7 +69,7 @@ export async function POST(req: Request) {
   }
 
   // Password length policy adicional al floor de zod (min 8). Si el admin
-  // configuró un mínimo mayor en /admin/settings, lo aplicamos acá.
+  // configuró un mínimo mayor en /admin/settings, lo aplicamos aquí.
   try {
     const { getSystemSetting } = await import("@/lib/system-settings");
     const minLength = await getSystemSetting("passwordMinLength");
@@ -83,6 +89,44 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await hashPassword(body.password);
+
+  // === Registro por invitación de EQUIPO ===
+  // El user se une a la empresa que lo invitó. NO se le crea agencia personal
+  // ni trial: usa el plan de la empresa. Si en el futuro quiere su propio
+  // espacio, lo crea explícitamente (flujo aparte, con su propia suscripción).
+  // La membership concreta la crea /api/team/accept (con check de plan atómico)
+  // justo después; aquí solo creamos la cuenta + sesión.
+  if (body.inviteToken) {
+    const inv = await prisma.teamInvitation.findUnique({
+      where: { token: body.inviteToken },
+      select: { email: true, role: true, acceptedAt: true, expiresAt: true },
+    });
+    if (
+      !inv ||
+      inv.acceptedAt ||
+      inv.expiresAt < new Date() ||
+      inv.email.toLowerCase() !== body.email
+    ) {
+      return NextResponse.json(
+        { error: "Invitación inválida o expirada" },
+        { status: 400 },
+      );
+    }
+    const user = await prisma.user.create({
+      data: {
+        name: body.name,
+        email: body.email,
+        passwordHash,
+        // role "client" si lo invitan como cliente; sino staff de agencia.
+        role: inv.role === "client" ? "client" : "agency",
+      },
+    });
+    await createSession(user.id, {
+      userAgent: req.headers.get("user-agent"),
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    });
+    return NextResponse.json({ ok: true, invited: true });
+  }
 
   if (body.inviteCode) {
     const brand = await prisma.brand.findUnique({ where: { inviteCode: body.inviteCode } });
@@ -124,6 +168,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Falta el nombre de la agencia" }, { status: 400 });
   }
 
+  const agencySlug = await generateAgencySlug(body.agencyName);
   const user = await prisma.user.create({
     data: {
       name: body.name,
@@ -132,7 +177,7 @@ export async function POST(req: Request) {
       role: "agency",
       memberships: {
         create: {
-          agency: { create: { name: body.agencyName } },
+          agency: { create: { name: body.agencyName, slug: agencySlug } },
           role: "owner",
         },
       },

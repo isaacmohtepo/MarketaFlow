@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
-import { getUserTaskAgency, isTaskStatus } from "@/lib/tasks";
+import { hasAgencyPermission } from "@/lib/permissions";
+import {
+  getUserTaskAgency,
+  getAgencyTaskColumns,
+  recordTaskActivity,
+} from "@/lib/tasks";
+import { computeAutoStatus } from "@/lib/tasks-types";
 
 /**
  * POST /api/tasks/reorder
@@ -34,7 +39,7 @@ export async function POST(req: Request) {
   const agency = await getUserTaskAgency(user.id);
   if (!agency)
     return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
-  const canWrite = await hasPermission(user.id, agency.agencyId, "tasks.write");
+  const canWrite = await hasAgencyPermission(user.id, agency.agencyId, "tasks.write");
   if (!canWrite)
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
 
@@ -45,15 +50,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
+  // Validar status contra las columnas reales de la agency + saber cuáles
+  // son "final" (isDone) para setear completedAt.
+  const columns = await getAgencyTaskColumns(agency.agencyId);
+  const doneColIds = new Set(columns.filter((c) => c.isDone).map((c) => c.id));
+  const colIds = new Set(columns.map((c) => c.id));
   for (const item of body.items) {
-    if (!isTaskStatus(item.status))
+    if (!colIds.has(item.status))
       return NextResponse.json({ error: "status inválido" }, { status: 400 });
   }
 
   const ids = body.items.map((i) => i.id);
   const tasks = await prisma.task.findMany({
     where: { id: { in: ids } },
-    select: { id: true, agencyId: true, status: true },
+    select: {
+      id: true,
+      agencyId: true,
+      status: true,
+      brandId: true,
+      priority: true,
+      assignees: { select: { id: true } },
+      assigneeId: true,
+    },
   });
   if (tasks.length !== ids.length)
     return NextResponse.json({ error: "Tasks inválidas" }, { status: 400 });
@@ -71,15 +89,50 @@ export async function POST(req: Request) {
   for (const item of body.items) {
     // Si cambia de status a "done" pero antes no lo era → set completedAt.
     const prev = tasks.find((t) => t.id === item.id)!;
+    const nextIsDone = doneColIds.has(item.status);
+    const prevIsDone = doneColIds.has(prev.status);
+    const statusChanged = item.status !== prev.status;
+
+    // Auto-move por reglas. Al completar → todas las reglas ("field"). Si solo
+    // cambió de columna → reglas con fromStatus ("status"). Ej: "tareas que
+    // entran a Aprobado → columna del cliente".
+    let finalStatus = item.status;
+    let finalIsDone = nextIsDone;
+    if (statusChanged) {
+      const assigneeIds = prev.assignees.map((a) => a.id);
+      if (prev.assigneeId && !assigneeIds.includes(prev.assigneeId))
+        assigneeIds.push(prev.assigneeId);
+      const auto = computeAutoStatus(columns, {
+        baseStatus: item.status,
+        brandId: prev.brandId,
+        priority: prev.priority as never,
+        assigneeIds,
+        trigger: nextIsDone && !prevIsDone ? "field" : "status",
+      });
+      finalStatus = auto.status;
+      finalIsDone = auto.isDone;
+    }
+
     const data: Record<string, unknown> = {
-      status: item.status,
+      status: finalStatus,
       position: item.position,
     };
-    if (item.status === "done" && prev.status !== "done")
-      data.completedAt = new Date();
-    if (item.status !== "done" && prev.status === "done")
-      data.completedAt = null;
+    if (finalIsDone && !prevIsDone) data.completedAt = new Date();
+    if (!finalIsDone && prevIsDone) data.completedAt = null;
     await prisma.task.update({ where: { id: item.id }, data });
+
+    // Activity log si cambió status (no si solo reordenó dentro de la col)
+    if (finalStatus !== prev.status) {
+      recordTaskActivity(item.id, user.id, "status_changed", {
+        from: prev.status,
+        to: finalStatus,
+        ...(finalStatus !== item.status ? { auto: true } : {}),
+      });
+      if (finalIsDone && !prevIsDone)
+        recordTaskActivity(item.id, user.id, "completed", {});
+      else if (prevIsDone && !finalIsDone)
+        recordTaskActivity(item.id, user.id, "reopened", {});
+    }
   }
 
   return NextResponse.json({ ok: true, count: body.items.length });

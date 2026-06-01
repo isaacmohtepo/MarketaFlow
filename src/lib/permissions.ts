@@ -11,6 +11,7 @@
  * vía el catálogo de permisos.
  */
 import { prisma } from "./db";
+import { resolveBrandRef } from "./slugs";
 import {
   ALL_PERMISSIONS,
   PERMISSION_GROUPS,
@@ -20,6 +21,7 @@ import {
   isSystemRole,
   getSystemRole,
   slugifyRoleName,
+  roleRank,
   type Permission,
   type SystemRoleSlug,
   type SystemRoleDef,
@@ -69,7 +71,7 @@ export async function permissionsForRole(
 }
 
 /**
- * ¿El user tiene `perm` en esta agency? Si pasás brandId, también acepta
+ * ¿El user tiene `perm` en esta agency? Si pasas brandId, también acepta
  * memberships brand-level con ese brandId (scope por marca).
  */
 export async function hasPermission(
@@ -86,6 +88,33 @@ export async function hasPermission(
 
   for (const m of memberships) {
     if (m.brandId !== null && m.brandId !== brandId) continue;
+    const perms = await permissionsForRole(agencyId, m.role);
+    if (perms.includes(perm)) return true;
+  }
+  return false;
+}
+
+/**
+ * ¿El user tiene `perm` en esta agency, **sin importar el scope** de la
+ * membership? A diferencia de `hasPermission`, NO descarta memberships
+ * brand-scoped.
+ *
+ * Usar para permisos agency-globales (ej. `tasks.*`), donde la feature no
+ * está acotada a una marca: un miembro que solo tiene memberships
+ * brand-scoped (ej. un diseñador asignado a marcas puntuales) igual debe
+ * poder usar el tablero de tareas. Con `hasPermission` (que filtra por
+ * brandId) esos usuarios quedaban excluidos → 403 / board vacío.
+ */
+export async function hasAgencyPermission(
+  userId: string,
+  agencyId: string,
+  perm: Permission | string,
+): Promise<boolean> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId, agencyId },
+    select: { role: true },
+  });
+  for (const m of memberships) {
     const perms = await permissionsForRole(agencyId, m.role);
     if (perms.includes(perm)) return true;
   }
@@ -115,10 +144,8 @@ export async function requireBrandPermission(
   brandId: string,
   perm: Permission | string,
 ): Promise<{ brandId: string; agencyId: string }> {
-  const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
-    select: { id: true, agencyId: true },
-  });
+  // `brandId` puede ser un slug O un cuid (URLs legibles + back-compat).
+  const brand = await resolveBrandRef(brandId);
   if (!brand) throw new PermissionError(perm);
   await requirePermission(userId, brand.agencyId, perm, brand.id);
   return { brandId: brand.id, agencyId: brand.agencyId };
@@ -174,7 +201,8 @@ export async function getBrandAccess(
   userId: string,
   brandId: string,
 ): Promise<BrandAccess | null> {
-  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+  // `brandId` puede ser un slug O un cuid (URLs legibles + back-compat).
+  const brand = await resolveBrandRef(brandId);
   if (!brand) return null;
 
   const memberships = await prisma.membership.findMany({
@@ -186,18 +214,8 @@ export async function getBrandAccess(
   });
   if (memberships.length === 0) return null;
 
-  const ROLE_RANK: Record<string, number> = {
-    owner: 100,
-    manager: 90,
-    community_manager: 80,
-    editor: 80, // legacy alias
-    designer: 70,
-    copywriter: 70,
-    strategist: 60,
-    client: 50,
-  };
   const sorted = [...memberships].sort(
-    (a, b) => (ROLE_RANK[b.role] ?? 10) - (ROLE_RANK[a.role] ?? 10),
+    (a, b) => roleRank(b.role) - roleRank(a.role),
   );
   const role = sorted[0].role;
 
@@ -228,6 +246,7 @@ export async function listUserBrands(userId: string) {
   const brandIds = new Set<string>();
   const brands: {
     id: string;
+    slug: string | null;
     name: string;
     agencyName: string;
     role: string;
@@ -239,6 +258,7 @@ export async function listUserBrands(userId: string) {
       brandIds.add(m.brand.id);
       brands.push({
         id: m.brand.id,
+        slug: m.brand.slug,
         name: m.brand.name,
         agencyName: m.agency.name,
         role: m.role,
@@ -254,6 +274,7 @@ export async function listUserBrands(userId: string) {
           brandIds.add(b.id);
           brands.push({
             id: b.id,
+            slug: b.slug,
             name: b.name,
             agencyName: m.agency.name,
             role: m.role,

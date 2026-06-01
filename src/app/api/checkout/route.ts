@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { getOrCreateSubscription } from "@/lib/billing";
 import { createPaymentLink, chargeWithToken, generateReference } from "@/lib/wompi";
@@ -46,16 +47,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  // Resolver agency del user: cualquier membership agency-wide. Después
-  // gateamos por billing.manage para asegurar que tiene permiso.
-  const ownership = await prisma.membership.findFirst({
-    where: {
-      userId: user.id,
-      brandId: null,
-      ...(body.agencyId ? { agencyId: body.agencyId } : {}),
-    },
-    select: { agencyId: true },
-  });
+  // Resolver agency a cobrar. Si el body trae agencyId explícito (caso raro),
+  // validamos esa membership puntual; sino, usamos el workspace activo.
+  // Después gateamos por billing.manage para asegurar permiso.
+  const ownership = body.agencyId
+    ? await prisma.membership.findFirst({
+        where: { userId: user.id, brandId: null, agencyId: body.agencyId },
+        select: { agencyId: true },
+      })
+    : await getActiveAgencyMembership(user.id);
   if (!ownership) {
     return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
   }
@@ -227,7 +227,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "No se pudo activar el plan con el cupón. Probá de nuevo o contactá soporte.",
+            "No se pudo activar el plan con el cupón. Prueba de nuevo o contacta soporte.",
         },
         { status: 500 },
       );
@@ -237,7 +237,7 @@ export async function POST(req: Request) {
   // Resolución del base URL para el redirect, en orden de preferencia:
   // 1. APP_URL explícita (deploy custom)
   // 2. NEXT_PUBLIC_APP_URL (común en setups de Next)
-  // 3. Origin del request (lo que el browser usó para llegar acá — funciona
+  // 3. Origin del request (lo que el browser usó para llegar aquí — funciona
   //    siempre que la request vino del mismo dominio del checkout)
   // 4. VERCEL_URL (Vercel la inyecta automático en runtime, sin protocolo)
   // 5. Fallback localhost (solo dev local; Wompi rechaza en prod porque
@@ -269,7 +269,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "El admin todavía no configuró las llaves de Wompi. Andá a /admin/integrations.",
+          "El admin todavía no configuró las llaves de Wompi. Ve a /admin/integrations.",
       },
       { status: 503 },
     );
@@ -293,7 +293,7 @@ export async function POST(req: Request) {
     if (pmEnv !== environment) {
       return NextResponse.json(
         {
-          error: `Tu método guardado es de ${pmEnv} pero Wompi está en ${environment}. Pagá con un método nuevo.`,
+          error: `Tu método guardado es de ${pmEnv} pero Wompi está en ${environment}. Paga con un método nuevo.`,
           fallbackToWompi: true,
         },
         { status: 400 },
@@ -302,7 +302,7 @@ export async function POST(req: Request) {
     if (pm.type !== "CARD" && pm.type !== "NEQUI") {
       return NextResponse.json(
         {
-          error: "Este método no permite cobros automáticos. Usá uno nuevo.",
+          error: "Este método no permite cobros automáticos. Usa uno nuevo.",
           fallbackToWompi: true,
         },
         { status: 400 },
@@ -322,7 +322,7 @@ export async function POST(req: Request) {
       if (expDate <= new Date()) {
         return NextResponse.json(
           {
-            error: `Tu tarjeta venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agregá una nueva.`,
+            error: `Tu tarjeta venció en ${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}. Agrega una nueva.`,
             fallbackToWompi: true,
           },
           { status: 400 },
@@ -343,7 +343,7 @@ export async function POST(req: Request) {
       });
 
       // APPROVED: el webhook se va a disparar y aplicar el pendingPlan,
-      // pero por velocidad de UX también aplicamos acá. Idempotente: el
+      // pero por velocidad de UX también aplicamos aquí. Idempotente: el
       // webhook detecta paid+mismo transactionId y skip.
       if (tx.status === "APPROVED") {
         const periodStart2 = periodStart;
@@ -415,7 +415,7 @@ export async function POST(req: Request) {
         {
           error:
             tx.status_message ??
-            `Tu método guardado fue rechazado (${tx.status}). Probá con otro.`,
+            `Tu método guardado fue rechazado (${tx.status}). Prueba con otro.`,
           fallbackToWompi: true,
         },
         { status: 400 },
@@ -432,7 +432,7 @@ export async function POST(req: Request) {
       });
       return NextResponse.json(
         {
-          error: "No pudimos contactar Wompi. Probá pagando con otro método.",
+          error: "No pudimos contactar Wompi. Prueba pagando con otro método.",
           fallbackToWompi: true,
         },
         { status: 502 },
@@ -466,7 +466,7 @@ export async function POST(req: Request) {
     if (!checkoutUrl) {
       console.error("Wompi response sin id ni URL", link);
       return NextResponse.json(
-        { error: "Wompi no devolvió la URL de checkout. Intentá de nuevo." },
+        { error: "Wompi no devolvió la URL de checkout. Intenta de nuevo." },
         { status: 502 },
       );
     }
@@ -501,7 +501,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(
-      { error: "No se pudo iniciar el pago. Verificá la configuración de Wompi." },
+      { error: "No se pudo iniciar el pago. Verifica la configuración de Wompi." },
       { status: 500 },
     );
   }

@@ -290,6 +290,28 @@ export const ASSIGNABLE_SYSTEM_ROLES: SystemRoleSlug[] = [
   "strategist",
 ];
 
+/**
+ * Ranking de roles para resolver "el rol de mayor rango" cuando un usuario
+ * tiene varias memberships en la misma agency (ej. owner agency-level + una
+ * brand-scoped). Lo usa getBrandAccess (permissions.ts) y listUserWorkspaces
+ * (active-agency.ts). Roles desconocidos (custom) caen a 10.
+ */
+export const ROLE_RANK: Record<string, number> = {
+  owner: 100,
+  manager: 90,
+  community_manager: 80,
+  editor: 80, // alias legacy
+  designer: 70,
+  copywriter: 70,
+  strategist: 60,
+  client: 50,
+};
+
+/** Rango de un role slug (custom → 10). */
+export function roleRank(slug: string): number {
+  return ROLE_RANK[slug] ?? 10;
+}
+
 export function isSystemRole(slug: string): boolean {
   return slug in SYSTEM_ROLES;
 }

@@ -2,11 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   MessageSquare,
-  CalendarClock,
   CheckCircle2,
   Video,
   Bell,
   Layers,
+  CheckSquare,
+  Zap,
+  LayoutGrid,
+  BarChart3,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import PublicHeader from "@/components/PublicHeader";
@@ -19,7 +22,7 @@ const FEATURES = [
   {
     icon: MessageSquare,
     title: "Comentarios anclados",
-    body: "Tu cliente clickea sobre la imagen para dejar feedback exacto, justo donde va el cambio. Adiós a los audios de WhatsApp.",
+    body: "Tu cliente clickea sobre la imagen —o el segundo exacto del video— para dejar feedback preciso. Adiós a los audios de WhatsApp.",
     tint: "from-blue-500 to-indigo-600",
   },
   {
@@ -29,28 +32,46 @@ const FEATURES = [
     tint: "from-emerald-500 to-teal-600",
   },
   {
+    icon: CheckSquare,
+    title: "Tablero de tareas del equipo",
+    body: "Organiza el trabajo como en Linear o Asana, dentro de tu agencia: columnas, prioridades, vencimientos, asignados, subtareas y comentarios.",
+    tint: "from-fuchsia-500 to-purple-600",
+  },
+  {
+    icon: Zap,
+    title: "Todo en tiempo real",
+    body: "Cambios, comentarios y tareas se sincronizan al instante para todo el equipo. Ves quién está viendo cada cosa, sin recargar.",
+    tint: "from-amber-500 to-orange-600",
+  },
+  {
     icon: Video,
     title: "Video y diseño web también",
-    body: "No solo posts: revisá reels con comentarios anclados al segundo exacto, y sitios web con feedback sobre el diseño en vivo.",
-    tint: "from-fuchsia-500 to-purple-600",
+    body: "No solo posts: revisa reels con comentarios anclados al segundo, y sitios web con feedback sobre el diseño en vivo.",
+    tint: "from-rose-500 to-pink-600",
   },
   {
     icon: Layers,
     title: "Feed planeado como en IG",
-    body: "Mirá el feed completo como va a quedar en el perfil antes de publicar. Reordenás los posts arrastrando.",
-    tint: "from-rose-500 to-orange-500",
+    body: "Mira el feed completo como va a quedar en el perfil antes de publicar. Reordenas los posts arrastrando.",
+    tint: "from-pink-500 to-rose-600",
   },
   {
-    icon: CalendarClock,
-    title: "Listo para publicar",
-    body: "Cuando el cliente aprueba, tenés la imagen final y el caption listos para subir a Instagram en segundos. Sin idas y vueltas.",
-    tint: "from-amber-500 to-orange-600",
+    icon: LayoutGrid,
+    title: "Varios espacios de trabajo",
+    body: "Gestiona varias agencias o equipos desde una sola cuenta y cambia entre ellos con un click. Cada espacio con su propio plan.",
+    tint: "from-cyan-500 to-blue-600",
+  },
+  {
+    icon: BarChart3,
+    title: "Dashboard con métricas",
+    body: "Analytics de posts, aprobaciones y tendencias en gráficos. Conoce cómo va cada cliente y tu equipo de un vistazo.",
+    tint: "from-violet-500 to-indigo-600",
   },
   {
     icon: Bell,
-    title: "Notificaciones en tiempo real",
-    body: "Avisos al instante al cliente cuando hay algo para revisar, y a la agencia cuando aprueba o pide cambios.",
-    tint: "from-pink-500 to-rose-600",
+    title: "Notificaciones e inbox",
+    body: "Asignaciones, menciones, aprobaciones y vencimientos — todo lo que necesita tu atención, en un inbox claro y en tiempo real.",
+    tint: "from-rose-500 to-orange-500",
   },
 ];
 
@@ -115,18 +136,19 @@ export default async function Home() {
               <span className="absolute inset-0 animate-ping rounded-full bg-fuchsia-500/60" />
               <span className="relative inline-block h-1.5 w-1.5 rounded-full brand-gradient" />
             </span>
-            Plataforma para agencias digitales
+            El sistema operativo de tu agencia
           </span>
           <h1 className="mt-6 text-5xl font-bold tracking-tight text-white sm:text-7xl">
-            El fin del ping-pong de
+            Contenido, tareas y equipo.
             <br />
             <span className="brand-gradient-text-animated drop-shadow-[0_0_40px_rgba(255,77,143,0.35)]">
-              WhatsApp con tu cliente
+              Todo en un solo lugar.
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-zinc-300 sm:text-lg">
-            Subís el feed planeado, tu cliente comenta y aprueba con un click,
-            y queda listo para publicar. Cero fricción, todo auditable.
+            Tu cliente aprueba el contenido con un click, tu equipo organiza las
+            tareas y tú ves todo en tiempo real. Sin fricción, sin WhatsApp y
+            100% auditable.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -156,7 +178,7 @@ export default async function Home() {
         {/* Tipos de contenido que se revisan */}
         <div className="relative pb-12">
           <p className="mx-auto max-w-2xl text-center text-sm text-zinc-400">
-            Revisá y aprobá{" "}
+            Revisa y aprueba{" "}
             <span className="font-semibold text-white">cualquier entregable</span>{" "}
             con tu cliente.
           </p>
@@ -186,18 +208,18 @@ export default async function Home() {
             {[
               {
                 n: "01",
-                title: "Subís el feed planeado",
-                body: "Cargás los posts del mes — imágenes, carruseles, reels, captions. Reordenás arrastrando y ves cómo queda el feed como en IG.",
+                title: "Subes el feed planeado",
+                body: "Cargas los posts del mes — imágenes, carruseles, reels, captions. Reordenas arrastrando y ves cómo queda el feed como en IG.",
               },
               {
                 n: "02",
                 title: "Tu cliente aprueba",
-                body: "Le mandás el link. Comenta clickeando sobre la imagen, aprueba o pide cambios con un click. Sin WhatsApp, sin audios, todo auditable.",
+                body: "Le mandas el link. Comenta clickeando sobre la imagen, aprueba o pide cambios con un click. Sin WhatsApp, sin audios, todo auditable.",
               },
               {
                 n: "03",
                 title: "Listo para publicar",
-                body: "Cuando el cliente aprueba, descargás la pieza final y el caption listos para subir a Instagram. Sin malentendidos, con todo el historial guardado.",
+                body: "Cuando el cliente aprueba, descargas la pieza final y el caption listos para subir a Instagram. Sin malentendidos, con todo el historial guardado.",
               },
             ].map((step, i) => (
               <div

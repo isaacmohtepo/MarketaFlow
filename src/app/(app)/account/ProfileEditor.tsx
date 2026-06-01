@@ -130,7 +130,7 @@ export default function ProfileEditor({
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={80}
-          placeholder="Cómo querés que te vean"
+          placeholder="Cómo quieres que te vean"
           className="mt-1 w-full rounded-md input-soft px-3 py-2 text-[13px]"
         />
       </div>

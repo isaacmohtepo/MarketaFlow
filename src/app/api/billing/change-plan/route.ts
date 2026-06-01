@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { hasPermission } from "@/lib/permissions";
 import { PLANS, type PlanId } from "@/lib/plans";
 import { audit } from "@/lib/audit";
@@ -19,7 +20,7 @@ import { audit } from "@/lib/audit";
  *    (ej. Agency → Pro): programa el cambio para el fin del período,
  *    sin cobrar nada extra ahora. El cron lo aplica en su día.
  *
- * NO ejecuta el cambio acá — solo devuelve los próximos pasos. Para
+ * NO ejecuta el cambio aquí — solo devuelve los próximos pasos. Para
  * "upgrade" la UI redirige a /billing/checkout. Para los downgrades,
  * agarra el response y muestra confirmación de la acción.
  */
@@ -45,10 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const ownership = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const ownership = await getActiveAgencyMembership(user.id);
   if (!ownership) return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
 
   if (!(await hasPermission(user.id, ownership.agencyId, "billing.manage"))) {

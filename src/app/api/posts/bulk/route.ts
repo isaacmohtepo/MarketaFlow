@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess, hasPermission } from "@/lib/permissions";
+import { assignPostNumber } from "@/lib/slugs";
 
 // Misma policy que posts/route.ts: solo http(s) o /uploads/ local.
 // Bloquea javascript:/data: que renderizados como <img src> o <a href> = XSS.
@@ -71,6 +72,11 @@ export async function POST(req: Request) {
       }),
     ),
   );
+
+  // Números legibles secuenciales por marca (best-effort).
+  for (const p of created) {
+    await assignPostNumber(p.id, body.brandId);
+  }
 
   return NextResponse.json({ ok: true, count: created.length, ids: created.map((p) => p.id) });
 }

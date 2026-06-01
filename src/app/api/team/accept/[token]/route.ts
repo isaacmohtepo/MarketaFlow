@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { canInviteTeamMember } from "@/lib/billing";
+import {
+  WORKSPACE_COOKIE,
+  WORKSPACE_COOKIE_MAX_AGE,
+} from "@/lib/active-agency";
 
 export async function POST(
   _req: Request,
@@ -80,10 +85,22 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "La agencia ya no tiene espacio en su plan para sumarte. Contactá al owner.",
+          "La agencia ya no tiene espacio en su plan para sumarte. Contacta al owner.",
       },
       { status: 402 },
     );
   }
+
+  // El workspace activo por defecto del invitado es la empresa que lo invitó.
+  // Seteamos la cookie para que entre directo ahí (aunque tenga otras agencias).
+  const jar = await cookies();
+  jar.set(WORKSPACE_COOKIE, inv.agencyId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: WORKSPACE_COOKIE_MAX_AGE,
+    path: "/",
+  });
+
   return NextResponse.json({ ok: true });
 }

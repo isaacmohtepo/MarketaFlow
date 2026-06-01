@@ -109,7 +109,7 @@ export default function PlanSwitcher({
             if (offer.eligible) {
               const acceptRetention = await confirm({
                 title: `Antes de irte… ${offer.discountPct}% off los próximos ${offer.months} meses 🎁`,
-                description: `Sabemos que ${offer.planName} es una decisión. Si te quedás, te damos $${((offer.totalCreditCop ?? 0) / 100).toLocaleString("es-CO")} COP de crédito que se descuentan automáticamente de tus próximos ${offer.months} cobros. ¿Aceptás la oferta?`,
+                description: `Sabemos que ${offer.planName} es una decisión. Si te quedas, te damos $${((offer.totalCreditCop ?? 0) / 100).toLocaleString("es-CO")} COP de crédito que se descuentan automáticamente de tus próximos ${offer.months} cobros. ¿Aceptas la oferta?`,
                 confirmLabel: "Aceptar oferta y quedarme",
                 cancelLabel: "No, seguir con bajar a Free",
                 variant: "default",
@@ -169,7 +169,7 @@ export default function PlanSwitcher({
       }
       if (j.action === "upgrade") {
         // Redirigir al checkout (instant charge si hay método guardado,
-        // sino Wompi link). El isUpgrade y isCycleUpgrade caen acá.
+        // sino Wompi link). El isUpgrade y isCycleUpgrade caen aquí.
         void isUpgrade;
         void isCycleUpgrade;
         window.location.href = j.checkoutUrl;
@@ -190,7 +190,7 @@ export default function PlanSwitcher({
         <div>
           <h2 className="text-sm font-semibold text-zinc-900">Tu plan</h2>
           <p className="mt-0.5 text-[12px] text-zinc-500">
-            Mejorá para crecer o bajá si necesitás menos. Los cambios hacia
+            Mejora para crecer o baja si necesitas menos. Los cambios hacia
             arriba se aplican inmediato; los cambios hacia abajo, al fin del
             período.
           </p>

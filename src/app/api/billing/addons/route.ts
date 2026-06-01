@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { ADDONS, PLANS, type AddonId, type PlanId } from "@/lib/plans";
 import { createPaymentLink, chargeWithToken, generateReference } from "@/lib/wompi";
 import { resolveWompiEnvironment } from "@/lib/integrations";
@@ -45,10 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  const m = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const m = await getActiveAgencyMembership(user.id);
   if (!m) return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
 
   if (!(await hasPermission(user.id, m.agencyId, "billing.manage"))) {
@@ -86,7 +84,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Los add-ons de pago único no se pueden remover automáticamente. Contactá soporte.",
+            "Los add-ons de pago único no se pueden remover automáticamente. Contacta soporte.",
         },
         { status: 400 },
       );
@@ -98,13 +96,13 @@ export async function POST(req: Request) {
     if (currentCount < body.quantity) {
       return NextResponse.json(
         {
-          error: `Solo tenés ${currentCount} ${addon.label.toLowerCase()}${currentCount === 1 ? "" : "s"}, no podés remover ${body.quantity}.`,
+          error: `Solo tienes ${currentCount} ${addon.label.toLowerCase()}${currentCount === 1 ? "" : "s"}, no puedes remover ${body.quantity}.`,
         },
         { status: 400 },
       );
     }
     // Validación de límites: si al remover quedarías por debajo del uso
-    // actual (ej. tenés 3 marcas y bajás extraBrand a 0 → solo el plan
+    // actual (ej. tienes 3 marcas y bajas extraBrand a 0 → solo el plan
     // base permite 1), bloqueamos para evitar romper el estado.
     const planLimits = PLANS[sub.plan as PlanId].limits;
     if (addonId === "extraBrand" && planLimits.maxBrands !== -1) {
@@ -115,7 +113,7 @@ export async function POST(req: Request) {
       if (brandCount > newMax) {
         return NextResponse.json(
           {
-            error: `Tenés ${brandCount} marcas activas. Si bajás el límite a ${newMax}, hay que eliminar ${brandCount - newMax} marca${brandCount - newMax === 1 ? "" : "s"} primero.`,
+            error: `Tienes ${brandCount} marcas activas. Si bajas el límite a ${newMax}, hay que eliminar ${brandCount - newMax} marca${brandCount - newMax === 1 ? "" : "s"} primero.`,
           },
           { status: 400 },
         );
@@ -129,7 +127,7 @@ export async function POST(req: Request) {
       if (seatCount > newMax) {
         return NextResponse.json(
           {
-            error: `Tu equipo tiene ${seatCount} miembros. Si bajás el límite a ${newMax}, hay que sacar ${seatCount - newMax} miembro${seatCount - newMax === 1 ? "" : "s"} primero.`,
+            error: `Tu equipo tiene ${seatCount} miembros. Si bajas el límite a ${newMax}, hay que sacar ${seatCount - newMax} miembro${seatCount - newMax === 1 ? "" : "s"} primero.`,
           },
           { status: 400 },
         );
@@ -169,7 +167,7 @@ export async function POST(req: Request) {
   if (addonId === "whiteLabel") {
     if (sub.whiteLabelAddon) {
       return NextResponse.json(
-        { error: "Ya tenés el add-on white-label activo." },
+        { error: "Ya tienes el add-on white-label activo." },
         { status: 400 },
       );
     }
@@ -397,7 +395,7 @@ export async function POST(req: Request) {
       });
       return NextResponse.json(
         {
-          error: "No pudimos contactar Wompi. Probá con otro método.",
+          error: "No pudimos contactar Wompi. Prueba con otro método.",
           fallbackToWompi: true,
         },
         { status: 502 },

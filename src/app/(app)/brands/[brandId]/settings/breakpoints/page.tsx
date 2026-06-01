@@ -6,7 +6,7 @@ import { parseBreakpoints } from "@/lib/breakpoints";
 import BreakpointsForm from "./BreakpointsForm";
 
 /**
- * Settings → Breakpoints. Configurá los thresholds responsive (Mobile Portrait,
+ * Settings → Breakpoints. Configura los thresholds responsive (Mobile Portrait,
  * Tablet Portrait, Tablet Landscape, Laptop, Widescreen) que la app usa para
  * clasificar comentarios y mostrar presets de viewport en el web feedback.
  */
@@ -21,7 +21,7 @@ export default async function BrandSettingsBreakpoints({
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     select: { breakpoints: true },
   });
   if (!brand) notFound();
@@ -32,7 +32,7 @@ export default async function BrandSettingsBreakpoints({
     <section className="card p-6">
       <h2 className="text-sm font-semibold text-zinc-900">Breakpoints responsive</h2>
       <p className="mt-1 text-xs text-zinc-500">
-        Definí cuándo un viewport cuenta como mobile, tablet, laptop o
+        Define cuándo un viewport cuenta como mobile, tablet, laptop o
         widescreen. La app usa estos valores para filtrar comentarios por
         dispositivo y mostrar los presets correctos en el preview del widget.
       </p>

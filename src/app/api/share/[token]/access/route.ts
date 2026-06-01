@@ -71,7 +71,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Esta marca no acepta más clientes en su plan actual. Contactá a la agencia.",
+          "Esta marca no acepta más clientes en su plan actual. Contacta a la agencia.",
       },
       { status: 402 },
     );

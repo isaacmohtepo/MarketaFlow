@@ -157,7 +157,7 @@ export default async function AdminAgenciesPage({
                       >
                         <td className="py-3 pr-3">
                           <Link
-                            href={`/admin/agencies/${a.id}`}
+                            href={`/admin/agencies/${a.slug ?? a.id}`}
                             className="block"
                           >
                             <p className="text-[13px] font-semibold text-zinc-900">
@@ -211,7 +211,7 @@ export default async function AdminAgenciesPage({
                         </td>
                         <td className="py-3 text-right">
                           <Link
-                            href={`/admin/agencies/${a.id}`}
+                            href={`/admin/agencies/${a.slug ?? a.id}`}
                             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                           >
                             Detalle

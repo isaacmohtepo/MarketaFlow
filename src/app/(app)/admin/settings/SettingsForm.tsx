@@ -73,7 +73,7 @@ export default function SettingsForm({
     if (item.warning) {
       const ok = await confirm({
         title: "Confirmar cambio",
-        description: `${item.warning}\n\n¿Confirmás aplicar este cambio?`,
+        description: `${item.warning}\n\n¿Confirmas aplicar este cambio?`,
         confirmLabel: "Sí, aplicar",
         cancelLabel: "Cancelar",
         variant: "warning",
@@ -140,7 +140,7 @@ export default function SettingsForm({
         <div className="flex items-start gap-2">
           <Sliders className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-zinc-500" />
           <div>
-            <p className="font-semibold text-zinc-900">¿Qué NO está acá?</p>
+            <p className="font-semibold text-zinc-900">¿Qué NO está aquí?</p>
             <p className="mt-1">
               <strong>Secrets</strong> (DATABASE_URL, CRON_SECRET, master key)
               se gestionan via Vercel env vars o{" "}

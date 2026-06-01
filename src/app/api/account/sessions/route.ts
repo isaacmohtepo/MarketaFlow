@@ -49,14 +49,14 @@ export async function DELETE(req: Request) {
 
   if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
 
-  // No permitir borrar la sesión actual desde acá (uso /api/auth/logout en su lugar)
+  // No permitir borrar la sesión actual desde aquí (uso /api/auth/logout en su lugar)
   const target = await prisma.session.findUnique({ where: { id } });
   if (!target || target.userId !== user.id) {
     return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
   }
   if (target.token === currentToken) {
     return NextResponse.json(
-      { error: "Para cerrar la sesión actual, usá Cerrar sesión." },
+      { error: "Para cerrar la sesión actual, usa Cerrar sesión." },
       { status: 400 },
     );
   }

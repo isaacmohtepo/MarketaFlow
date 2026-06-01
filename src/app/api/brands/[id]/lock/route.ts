@@ -21,12 +21,13 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const access = await getBrandAccess(user.id, id);
+  const access = await getBrandAccess(user.id, brandRef);
   if (!access) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  const id = access.brandId; // ref → id real
 
   // Pausar/reactivar requiere permiso de gestionar billing (decision
   // estratégica) o de editar la marca. Usamos brands.edit como gate

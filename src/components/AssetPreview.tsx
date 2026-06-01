@@ -139,7 +139,7 @@ export function WebsiteEmbed({ url }: { url: string }) {
         />
       </div>
       <p className="border-t border-zinc-100 bg-zinc-50/40 px-3 py-1.5 text-[10.5px] text-zinc-500">
-        Si el sitio no se ve, su servidor bloquea iframes. Abrílo en nueva pestaña con el botón.
+        Si el sitio no se ve, su servidor bloquea iframes. Abrelo en nueva pestaña con el botón.
       </p>
     </div>
   );

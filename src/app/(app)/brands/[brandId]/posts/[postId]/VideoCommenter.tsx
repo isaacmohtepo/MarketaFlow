@@ -1,6 +1,12 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   MessageSquarePlus,
   Pause,
@@ -83,6 +89,31 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
     [],
   );
 
+  // Sincroniza duration + aspect de forma ROBUSTA. El handler inline
+  // onLoadedMetadata se pierde si el video carga de cache antes de que React
+  // enganche el listener (race) → duration queda en 0 → la timeline con los
+  // puntos rosas no se renderiza. Aquí leemos la metadata al montar (por si ya
+  // está disponible) y escuchamos varios eventos como respaldo.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const sync = () => {
+      if (v.duration && Number.isFinite(v.duration)) setDuration(v.duration);
+      if (v.videoWidth > 0 && v.videoHeight > 0) {
+        setAspect(v.videoWidth / v.videoHeight);
+      }
+    };
+    sync(); // captura el caso cacheado (metadata ya lista al montar)
+    v.addEventListener("loadedmetadata", sync);
+    v.addEventListener("durationchange", sync);
+    v.addEventListener("loadeddata", sync);
+    return () => {
+      v.removeEventListener("loadedmetadata", sync);
+      v.removeEventListener("durationchange", sync);
+      v.removeEventListener("loadeddata", sync);
+    };
+  }, [src]);
+
   function captureNow() {
     const v = videoRef.current;
     if (!v) return;
@@ -131,7 +162,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
             </span>
           </div>
           <p className="truncate text-[11px] text-zinc-500">
-            Pausá y clickeá <span className="font-medium text-fuchsia-700">"Comentar este momento"</span> para anclar al segundo exacto.
+            Pausa y haz clic <span className="font-medium text-fuchsia-700">"Comentar este momento"</span> para anclar al segundo exacto.
           </p>
         </div>
         <div className="hidden flex-shrink-0 font-mono text-[11.5px] tabular-nums text-zinc-400 sm:block">
@@ -364,7 +395,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
         )}
         {markers.length === 0 && canComment && (
           <p className="ml-auto hidden text-[10.5px] text-zinc-400 sm:block">
-            Pausá el video y dejá tu primer comentario anclado
+            Pausa el video y deja tu primer comentario anclado
           </p>
         )}
         {markers.length > 0 && (

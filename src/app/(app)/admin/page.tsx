@@ -104,7 +104,7 @@ export default async function AdminSummary() {
             href="/admin/setup"
             icon={<KeyRound className="h-4 w-4" />}
             title="Setup pendiente: master key"
-            body="Antes de poder configurar pasarelas de pago necesitás generar la llave que las encripta. 1 click."
+            body="Antes de poder configurar pasarelas de pago necesitas generar la llave que las encripta. 1 click."
           />
         )}
         {pastDueSubs > 0 && (
@@ -122,7 +122,7 @@ export default async function AdminSummary() {
             href="/admin/integrations"
             icon={<CreditCard className="h-4 w-4" />}
             title="Sin pasarelas activas"
-            body="Configurá Wompi (u otra) para que los clientes puedan pagar."
+            body="Configura Wompi (u otra) para que los clientes puedan pagar."
           />
         )}
       </div>

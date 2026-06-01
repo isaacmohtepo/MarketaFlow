@@ -123,7 +123,7 @@ export async function setBrandLock(
     if (currentlyUnlocked >= limits.maxBrands) {
       return {
         ok: false,
-        reason: `Tu plan permite ${limits.maxBrands} ${limits.maxBrands === 1 ? "marca activa" : "marcas activas"}. Pausá otra primero o upgradeá.`,
+        reason: `Tu plan permite ${limits.maxBrands} ${limits.maxBrands === 1 ? "marca activa" : "marcas activas"}. Pausa otra primero o mejora.`,
       };
     }
   }
@@ -155,7 +155,7 @@ export async function assertBrandUnlocked(brandId: string): Promise<BrandLockRes
       ok: false,
       response: NextResponse.json(
         {
-          error: `La marca "${brand.name}" está pausada porque excedés el límite de tu plan. Upgradeá o reactivala desactivando otra marca.`,
+          error: `La marca "${brand.name}" está pausada porque excedes el límite de tu plan. Mejora o reactivala desactivando otra marca.`,
           code: "brand_locked",
           brandLockedAt: brand.lockedAt.toISOString(),
         },

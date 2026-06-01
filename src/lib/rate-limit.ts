@@ -23,7 +23,7 @@
  *   const rl = await rateLimitAsync(req, { key: "login", limit: 5, windowMs: 60_000 });
  *   if (!rl.ok) return rateLimitResponse(rl);
  *
- * Identificador: por default IP (X-Forwarded-For o fallback). Podés pasar
+ * Identificador: por default IP (X-Forwarded-For o fallback). Puedes pasar
  * `extra` adicional (ej. email del intento) para multi-axis limiting.
  */
 
@@ -190,7 +190,7 @@ export function rateLimitResponse(rl: RateLimitResult, message?: string) {
     {
       error:
         message ??
-        `Demasiados intentos. Probá de nuevo en ${rl.retryAfterSeconds} segundos.`,
+        `Demasiados intentos. Prueba de nuevo en ${rl.retryAfterSeconds} segundos.`,
     },
     {
       status: 429,

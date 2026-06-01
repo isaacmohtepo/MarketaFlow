@@ -31,6 +31,7 @@ import {
 
 type Deliverable = {
   id: string;
+  number: number | null;
   imageUrl: string | null;
   status: string;
   caption: string;
@@ -245,7 +246,7 @@ export default function DeliverablesList({
     },
     ad: {
       title: "Sin anuncios todavía",
-      hint: "Subí los creativos y el copy de tus campañas (Meta, Google, TikTok) para que el cliente apruebe antes de publicar.",
+      hint: "Sube los creativos y el copy de tus campañas (Meta, Google, TikTok) para que el cliente apruebe antes de publicar.",
     },
     other: {
       title: "Sin archivos todavía",
@@ -288,7 +289,7 @@ export default function DeliverablesList({
         return (
           <div key={d.id} className="relative">
           <Link
-            href={`/brands/${brandId}/posts/${d.id}`}
+            href={`/brands/${brandId}/posts/${d.number ?? d.id}`}
             className={`card group relative block overflow-hidden p-0 transition hover:shadow-md ${
               d.unresolvedComments > 0
                 ? "border-rose-300 ring-2 ring-rose-100 hover:ring-rose-200"

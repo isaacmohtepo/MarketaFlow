@@ -70,7 +70,7 @@ export default function CouponsManager() {
 
   async function create() {
     if (!form.code.trim()) {
-      toast.error("Ingresá un código");
+      toast.error("Ingresa un código");
       return;
     }
     setSubmitting(true);
@@ -382,7 +382,7 @@ export default function CouponsManager() {
             Sin cupones todavía
           </p>
           <p className="mt-0.5 text-[11.5px] text-zinc-500">
-            Creá uno para empezar promociones o referidos.
+            Crea uno para empezar promociones o referidos.
           </p>
         </div>
       ) : (

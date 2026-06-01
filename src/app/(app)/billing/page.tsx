@@ -117,7 +117,7 @@ export default async function BillingPage() {
             <Banner
               tone="rose"
               title="Plan vencido"
-              body="Tu plan venció. Renová pagando para seguir usándolo — tenés unos días de gracia antes de bajar a Free."
+              body="Tu plan venció. Renueva pagando para seguir usandolo — tienes unos días de gracia antes de bajar a Free."
               cta={{ href: "/billing/plan", label: "Renovar plan" }}
             />
           )}
@@ -125,7 +125,7 @@ export default async function BillingPage() {
             <Banner
               tone="fuchsia"
               title={`Trial de ${plan.name}`}
-              body={`Faltan ${trialDaysLeft} ${trialDaysLeft === 1 ? "día" : "días"}. Pagá tu plan para no perderlo cuando termine el trial.`}
+              body={`Faltan ${trialDaysLeft} ${trialDaysLeft === 1 ? "día" : "días"}. Paga tu plan para no perderlo cuando termine el trial.`}
               cta={{ href: "/billing/plan", label: "Pagar plan" }}
             />
           )}
@@ -216,7 +216,7 @@ export default async function BillingPage() {
         {hasLockedBrands && (
           <div className="mt-8 rounded-lg border border-rose-100 bg-rose-50/30 p-4">
             <p className="text-[12px] font-medium text-rose-900">
-              Para reactivar marcas, subí de plan o pausá otras.
+              Para reactivar marcas, sube de plan o pausa otras.
             </p>
             <ul className="mt-3 space-y-2">
               {lockedBrands.map((b) => (
@@ -267,7 +267,7 @@ export default async function BillingPage() {
               Aún no hay facturas
             </p>
             <p className="mt-1 text-[11.5px] text-zinc-500">
-              Cuando hagas un pago vas a verlo acá.
+              Cuando hagas un pago vas a verlo aquí.
             </p>
           </div>
         ) : (
@@ -275,7 +275,7 @@ export default async function BillingPage() {
             {recentInvoices.map((inv) => (
               <li key={inv.id}>
                 <Link
-                  href={`/billing/invoices/${inv.id}`}
+                  href={`/billing/invoices/${inv.invoiceNumber ?? inv.id}`}
                   className="group flex items-center gap-3 px-6 py-3.5 transition hover:bg-zinc-50/60"
                 >
                   <div className="min-w-0 flex-1">
@@ -312,7 +312,7 @@ function NoOwner() {
       <div className="card mt-6 p-8 text-center">
         <CreditCard className="mx-auto h-10 w-10 text-zinc-300" />
         <p className="mt-4 text-[14px] font-semibold text-zinc-900">
-          No sos owner de ninguna agencia
+          No eres owner de ninguna agencia
         </p>
         <p className="mt-1 text-[12px] text-zinc-500">
           Solo el owner puede ver y gestionar la facturación.

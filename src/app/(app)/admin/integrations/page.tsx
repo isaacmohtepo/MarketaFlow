@@ -19,7 +19,7 @@ export default async function AdminIntegrations() {
       <section className="card p-6">
         <h2 className="text-sm font-semibold text-zinc-900">Pasarelas de pago</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Configurá las llaves de las pasarelas que querés habilitar. Las
+          Configura las llaves de las pasarelas que quieres habilitar. Las
           llaves se guardan encriptadas con AES-256-GCM. Al menos una
           pasarela debe estar activa para que los usuarios puedan pagar.
         </p>

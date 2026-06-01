@@ -145,7 +145,7 @@ export async function DELETE(
   // o usar /api/account/delete para flujos de auto-deletion con guardias propias.
   if (id === me.id) {
     return NextResponse.json(
-      { error: "No podés borrar tu propia cuenta desde acá. Usá /account." },
+      { error: "No puedes borrar tu propia cuenta desde aquí. Usa /account." },
       { status: 400 },
     );
   }
@@ -156,8 +156,29 @@ export async function DELETE(
   });
   if (!target) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
-  // Cascade del schema borra sesiones, memberships, comments, etc.
-  await prisma.user.delete({ where: { id } });
+  // Antes de borrar el user: limpiar las agencias donde era el ÚNICO miembro
+  // (ej. su agencia personal). Sin esto, al borrar el user su agencia queda
+  // huérfana (sin owner). Si la agencia tiene OTROS miembros, la dejamos —
+  // el cascade solo quitará la membership de este user.
+  const memberships = await prisma.membership.findMany({
+    where: { userId: id },
+    select: { agencyId: true },
+  });
+  const agencyIds = [...new Set(memberships.map((m) => m.agencyId))];
+  let deletedAgencies = 0;
+  await prisma.$transaction(async (tx) => {
+    for (const agencyId of agencyIds) {
+      const others = await tx.membership.count({
+        where: { agencyId, userId: { not: id } },
+      });
+      if (others === 0) {
+        await tx.agency.delete({ where: { id: agencyId } });
+        deletedAgencies++;
+      }
+    }
+    // Cascade del schema borra sesiones, memberships restantes, comments, etc.
+    await tx.user.delete({ where: { id } });
+  });
 
   audit({
     category: "admin",
@@ -165,9 +186,9 @@ export async function DELETE(
     actorUserId: me.id,
     actorEmail: me.email,
     targetId: id,
-    metadata: { email: target.email, role: target.role },
+    metadata: { email: target.email, role: target.role, deletedAgencies },
     req,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, deletedAgencies });
 }

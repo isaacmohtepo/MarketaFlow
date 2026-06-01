@@ -272,6 +272,22 @@ async function handleTransactionUpdated(
   }
 
   if (transaction.status === "APPROVED") {
+    // Defensa en profundidad: el monto YA está firmado por HMAC (la firma
+    // cubre transaction.amount_in_cents), pero igual confirmamos que coincide
+    // con el de la factura. Si no coincide, NO aplicamos el pago — evita
+    // marcar pagada una factura con un monto distinto al cobrado (mismatch
+    // de referencia, replay cruzado, etc.). Wompi reintenta; si es un error
+    // real queda en el log para revisar.
+    if (
+      typeof transaction.amount_in_cents === "number" &&
+      transaction.amount_in_cents !== invoice.amount
+    ) {
+      console.error(
+        `Webhook Wompi: monto no coincide. tx=${transaction.amount_in_cents} invoice=${invoice.amount} (invoiceId=${invoice.id}, txId=${transaction.id})`,
+      );
+      return;
+    }
+
     // Asignar invoiceNumber + desglosar IVA. Solo asignamos número si todavía
     // no tiene (idempotencia: re-procesar el mismo evento no genera nuevo
     // número ni gaps).
@@ -315,7 +331,7 @@ async function handleTransactionUpdated(
           // soporta void, o ventana cerrada después de 24h), caemos
           // de fallback a crédito en la próxima factura. La decisión
           // void-vs-credit la tomamos abajo.
-          // No tocamos creditCents acá — se decide post-void.
+          // No tocamos creditCents aquí — se decide post-void.
         }
         if (Object.keys(addonUpdates).length > 0) {
           await tx.subscription.update({
@@ -323,7 +339,7 @@ async function handleTransactionUpdated(
             data: addonUpdates,
           });
         }
-        // No retornamos acá — más abajo el código de payment_source sigue
+        // No retornamos aquí — más abajo el código de payment_source sigue
         // siendo útil si el pago vino con tarjeta nueva.
       } else {
         // Actualizar subscription: activa, periodo nuevo, próximo cobro

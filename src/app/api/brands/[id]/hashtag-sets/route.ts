@@ -13,11 +13,12 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const access = await getBrandAccess(user.id, id);
+  const access = await getBrandAccess(user.id, brandRef);
   if (!access) return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+  const id = access.brandId; // ref → id real
 
   const sets = await prisma.hashtagSet.findMany({
     where: { brandId: id },
@@ -30,13 +31,14 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const access = await getBrandAccess(user.id, id);
+  const access = await getBrandAccess(user.id, brandRef);
   if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const id = access.brandId; // ref → id real
   const ok = await hasPermission(user.id, access.agencyId, "library.manage", id);
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: library.manage" }, { status: 403 });

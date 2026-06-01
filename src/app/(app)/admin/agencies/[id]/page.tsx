@@ -9,6 +9,7 @@ import {
   Layers,
 } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { resolveAgencyRef } from "@/lib/slugs";
 import { PLANS, formatCop, type PlanId } from "@/lib/plans";
 import AgencyActions from "./AgencyActions";
 import FeatureFlagsPanel from "./FeatureFlagsPanel";
@@ -24,7 +25,11 @@ export default async function AdminAgencyDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: agencyRef } = await params;
+  // Acepta slug o cuid en la URL admin (back-compat).
+  const resolvedAgency = await resolveAgencyRef(agencyRef);
+  if (!resolvedAgency) notFound();
+  const id = resolvedAgency.id;
 
   const [agency, subscription, brands, members, invoices, recentAudit] =
     await Promise.all([

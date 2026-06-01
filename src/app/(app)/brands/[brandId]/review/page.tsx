@@ -17,9 +17,9 @@ export default async function ReviewPage({
   if (!access || !access.canApprove) notFound();
 
   const [brand, posts] = await Promise.all([
-    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.brand.findUnique({ where: { id: access.brandId } }),
     prisma.post.findMany({
-      where: { brandId, deletedAt: null, status: "in_review" },
+      where: { brandId: access.brandId, deletedAt: null, status: "in_review" },
       orderBy: [{ position: "asc" }, { createdAt: "asc" }],
       include: { images: { orderBy: { position: "asc" } } },
     }),

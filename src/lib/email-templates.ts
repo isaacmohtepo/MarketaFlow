@@ -1,26 +1,10 @@
 import { appUrl } from "./email";
+// `esc` es el escape HTML compartido. Toda variable user-controlled (nombres,
+// notas, captions) DEBE pasar por aquí antes de inyectarse en el template.
+import { escapeHtml as esc } from "./sanitize-html";
 
 const BRAND_GRADIENT =
   "linear-gradient(135deg, #3b5fff 0%, #8a2be2 35%, #ff4d8f 70%, #ff2d55 100%)";
-
-/**
- * Escapa caracteres HTML peligrosos. Toda variable user-controlled (nombres,
- * notas, captions, body) DEBE pasar por esta función antes de inyectarse en
- * el template. Sin esto, un attacker con un brand.name = "<script>..." podría
- * inyectar phishing links, scripts (en email clients que los ejecutan), o
- * elementos HTML que cambien el sentido del email.
- *
- * Acepta null/undefined → string vacío para que sea conveniente en templates.
- */
-function esc(value: unknown): string {
-  if (value == null) return "";
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 /** Branding inyectable en cualquier email. Si se pasa `wl`, reemplaza
  *  el header (logo + nombre) y el color del CTA. Si null/undefined,
@@ -120,11 +104,11 @@ export function tplClientInvite(opts: {
   const footerBrand = opts.wl?.brandName ?? "MarketaFlow";
   return shell({
     preheader: `${esc(opts.inviterName)} te invita a revisar contenido en ${esc(footerBrand)}`,
-    title: `Tenés contenido para revisar`,
+    title: `Tienes contenido para revisar`,
     intro: `<strong>${esc(opts.inviterName)}</strong> de <strong>${esc(opts.agencyName)}</strong> te invitó a revisar y aprobar contenido para ${brandList}. Como cliente vas a poder ver los posts programados, dejar comentarios y aprobar o pedir cambios.`,
     ctaLabel: "Aceptar invitación →",
     ctaUrl: opts.acceptUrl,
-    footer: `Si no tenés cuenta de ${esc(footerBrand)} todavía, vas a poder crearla rápido con este mismo email. El link expira en 14 días.`,
+    footer: `Si no tienes cuenta de ${esc(footerBrand)} todavía, vas a poder crearla rápido con este mismo email. El link expira en 14 días.`,
     wl: opts.wl,
   });
 }
@@ -230,10 +214,10 @@ export function tplTrialEnding(opts: {
     title: `Tu trial termina pronto ⏰`,
     intro: `Faltan <strong>${opts.daysLeft} ${
       opts.daysLeft === 1 ? "día" : "días"
-    }</strong> para que termine tu trial de <strong>${esc(opts.planName)}</strong> en ${esc(opts.agencyName)}. Si no agregás un método de pago, bajamos automáticamente a Free y vas a perder algunos límites (marcas, posts, equipo).`,
+    }</strong> para que termine tu trial de <strong>${esc(opts.planName)}</strong> en ${esc(opts.agencyName)}. Si no agregas un método de pago, bajamos automáticamente a Free y vas a perder algunos límites (marcas, posts, equipo).`,
     ctaLabel: "Activar suscripción",
     ctaUrl: `${appUrl("/billing")}`,
-    footer: "Podés cancelar en cualquier momento.",
+    footer: "Puedes cancelar en cualquier momento.",
   });
 }
 
@@ -274,7 +258,7 @@ export function tplPaymentFailed(opts: {
   return shell({
     preheader: `No pudimos cobrar tu suscripción`,
     title: `El pago falló`,
-    intro: `Intentamos cobrar <strong>${esc(opts.amount)}</strong> en ${esc(opts.agencyName)} pero el método de pago rechazó el cargo.${reasonBlock} Tenés 3 días de gracia antes de que bajemos al plan Free. Actualizá tu tarjeta para evitar perder acceso.`,
+    intro: `Intentamos cobrar <strong>${esc(opts.amount)}</strong> en ${esc(opts.agencyName)} pero el método de pago rechazó el cargo.${reasonBlock} Tienes 3 días de gracia antes de que bajemos al plan Free. Actualiza tu tarjeta para evitar perder acceso.`,
     ctaLabel: "Actualizar pago",
     ctaUrl: `${appUrl("/billing")}`,
   });
@@ -288,7 +272,7 @@ export function tplSubscriptionCanceled(opts: {
   return shell({
     preheader: `Cancelaste tu suscripción de ${esc(opts.planName)}`,
     title: `Suscripción cancelada`,
-    intro: `Cancelaste tu suscripción de <strong>${esc(opts.planName)}</strong> en ${esc(opts.agencyName)}. Tu plan sigue activo hasta el <strong>${esc(opts.endDate)}</strong> — después bajamos a Free. Podés reactivarla en cualquier momento.`,
+    intro: `Cancelaste tu suscripción de <strong>${esc(opts.planName)}</strong> en ${esc(opts.agencyName)}. Tu plan sigue activo hasta el <strong>${esc(opts.endDate)}</strong> — después bajamos a Free. Puedes reactivarla en cualquier momento.`,
     ctaLabel: "Ir a Facturación",
     ctaUrl: `${appUrl("/billing")}`,
   });

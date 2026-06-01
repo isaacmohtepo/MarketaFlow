@@ -1,16 +1,17 @@
 import { prisma } from "./db";
+import { getActiveAgencyId } from "./active-agency";
 
+/**
+ * Nombre de la agencia ACTIVA del usuario (workspace activo, cookie-aware).
+ * Delega en el resolver central para que coincida con lo que muestra el resto
+ * de la app (sidebar, branding) cuando el user cambia de workspace.
+ */
 export async function getUserAgencyName(userId: string): Promise<string | null> {
-  const m = await prisma.membership.findFirst({
-    where: { userId, role: { in: ["owner", "editor"] }, brandId: null },
-    include: { agency: true },
-    orderBy: { id: "asc" },
+  const agencyId = await getActiveAgencyId(userId);
+  if (!agencyId) return null;
+  const agency = await prisma.agency.findUnique({
+    where: { id: agencyId },
+    select: { name: true },
   });
-  if (m) return m.agency.name;
-  const c = await prisma.membership.findFirst({
-    where: { userId },
-    include: { agency: true },
-    orderBy: { id: "asc" },
-  });
-  return c?.agency.name ?? null;
+  return agency?.name ?? null;
 }

@@ -27,7 +27,7 @@ export type AuditEntry = {
   actorEmail?: string | null;
   targetId?: string | null;
   metadata?: Record<string, unknown>;
-  /** Si pasás el req, extraemos IP + UA automático */
+  /** Si pasas el req, extraemos IP + UA automático */
   req?: Request;
 };
 

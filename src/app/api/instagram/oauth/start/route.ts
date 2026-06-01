@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     return NextResponse.json(
       {
         error:
-          "OAuth no configurado. Setteá META_APP_ID y META_APP_SECRET en Vercel para habilitar 'Conectar con Instagram'. Mientras tanto, usá la conexión manual con tokens.",
+          "OAuth no configurado. Configura META_APP_ID y META_APP_SECRET en Vercel para habilitar 'Conectar con Instagram'. Mientras tanto, usa la conexión manual con tokens.",
       },
       { status: 503 },
     );

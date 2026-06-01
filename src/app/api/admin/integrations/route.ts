@@ -111,7 +111,7 @@ function validateKeyEnvironment(
       const v = config[c.key];
       if (!v) continue;
       if (v.includes(otherPrefix)) {
-        return `${c.label} parece ser de ${otherEnv} (contiene "${otherPrefix.replace(/_/g, "")}") pero estás guardándola en ${environment}. Movela al ambiente correcto o usá llaves de ${environment}.`;
+        return `${c.label} parece ser de ${otherEnv} (contiene "${otherPrefix.replace(/_/g, "")}") pero estás guardandola en ${environment}. Movela al ambiente correcto o usa llaves de ${environment}.`;
       }
       if (!v.includes(expectedPrefix)) {
         return `${c.label} no tiene el formato esperado para ${environment} (debería contener "${expectedPrefix.replace(/_/g, "")}").`;

@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getUserTaskAgency } from "@/lib/tasks";
-import { hasPermission } from "@/lib/permissions";
+import {
+  getUserTaskAgency,
+  getAgencyTaskColumns,
+  runTaskAutoArchive,
+} from "@/lib/tasks";
+import { hasAgencyPermission } from "@/lib/permissions";
+import { resolveStatusColors, resolveTaskColumns } from "@/lib/tasks-types";
 import TasksBoard from "./TasksBoard";
 
 export const dynamic = "force-dynamic";
@@ -13,23 +18,31 @@ export default async function TasksPage() {
 
   const agency = await getUserTaskAgency(user.id);
   if (!agency) redirect("/dashboard");
-  const canRead = await hasPermission(user.id, agency.agencyId, "tasks.read");
+  const canRead = await hasAgencyPermission(user.id, agency.agencyId, "tasks.read");
   if (!canRead) redirect("/dashboard");
-  const canWrite = await hasPermission(user.id, agency.agencyId, "tasks.write");
-  const canAssign = await hasPermission(user.id, agency.agencyId, "tasks.assign");
+  const canWrite = await hasAgencyPermission(user.id, agency.agencyId, "tasks.write");
+  const canAssign = await hasAgencyPermission(user.id, agency.agencyId, "tasks.assign");
 
-  // SSR-load inicial: tareas + brands + miembros (los filtros también lo
-  // devuelven, pero así la página renderiza con datos sin spinner).
-  const [tasks, brands, members] = await Promise.all([
+  // Auto-archivado oportunista: antes de leer las tareas, archivamos las que
+  // superaron el límite de días en columnas con autoArchiveDays. Así el
+  // tablero se mantiene limpio sin necesidad de un cron.
+  const columnsForArchive = await getAgencyTaskColumns(agency.agencyId);
+  await runTaskAutoArchive(agency.agencyId, columnsForArchive).catch(() => {});
+
+  // SSR-load inicial: tareas + brands + miembros + colores customs de
+  // las columnas (persistidos en Agency.taskStatusColors).
+  const [tasks, brands, members, agencyRow, initialTags] = await Promise.all([
     prisma.task.findMany({
-      where: { agencyId: agency.agencyId },
+      where: { agencyId: agency.agencyId, deletedAt: null },
       orderBy: [{ position: "asc" }, { createdAt: "desc" }],
       include: {
         assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
         creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
         brand: { select: { id: true, name: true, color: true, logoUrl: true } },
         post: { select: { id: true, title: true, caption: true } },
         subtasks: { orderBy: { position: "asc" } },
+        tags: { select: { id: true, name: true, color: true } },
       },
     }),
     prisma.brand.findMany({
@@ -62,7 +75,21 @@ export default async function TasksPage() {
         }
         return out;
       }),
+    prisma.agency.findUnique({
+      where: { id: agency.agencyId },
+      select: { taskStatusColors: true, taskColumns: true },
+    }),
+    prisma.taskTag.findMany({
+      where: { agencyId: agency.agencyId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, color: true },
+    }),
   ]);
+  const statusColors = resolveStatusColors(agencyRow?.taskStatusColors);
+  const columns = resolveTaskColumns(
+    agencyRow?.taskColumns,
+    agencyRow?.taskStatusColors,
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -74,6 +101,9 @@ export default async function TasksPage() {
         members={members}
         canWrite={canWrite}
         canAssign={canAssign}
+        initialStatusColors={statusColors}
+        initialColumns={columns}
+        initialTags={initialTags}
       />
     </div>
   );

@@ -32,7 +32,8 @@ export default function NewBrandTile() {
       return;
     }
     const j = await res.json();
-    router.push(`/brands/${j.id}`);
+    const ref = j.brand?.slug ?? j.brand?.id ?? j.id;
+    router.push(`/brands/${ref}`);
     router.refresh();
   }
 

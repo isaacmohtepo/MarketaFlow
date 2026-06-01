@@ -7,7 +7,7 @@ import { runTrialEmails } from "@/app/api/cron/billing/jobs/trial-emails";
  *
  * En Vercel Hobby el job se ejecuta también dentro de /api/cron/billing
  * (1 cron daily limit). Este endpoint queda para testing/manual o si
- * upgradeás a Pro y querés granularidad.
+ * actualizas a Pro y quieres granularidad.
  */
 export const runtime = "nodejs";
 export const maxDuration = 300;

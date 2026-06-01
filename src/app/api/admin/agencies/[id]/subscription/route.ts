@@ -69,7 +69,7 @@ export async function POST(
   });
   if (!sub) {
     return NextResponse.json(
-      { error: "La agencia no tiene subscription. Probá refrescando." },
+      { error: "La agencia no tiene subscription. Prueba refrescando." },
       { status: 404 },
     );
   }

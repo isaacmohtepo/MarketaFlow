@@ -72,7 +72,7 @@ export default function OnboardingWizard({
         toast.error(j.error ?? "No se pudo crear la marca");
         return;
       }
-      setCreatedBrandId(j.id);
+      setCreatedBrandId(j.brand?.slug ?? j.brand?.id ?? j.id);
       toast.success(`Marca "${brand.name}" creada`);
       setStep(2);
     } catch {
@@ -147,7 +147,7 @@ export default function OnboardingWizard({
   async function skipAll() {
     const ok = await confirm({
       title: "¿Saltar el onboarding?",
-      description: "Podés volver más tarde abriendo /onboarding?force=1.",
+      description: "Puedes volver más tarde abriendo /onboarding?force=1.",
       confirmLabel: "Saltar",
       cancelLabel: "Volver",
       variant: "default",
@@ -273,8 +273,8 @@ export default function OnboardingWizard({
           >
             <ul className="mt-6 space-y-3 text-[13px] text-zinc-700">
               <Bullet>Vas a crear tu primera marca/cliente</Bullet>
-              <Bullet>Invitás a un colaborador o cliente (opcional)</Bullet>
-              <Bullet>Listo — empezás a publicar y aprobar contenido</Bullet>
+              <Bullet>Invitas a un colaborador o cliente (opcional)</Bullet>
+              <Bullet>Listo — empiezas a publicar y aprobar contenido</Bullet>
             </ul>
             <PrimaryButton onClick={() => setStep(1)} disabled={busy}>
               Empezar
@@ -339,8 +339,8 @@ export default function OnboardingWizard({
         {step === 2 && (
           <StepCard
             icon={<UserPlus className="h-6 w-6" />}
-            title="Invitá al equipo o al cliente"
-            subtitle="Mandá una invitación para que un colaborador se sume. Podés saltarte este paso y hacerlo más tarde."
+            title="Invita al equipo o al cliente"
+            subtitle="Mve una invitación para que un colaborador se sume. Puedes saltarte este paso y hacerlo más tarde."
           >
             <div className="mt-6 space-y-3">
               <Field label="Email">
@@ -387,7 +387,7 @@ export default function OnboardingWizard({
           <StepCard
             icon={<CheckCircle2 className="h-6 w-6" />}
             title="¡Todo listo!"
-            subtitle="Tu workspace está armado. Empezá a subir tu primer post."
+            subtitle="Tu workspace está armado. Empieza a subir tu primer post."
           >
             <ul className="mt-6 space-y-3 text-[13px] text-zinc-700">
               <Bullet good>Marca creada</Bullet>
@@ -395,7 +395,7 @@ export default function OnboardingWizard({
               <Bullet good>Listo para subir contenido</Bullet>
             </ul>
             <div className="mt-6 rounded-lg border border-fuchsia-200 bg-fuchsia-50/40 p-3 text-[12px] text-zinc-700">
-              <strong>Tip:</strong> usá <kbd className="rounded bg-white px-1.5 py-0.5 text-[10.5px] font-mono">Cmd+K</kbd>{" "}
+              <strong>Tip:</strong> usa <kbd className="rounded bg-white px-1.5 py-0.5 text-[10.5px] font-mono">Cmd+K</kbd>{" "}
               en cualquier parte para buscar y navegar rápido.
             </div>
             <PrimaryButton onClick={complete} disabled={busy}>
@@ -515,8 +515,8 @@ function roleWelcomeScreens(
         subtitle: `${agencyName} te invitó como Community Manager. Tu primer trabajo es crear o seleccionar un post para empezar.`,
         bullets: [
           "Vas a ver el feed de cada marca y los posts pendientes",
-          "Podés crear, editar y programar posts",
-          "Coordinás con designers y copywriters por comentarios",
+          "Puedes crear, editar y programar posts",
+          "Coordinas con designers y copywriters por comentarios",
         ],
         cta: { label: "Ir al feed", path: "/brands" },
       };
@@ -525,7 +525,7 @@ function roleWelcomeScreens(
         subtitle: `${agencyName} te invitó como Diseñador/a. Tu trabajo en MarketaFlow es subir creativos.`,
         bullets: [
           "Vas a ver los posts pendientes de cada marca",
-          "Subís imágenes y videos en cada post",
+          "Subes imágenes y videos en cada post",
           "El Community Manager te avisa qué se necesita",
         ],
         cta: { label: "Ver mis marcas", path: "/brands" },
@@ -535,18 +535,18 @@ function roleWelcomeScreens(
         subtitle: `${agencyName} te invitó como Copywriter. Tu trabajo en MarketaFlow es escribir captions.`,
         bullets: [
           "Vas a ver los posts pendientes de caption",
-          "Editás caption y hashtags directamente en cada post",
-          "Coordinás con el equipo por comentarios",
+          "Editas caption y hashtags directamente en cada post",
+          "Coordinas con el equipo por comentarios",
         ],
         cta: { label: "Ver mis marcas", path: "/brands" },
       };
     case "strategist":
       return {
-        subtitle: `${agencyName} te invitó como Estratega. Acá ves dashboards y dejás notas estratégicas.`,
+        subtitle: `${agencyName} te invitó como Estratega. Aquí ves dashboards y dejas notas estratégicas.`,
         bullets: [
           "Dashboard con KPIs y reportes de las marcas",
-          "Comentás en posts para dejar notas",
-          "Accedés al historial de actividad",
+          "Comentas en posts para dejar notas",
+          "Accedes al historial de actividad",
         ],
         cta: { label: "Ir al dashboard", path: "/dashboard" },
       };
@@ -555,15 +555,15 @@ function roleWelcomeScreens(
         subtitle: `${agencyName} te invitó a aprobar contenido en MarketaFlow.`,
         bullets: [
           "Vas a ver los posts que te mandan para revisar",
-          "Aprobás o pedís cambios con un click",
-          "Comentás puntos específicos sobre cada imagen",
+          "Apruebas o pides cambios con un click",
+          "Comentas puntos específicos sobre cada imagen",
         ],
         cta: { label: "Ver mis posts", path: "/dashboard" },
       };
     default:
       return {
         subtitle: `${agencyName} te invitó a MarketaFlow.`,
-        bullets: ["Empezá a explorar tu workspace"],
+        bullets: ["Empieza a explorar tu workspace"],
         cta: { label: "Ir al dashboard", path: "/dashboard" },
       };
   }

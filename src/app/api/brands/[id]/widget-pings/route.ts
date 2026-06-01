@@ -10,13 +10,14 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: brandId } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const access = await getBrandAccess(user.id, brandId);
+  const access = await getBrandAccess(user.id, brandRef);
   if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const brandId = access.brandId; // ref → id real
   const ok = await hasPermission(user.id, access.agencyId, "share.manage", brandId);
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: share.manage" }, { status: 403 });

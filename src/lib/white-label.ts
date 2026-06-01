@@ -143,13 +143,13 @@ export function whiteLabelCssOverride(wl: WhiteLabel): string {
   // Override de los gradientes. IMPORTANTE: usamos `background-image` (no
   // el shorthand `background`) porque el shorthand RESETEA otras props
   // del background — incluyendo `background-clip`, que `.brand-gradient-text`
-  // necesita en `text` para clipear el gradient al texto. Si usábamos
-  // `background:` con !important, sobrescribía background-clip a border-box
+  // necesita en `text` para clipear el gradient al texto. Si usabamos
+  // `background:` con !important, sobrescribea background-clip a border-box
   // y el texto aparecía como una BARRA pintada en vez de letras coloridas.
   //
   // También forzamos background-clip / -webkit-background-clip con !important
   // para asegurar que ningún reset posterior los pise. .btn-gradient tiene
-  // colores hardcoded en globals.css; lo forzamos también acá para que
+  // colores hardcoded en globals.css; lo forzamos también aquí para que
   // tome los del white-label.
   const gradOverride = gradStops
     ? `

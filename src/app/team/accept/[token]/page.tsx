@@ -37,7 +37,7 @@ export default async function AcceptInvitationPage({
                 La agencia ya no tiene espacio en su plan
               </p>
               <p className="mt-2 text-[13px] text-zinc-500">
-                {inv.agency.name} llegó al límite de miembros. Contactá al
+                {inv.agency.name} llegó al límite de miembros. Contacta al
                 owner para que upgradee o libere un espacio.
               </p>
             </div>

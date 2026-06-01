@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { audit } from "@/lib/audit";
+import { resolveAgencyRef, generateAgencySlug } from "@/lib/slugs";
 
 /**
  * PATCH /api/admin/agencies/[id]
@@ -29,7 +30,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id: agencyRef } = await params;
   let body;
   try {
     body = patchSchema.parse(await req.json());
@@ -37,8 +38,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const target = await prisma.agency.findUnique({ where: { id } });
+  // Acepta slug o cuid (URLs admin legibles + back-compat).
+  const target = await resolveAgencyRef(agencyRef);
   if (!target) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+  const id = target.id;
 
   const suspendedAt =
     body.suspended === undefined
@@ -56,7 +59,9 @@ export async function PATCH(
   const updated = await prisma.agency.update({
     where: { id },
     data: {
-      ...(body.name !== undefined ? { name: body.name } : {}),
+      ...(body.name !== undefined
+        ? { name: body.name, slug: await generateAgencySlug(body.name, id) }
+        : {}),
       ...(suspendedAt !== undefined ? { suspendedAt } : {}),
       ...(suspendedReason !== undefined ? { suspendedReason } : {}),
     },
@@ -90,12 +95,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const { id } = await params;
-  const target = await prisma.agency.findUnique({
-    where: { id },
-    select: { id: true, name: true },
-  });
+  const { id: agencyRef } = await params;
+  const target = await resolveAgencyRef(agencyRef);
   if (!target) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+  const id = target.id;
 
   await prisma.agency.delete({ where: { id } });
 

@@ -24,14 +24,14 @@ export default async function InvitePage({
       where: { userId: user.id, brandId: brand.id },
     });
     if (existing) {
-      redirect(`/brands/${brand.id}`);
+      redirect(`/brands/${brand.slug ?? brand.id}`);
     }
     // Es miembro de la agency (owner/editor) → ya tiene acceso, no sumamos
     const agencyMember = await prisma.membership.findFirst({
       where: { userId: user.id, agencyId: brand.agencyId, brandId: null },
     });
     if (agencyMember) {
-      redirect(`/brands/${brand.id}`);
+      redirect(`/brands/${brand.slug ?? brand.id}`);
     }
     // Crear como client respetando plan limits
     const check = await canInviteClient(brand.id);
@@ -43,7 +43,7 @@ export default async function InvitePage({
               No podemos darte acceso ahora
             </p>
             <p className="mt-2 text-[13px] text-zinc-400">
-              Esta marca alcanzó el límite de clientes. Contactá a la agencia.
+              Esta marca alcanzó el límite de clientes. Contacta a la agencia.
             </p>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default async function InvitePage({
         role: "client",
       },
     });
-    redirect(`/brands/${brand.id}`);
+    redirect(`/brands/${brand.slug ?? brand.id}`);
   }
 
   return (

@@ -32,11 +32,12 @@ export async function GET(
 ) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const { id } = await params;
-  const access = await getBrandAccess(me.id, id);
+  const { id: brandRef } = await params;
+  const access = await getBrandAccess(me.id, brandRef);
   if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const id = access.brandId; // ref → id real
   const ok = await hasPermission(me.id, access.agencyId, "instagram.manage", id);
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
@@ -66,11 +67,12 @@ export async function POST(
 ) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const { id } = await params;
-  const access = await getBrandAccess(me.id, id);
+  const { id: brandRef } = await params;
+  const access = await getBrandAccess(me.id, brandRef);
   if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const id = access.brandId; // ref → id real
   const ok = await hasPermission(me.id, access.agencyId, "instagram.manage", id);
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });
@@ -107,7 +109,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "No se pudo contactar a Meta. Verificá tu conexión y los permisos del token.",
+          "No se pudo contactar a Meta. Verifica tu conexión y los permisos del token.",
         detail: err instanceof Error ? err.message : null,
       },
       { status: 502 },
@@ -135,11 +137,12 @@ export async function DELETE(
 ) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const { id } = await params;
-  const access = await getBrandAccess(me.id, id);
+  const { id: brandRef } = await params;
+  const access = await getBrandAccess(me.id, brandRef);
   if (!access) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
   }
+  const id = access.brandId; // ref → id real
   const ok = await hasPermission(me.id, access.agencyId, "instagram.manage", id);
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: instagram.manage" }, { status: 403 });

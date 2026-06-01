@@ -1,4 +1,9 @@
 @import "tailwindcss";
+/* NOTA: el CSS base de react-grid-layout / react-resizable NO se importa
+   acá. Con Tailwind v4 el `@import "tailwindcss"` expande reglas, y
+   cualquier `@import` posterior es inválido por spec CSS y el bundler lo
+   descarta silenciosamente. El CSS base se inyecta inline en
+   DashboardLayout.tsx vía <style jsx global> para garantizar que cargue. */
 
 :root {
   /* Split theme: cuerpo claro + sidebar oscuro */
@@ -333,6 +338,125 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
   100% { width: 0%; }
 }
 .animate-toast-progress { animation: toast-progress 6s linear forwards; }
+
+/* === Kanban de tareas — micro-interacciones === */
+/* Entrada escalonada de las cards al montar / filtrar */
+@keyframes task-card-in {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-task-card-in {
+  animation: task-card-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Pulso suave del contador de columna cuando cambia */
+@keyframes task-count-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.animate-task-count-pop { animation: task-count-pop 280ms ease-out; }
+/* Glow respirante en la columna destino mientras se arrastra */
+@keyframes task-drop-glow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(217, 70, 239, 0.35), 0 8px 30px -8px rgba(217, 70, 239, 0.25); }
+  50%      { box-shadow: 0 0 0 2px rgba(217, 70, 239, 0.55), 0 12px 40px -8px rgba(217, 70, 239, 0.4); }
+}
+.animate-task-drop-glow { animation: task-drop-glow 1.4s ease-in-out infinite; }
+/* Barra de progreso de subtareas: animación del fill */
+.task-progress-fill { transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Calendar custom (DueDatePopover) no necesita estilos custom — usa
+   Tailwind + clases del DS directamente. */
+
+/* === TipTap content (DescriptionEditor) === */
+.tiptap-content {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #3f3f46;
+}
+.tiptap-content > * + * {
+  margin-top: 0.5em;
+}
+.tiptap-content p { margin: 0; }
+.tiptap-content p:empty::before {
+  content: "\00a0";
+}
+.tiptap-content strong { font-weight: 700; color: #18181b; }
+.tiptap-content em { font-style: italic; }
+.tiptap-content u { text-decoration: underline; text-underline-offset: 2px; }
+.tiptap-content s { text-decoration: line-through; opacity: 0.7; }
+.tiptap-content code {
+  background: #f4f4f5;
+  color: #18181b;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.88em;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+}
+.tiptap-content h2 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #18181b;
+  margin-top: 0.8em;
+  line-height: 1.3;
+}
+.tiptap-content h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #18181b;
+  margin-top: 0.6em;
+  line-height: 1.35;
+}
+.tiptap-content ul, .tiptap-content ol {
+  padding-left: 1.4em;
+  margin: 0.3em 0;
+}
+.tiptap-content ul { list-style: disc; }
+.tiptap-content ol { list-style: decimal; }
+.tiptap-content ul li::marker,
+.tiptap-content ol li::marker {
+  color: #a1a1aa;
+}
+.tiptap-content li > p { display: inline; }
+.tiptap-content li + li { margin-top: 2px; }
+.tiptap-content blockquote {
+  border-left: 3px solid rgba(138, 43, 226, 0.35);
+  padding: 4px 0 4px 12px;
+  margin: 6px 0;
+  color: #52525b;
+  font-style: italic;
+  background: rgba(138, 43, 226, 0.03);
+  border-radius: 0 6px 6px 0;
+}
+.tiptap-content pre {
+  background: #18181b;
+  color: #f4f4f5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+.tiptap-content pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+.tiptap-content hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 12px 0;
+}
+/* Placeholder TipTap */
+.tiptap-content p.is-editor-empty:first-child::before {
+  color: #a1a1aa;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
 
 /* === Print (reportes) === */
 @media print {

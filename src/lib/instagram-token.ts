@@ -42,7 +42,7 @@ export async function getIgAccessToken(brandId: string): Promise<string | null> 
   }
   if (brand.igAccessToken) {
     console.warn(
-      `[ig-token] brand ${brandId} still uses plain igAccessToken — corré /api/admin/migrate-ig-tokens`,
+      `[ig-token] brand ${brandId} still uses plain igAccessToken — ejecuta /api/admin/migrate-ig-tokens`,
     );
     return brand.igAccessToken;
   }

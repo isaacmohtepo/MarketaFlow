@@ -18,7 +18,7 @@ export default async function BrandSettingsWidget({
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     select: { widgetToken: true },
   });
   if (!brand) notFound();
@@ -32,7 +32,7 @@ export default async function BrandSettingsWidget({
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
             Estilo Marker.io — el cliente comenta directamente sobre el sitio web del
-            staging y vos recibís capturas pixel-perfect en este tablero.
+            staging y tú recibes capturas pixel-perfect en este tablero.
           </p>
         </div>
         <span className="flex-shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-700">

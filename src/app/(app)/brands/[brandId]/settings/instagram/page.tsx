@@ -18,7 +18,7 @@ export default async function BrandInstagramSettings({
   if (!access || !access.canEdit) notFound();
 
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     select: {
       name: true,
       igUserId: true,
@@ -76,7 +76,7 @@ export default async function BrandInstagramSettings({
             </h2>
             <p className="mt-1 max-w-xl text-[13px] text-zinc-600">
               Estamos terminando la integración con Meta. Mientras tanto,
-              podés planear y aprobar todo el contenido en MarketaFlow, y al
+              puedes planear y aprobar todo el contenido en MarketaFlow, y al
               final del flujo copiar el caption y subir la pieza directo
               desde Instagram.
             </p>

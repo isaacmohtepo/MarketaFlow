@@ -19,7 +19,7 @@ export async function POST() {
 
   if (user.totpEnabledAt) {
     return NextResponse.json(
-      { error: "Ya tenés 2FA activado. Desactivá primero para regenerar." },
+      { error: "Ya tienes 2FA activado. Desactiva primero para regenerar." },
       { status: 400 },
     );
   }

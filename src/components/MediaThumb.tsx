@@ -7,7 +7,7 @@
  * automático. Para imágenes usa <img> normal.
  *
  * Por qué: en grids/feeds donde solo tenemos la URL (no el mime), un
- * `<img src=video.mp4>` deja el icono de imagen rota. Acá detectamos
+ * `<img src=video.mp4>` deja el icono de imagen rota. Aquí detectamos
  * automático y mostramos algo decente sin pedir info extra al backend.
  */
 import { Play } from "lucide-react";

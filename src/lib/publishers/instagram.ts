@@ -1,6 +1,7 @@
 import type { Post } from "@/generated/prisma";
 import type { PublishResult } from "./index";
 import { prisma } from "@/lib/db";
+import { isPublicHttpUrl } from "@/lib/url-safety";
 
 /**
  * Publica un post en Instagram via Meta Graph API.
@@ -27,12 +28,60 @@ import { prisma } from "@/lib/db";
  */
 const GRAPH_BASE = "https://graph.facebook.com/v21.0";
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * fetch con reintentos para errores TRANSITORIOS (5xx, 429, error de red).
+ * NO reintenta 4xx (permanentes: bad request, token inválido, etc.).
+ *
+ * IMPORTANTE: solo usar en operaciones idempotentes/seguras de reintentar.
+ * NO en media_publish (un reintento podría duplicar la publicación si el
+ * primer intento tuvo éxito pero se perdió la respuesta). La creación de
+ * containers sí es segura: un container huérfano no se publica.
+ */
+async function metaFetchRetry(
+  url: string,
+  init?: RequestInit,
+  retries = 2,
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if ((res.status >= 500 || res.status === 429) && attempt < retries) {
+        await sleep(500 * 2 ** attempt);
+        continue;
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await sleep(500 * 2 ** attempt);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr ?? new Error("metaFetchRetry: agotó reintentos");
+}
+
 export async function publishToInstagram(
   post: Post,
   imageUrls: string[],
 ): Promise<PublishResult> {
   if (imageUrls.length === 0) {
     return { ok: false, error: "El post no tiene imágenes" };
+  }
+
+  // SSRF defense-in-depth: Meta va a fetchear estas URLs. Bloqueamos hosts
+  // internos/privados/metadata cloud antes de mandarlas. (Las imágenes
+  // normales son URLs públicas de R2, así que esto no afecta el flujo real.)
+  const unsafe = imageUrls.find((u) => !isPublicHttpUrl(u));
+  if (unsafe) {
+    return {
+      ok: false,
+      error: `Imagen con URL no pública/interna, no se puede publicar: ${unsafe.slice(0, 80)}`,
+    };
   }
 
   // Resolver credenciales: primero por brand (token encriptado via helper),
@@ -125,7 +174,7 @@ async function createMediaContainer(args: {
   if (args.isCarouselItem) params.set("is_carousel_item", "true");
   params.set("access_token", args.accessToken);
 
-  const res = await fetch(
+  const res = await metaFetchRetry(
     `${GRAPH_BASE}/${args.igUserId}/media?${params.toString()}`,
     { method: "POST" },
   );
@@ -149,7 +198,7 @@ async function createCarouselContainer(args: {
   if (args.caption) params.set("caption", args.caption);
   params.set("access_token", args.accessToken);
 
-  const res = await fetch(
+  const res = await metaFetchRetry(
     `${GRAPH_BASE}/${args.igUserId}/media?${params.toString()}`,
     { method: "POST" },
   );

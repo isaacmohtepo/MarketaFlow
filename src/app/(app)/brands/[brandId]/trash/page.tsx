@@ -25,10 +25,10 @@ export default async function TrashPage({
   if (!access || !access.canEdit) notFound();
 
   const [brand, agencyName, posts] = await Promise.all([
-    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.brand.findUnique({ where: { id: access.brandId } }),
     getUserAgencyName(user.id),
     prisma.post.findMany({
-      where: { brandId, deletedAt: { not: null } },
+      where: { brandId: access.brandId, deletedAt: { not: null } },
       orderBy: { deletedAt: "desc" },
     }),
   ]);
@@ -73,6 +73,7 @@ export default async function TrashPage({
                 key={p.id}
                 post={{
                   id: p.id,
+                  number: p.number,
                   imageUrl: p.imageUrl,
                   caption: p.caption,
                   status: p.status,

@@ -139,7 +139,7 @@ export default function RolesManager({
               Roles del sistema
             </h2>
             <p className="mt-0.5 text-[12px] text-zinc-500">
-              Predefinidos. Podés ajustar sus permisos para tu agencia o
+              Predefinidos. Puedes ajustar sus permisos para tu agencia o
               restaurar los defaults cuando quieras.
             </p>
           </div>
@@ -227,7 +227,7 @@ export default function RolesManager({
               Roles personalizados
             </h2>
             <p className="mt-0.5 text-[12px] text-zinc-500">
-              Creados por tu agencia con los permisos que vos elijas.
+              Creados por tu agencia con los permisos que tú elijas.
             </p>
           </div>
           {canManageRoles && (
@@ -250,8 +250,8 @@ export default function RolesManager({
               Todavía no creaste ningún rol custom
             </p>
             <p className="mt-0.5 text-[11.5px] text-zinc-500">
-              Los roles del sistema cubren la mayoría de los casos. Creá uno
-              custom solo si necesitás algo específico.
+              Los roles del sistema cubren la mayoría de los casos. Crea uno
+              custom solo si necesitas algo específico.
             </p>
           </div>
         ) : (
@@ -398,7 +398,7 @@ function RoleEditor({
       return;
     }
     if (perms.size === 0) {
-      setError("Elegí al menos un permiso");
+      setError("Elige al menos un permiso");
       return;
     }
     setSaving(true);
@@ -482,7 +482,7 @@ function RoleEditor({
               Estás editando los permisos del rol del sistema{" "}
               <strong className="text-zinc-900">{initial.name}</strong>. El
               nombre no se puede cambiar — para crear uno con nombre custom,
-              usá "Duplicar".
+              usa "Duplicar".
             </div>
           )}
           <div>

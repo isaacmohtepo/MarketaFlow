@@ -23,20 +23,24 @@ import { useModKey } from "@/lib/platform";
 
 type PostHit = {
   id: string;
+  number: number | null;
   brandId: string;
+  brandSlug: string | null;
   brandName: string;
   caption: string;
   imageUrl: string | null;
   status: string;
 };
-type BrandHit = { id: string; name: string; handle: string | null };
+type BrandHit = { id: string; slug: string | null; name: string; handle: string | null };
 
 type CommentHit = {
   id: string;
   body: string;
   authorName: string;
   postId: string;
+  postNumber: number | null;
   brandId: string;
+  brandSlug: string | null;
   brandName: string;
   postImageUrl: string | null;
   createdAt: string;
@@ -159,9 +163,15 @@ export default function CommandPalette() {
     if (!r) return;
     setOpen(false);
     if (r.kind === "nav") router.push(r.href);
-    else if (r.kind === "brand") router.push(`/brands/${r.data.id}`);
-    else if (r.kind === "post") router.push(`/brands/${r.data.brandId}/posts/${r.data.id}`);
-    else router.push(`/brands/${r.data.brandId}/posts/${r.data.postId}`);
+    else if (r.kind === "brand") router.push(`/brands/${r.data.slug ?? r.data.id}`);
+    else if (r.kind === "post")
+      router.push(
+        `/brands/${r.data.brandSlug ?? r.data.brandId}/posts/${r.data.number ?? r.data.id}`,
+      );
+    else
+      router.push(
+        `/brands/${r.data.brandSlug ?? r.data.brandId}/posts/${r.data.postNumber ?? r.data.postId}`,
+      );
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

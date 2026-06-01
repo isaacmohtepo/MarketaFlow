@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
-import { prisma } from "@/lib/db";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { hasPermission } from "@/lib/permissions";
 import TeamTabs from "./TeamTabs";
 
@@ -10,10 +10,7 @@ export default async function TeamPage() {
   if (!user) redirect("/login");
   const agencyName = await getUserAgencyName(user.id);
 
-  const m = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const m = await getActiveAgencyMembership(user.id);
 
   if (!m) {
     return (

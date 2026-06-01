@@ -54,8 +54,8 @@ export default function PastDueGraceBanner({
               urgent ? "text-rose-700" : "text-amber-800"
             }`}
           >
-            Renová pagando para seguir usándolo. No se bloquea nada todavía y
-            no perdés data — pasada la gracia solo quedan limitados los extras.
+            Renueva pagando para seguir usandolo. No se bloquea nada todavía y
+            no pierdes data — pasada la gracia solo quedan limitados los extras.
           </p>
         </div>
         <Link

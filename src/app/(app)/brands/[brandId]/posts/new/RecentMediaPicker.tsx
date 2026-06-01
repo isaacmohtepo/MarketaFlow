@@ -70,7 +70,7 @@ export default function RecentMediaPicker({
           ) : items && items.length === 0 ? (
             <p className="py-3 text-center text-[11.5px] text-zinc-500">
               Todavía no hay archivos subidos en esta marca. Cuando subas algo
-              acá o en otros posts, va a aparecer en este panel.
+              aquí o en otros posts, va a aparecer en este panel.
             </p>
           ) : (
             <ul className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">

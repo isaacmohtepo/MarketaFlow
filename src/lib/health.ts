@@ -94,7 +94,7 @@ export async function checkWompi(): Promise<CheckResult> {
         ok: false,
         latencyMs: null,
         message: "No configurado",
-        detail: "Configurá las llaves en /admin/integrations",
+        detail: "Configura las llaves en /admin/integrations",
       };
     }
     const cfg = await getActiveConfig<{ publicKey: string }>("wompi", env);
@@ -196,7 +196,7 @@ export async function checkMasterKey(): Promise<CheckResult> {
       ok: false,
       latencyMs: null,
       message: "No configurada",
-      detail: "Andá a /admin/setup para generarla",
+      detail: "Ve a /admin/setup para generarla",
     };
   } catch (err) {
     return {
@@ -234,7 +234,7 @@ export async function checkRecentWebhooks(): Promise<CheckResult> {
       ok: false,
       latencyMs: null,
       message: `${sigInvalid} con firma inválida de ${total}`,
-      detail: "Verificá events_secret en /admin/integrations",
+      detail: "Verifica events_secret en /admin/integrations",
     };
   }
   if (errors > 0) {

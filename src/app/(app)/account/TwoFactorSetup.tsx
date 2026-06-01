@@ -60,7 +60,7 @@ export default function TwoFactorSetup({
 
   async function disable() {
     if (!disablePassword) {
-      toast.error("Ingresá tu contraseña");
+      toast.error("Ingresa tu contraseña");
       return;
     }
     setBusy(true);
@@ -95,8 +95,8 @@ export default function TwoFactorSetup({
             </p>
           </div>
           <p className="mt-1 text-[11.5px] text-emerald-800">
-            Guardá estos códigos de recuperación en un lugar seguro. Cada uno
-            sirve UNA SOLA VEZ y te permite loguearte si perdés el celular.
+            Guarda estos códigos de recuperación en un lugar seguro. Cada uno
+            sirve UNA SOLA VEZ y te permite loguearte si pierdes el celular.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 rounded-md border border-zinc-200 bg-white p-4">
@@ -136,7 +136,7 @@ export default function TwoFactorSetup({
     return (
       <div className="space-y-3">
         <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-4 text-[12px] text-amber-900">
-          <p className="font-semibold">Escaneá el QR con tu app autenticadora</p>
+          <p className="font-semibold">Escanea el QR con tu app autenticadora</p>
           <p className="mt-1">
             Compatible con Google Authenticator, 1Password, Authy, Microsoft
             Authenticator, etc.
@@ -146,7 +146,7 @@ export default function TwoFactorSetup({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={setup.qrDataUrl} alt="QR" className="h-44 w-44" />
           <details className="text-[11px] text-zinc-600">
-            <summary className="cursor-pointer">¿No podés escanear? Copiá el código</summary>
+            <summary className="cursor-pointer">¿No puedes escanear? Copia el código</summary>
             <code className="mt-1 block rounded bg-zinc-100 p-2 font-mono text-[11px] break-all">
               {setup.secret}
             </code>
@@ -221,7 +221,7 @@ export default function TwoFactorSetup({
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
               <span>
                 Reduce significativamente la seguridad de tu cuenta. Solo
-                desactivá si vas a re-activar inmediatamente con un dispositivo
+                desactiva si vas a re-activar inmediatamente con un dispositivo
                 nuevo.
               </span>
             </div>

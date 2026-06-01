@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { hasAgencyPermission } from "@/lib/permissions";
 import {
   getUserTaskAgency,
+  getAgencyTaskColumns,
   isTaskPriority,
-  isTaskStatus,
+  recordTaskActivity,
 } from "@/lib/tasks";
+import { computeAutoStatus } from "@/lib/tasks-types";
 
 const updateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -24,7 +26,10 @@ const updateSchema = z.object({
 async function loadTask(taskId: string, userId: string) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { assignee: { select: { id: true } } },
+    include: {
+      assignee: { select: { id: true } },
+      brand: { select: { id: true, name: true } },
+    },
   });
   if (!task) return null;
   const agency = await getUserTaskAgency(userId);
@@ -42,7 +47,7 @@ export async function GET(
   const ctx = await loadTask(id, user.id);
   if (!ctx) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
-  const canRead = await hasPermission(user.id, ctx.agency.agencyId, "tasks.read");
+  const canRead = await hasAgencyPermission(user.id, ctx.agency.agencyId, "tasks.read");
   if (!canRead)
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
 
@@ -50,10 +55,12 @@ export async function GET(
     where: { id },
     include: {
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
       creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
       brand: { select: { id: true, name: true, color: true, logoUrl: true } },
       post: { select: { id: true, title: true, caption: true } },
       subtasks: { orderBy: { position: "asc" } },
+      tags: { select: { id: true, name: true, color: true } },
     },
   });
   return NextResponse.json({ task: full });
@@ -69,7 +76,7 @@ export async function PATCH(
   const ctx = await loadTask(id, user.id);
   if (!ctx) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
-  const canWrite = await hasPermission(
+  const canWrite = await hasAgencyPermission(
     user.id,
     ctx.agency.agencyId,
     "tasks.write",
@@ -84,6 +91,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
+  // Columnas de la agency — necesarias para validar status + reglas auto.
+  const columns = await getAgencyTaskColumns(ctx.agency.agencyId);
+
   const data: Record<string, unknown> = {};
   if (body.title !== undefined) data.title = body.title.trim().slice(0, 200);
   if (body.description !== undefined) data.description = body.description;
@@ -92,12 +102,20 @@ export async function PATCH(
       return NextResponse.json({ error: "priority inválida" }, { status: 400 });
     data.priority = body.priority;
   }
+  // Done-ness de la columna previa y la nueva — para el activity log
+  // (completed / reopened). Se setea solo si cambia el status.
+  let nextStatusIsDone = false;
+  let prevStatusIsDone = false;
   if (body.status !== undefined) {
-    if (!isTaskStatus(body.status))
+    const targetCol = columns.find((c) => c.id === body.status);
+    if (!targetCol)
       return NextResponse.json({ error: "status inválido" }, { status: 400 });
     data.status = body.status;
-    // Auto-set completedAt cuando pasa a done; clear si vuelve a otro
-    data.completedAt = body.status === "done" ? new Date() : null;
+    nextStatusIsDone = targetCol.isDone;
+    prevStatusIsDone =
+      columns.find((c) => c.id === ctx.task.status)?.isDone ?? false;
+    // Auto-set completedAt si la columna destino es "final"; clear si no.
+    data.completedAt = targetCol.isDone ? new Date() : null;
   }
   if (body.dueDate !== undefined) {
     if (body.dueDate === null) data.dueDate = null;
@@ -138,11 +156,13 @@ export async function PATCH(
   if (body.assigneeId !== undefined) {
     if (body.assigneeId === null) {
       data.assigneeId = null;
+      // M2M: limpiar lista completa
+      data.assignees = { set: [] };
       newAssigneeId = null;
     } else {
       // Self-assign no requiere tasks.assign
       if (body.assigneeId !== user.id) {
-        const canAssign = await hasPermission(
+        const canAssign = await hasAgencyPermission(
           user.id,
           ctx.agency.agencyId,
           "tasks.assign",
@@ -163,6 +183,8 @@ export async function PATCH(
           { status: 400 },
         );
       data.assigneeId = body.assigneeId;
+      // M2M: sync con un solo user (mantiene compat con single-assignee API)
+      data.assignees = { set: [{ id: body.assigneeId }] };
       newAssigneeId = body.assigneeId;
     }
   }
@@ -172,13 +194,73 @@ export async function PATCH(
     data,
     include: {
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
       creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
       brand: { select: { id: true, name: true, color: true, logoUrl: true } },
       post: { select: { id: true, title: true, caption: true } },
       subtasks: { orderBy: { position: "asc" } },
+      tags: { select: { id: true, name: true, color: true } },
     },
   });
 
+  // Activity log: track granular cambios (uno por campo modificado)
+  const prevTask = ctx.task as unknown as {
+    status: string;
+    priority: string;
+    title: string;
+    description: string | null;
+    dueDate: Date | null;
+    brandId: string | null;
+    assigneeId: string | null;
+    brand: { id: string; name: string } | null;
+  };
+  if (body.status !== undefined && body.status !== prevTask.status) {
+    recordTaskActivity(id, user.id, "status_changed", {
+      from: prevTask.status,
+      to: body.status,
+    });
+    if (nextStatusIsDone && !prevStatusIsDone) {
+      recordTaskActivity(id, user.id, "completed", {});
+    } else if (prevStatusIsDone && !nextStatusIsDone) {
+      recordTaskActivity(id, user.id, "reopened", {});
+    }
+  }
+  if (body.priority !== undefined && body.priority !== prevTask.priority) {
+    recordTaskActivity(id, user.id, "priority_changed", {
+      from: prevTask.priority,
+      to: body.priority,
+    });
+  }
+  if (body.title !== undefined && body.title.trim() !== prevTask.title) {
+    recordTaskActivity(id, user.id, "title_changed", {
+      from: prevTask.title,
+      to: body.title.trim(),
+    });
+  }
+  if (
+    body.description !== undefined &&
+    (body.description ?? null) !== prevTask.description
+  ) {
+    recordTaskActivity(id, user.id, "description_changed", {});
+  }
+  if (body.dueDate !== undefined) {
+    const prevIso = prevTask.dueDate
+      ? prevTask.dueDate.toISOString().slice(0, 10)
+      : null;
+    const nextIso = body.dueDate ? body.dueDate.slice(0, 10) : null;
+    if (prevIso !== nextIso) {
+      recordTaskActivity(id, user.id, "due_changed", {
+        from: prevIso,
+        to: nextIso,
+      });
+    }
+  }
+  if (body.brandId !== undefined && body.brandId !== prevTask.brandId) {
+    recordTaskActivity(id, user.id, "brand_changed", {
+      fromName: prevTask.brand?.name ?? null,
+      toName: updated.brand?.name ?? null,
+    });
+  }
   // Notif al nuevo asignado si cambió y no es uno mismo
   const prevAssigneeId = ctx.task.assigneeId;
   if (
@@ -191,10 +273,61 @@ export async function PATCH(
     notifyTaskAssigned({
       task: updated,
       actorName: user.name ?? user.email,
+      actorAvatarUrl: user.avatarUrl,
     }).catch((err) => console.error("notifyTaskAssigned", err));
   }
 
-  return NextResponse.json({ task: updated });
+  // === Reglas de auto-movimiento ===
+  // - "field": cambió marca/prioridad/asignado o se completó → todas las reglas.
+  // - "status": solo cambió la columna → solo reglas con fromStatus.
+  const fieldTrigger =
+    (body.brandId !== undefined && body.brandId !== prevTask.brandId) ||
+    (body.priority !== undefined && body.priority !== prevTask.priority) ||
+    newAssigneeId !== undefined ||
+    (nextStatusIsDone && !prevStatusIsDone);
+  const statusChanged =
+    body.status !== undefined && body.status !== prevTask.status;
+  const trigger: "field" | "status" | "none" = fieldTrigger
+    ? "field"
+    : statusChanged
+      ? "status"
+      : "none";
+
+  let finalTask = updated;
+  if (trigger !== "none") {
+    const auto = computeAutoStatus(columns, {
+      baseStatus: updated.status,
+      brandId: updated.brandId,
+      priority: updated.priority as never,
+      assigneeIds: updated.assignees.map((a) => a.id),
+      trigger,
+    });
+    if (auto.status !== updated.status) {
+      finalTask = await prisma.task.update({
+        where: { id },
+        data: {
+          status: auto.status,
+          completedAt: auto.isDone ? new Date() : null,
+        },
+        include: {
+          assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          brand: { select: { id: true, name: true, color: true, logoUrl: true } },
+          post: { select: { id: true, title: true, caption: true } },
+          subtasks: { orderBy: { position: "asc" } },
+          tags: { select: { id: true, name: true, color: true } },
+        },
+      });
+      recordTaskActivity(id, user.id, "status_changed", {
+        from: updated.status,
+        to: auto.status,
+        auto: true,
+      });
+    }
+  }
+
+  return NextResponse.json({ task: finalTask });
 }
 
 export async function DELETE(
@@ -207,7 +340,7 @@ export async function DELETE(
   const ctx = await loadTask(id, user.id);
   if (!ctx) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
-  const canWrite = await hasPermission(
+  const canWrite = await hasAgencyPermission(
     user.id,
     ctx.agency.agencyId,
     "tasks.write",
@@ -215,6 +348,11 @@ export async function DELETE(
   if (!canWrite)
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
 
-  await prisma.task.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  // Soft delete: marca deletedAt + quién la borró. Se mueve a la papelera.
+  // Para borrar definitivo, usar /api/tasks/[id]/permanent
+  await prisma.task.update({
+    where: { id },
+    data: { deletedAt: new Date(), deletedById: user.id },
+  });
+  return NextResponse.json({ ok: true, softDeleted: true });
 }

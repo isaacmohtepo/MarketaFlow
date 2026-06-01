@@ -4,12 +4,10 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission, ALL_PERMISSIONS } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 
 async function getMyAgency(userId: string) {
-  return prisma.membership.findFirst({
-    where: { userId, brandId: null },
-    select: { agencyId: true },
-  });
+  return getActiveAgencyMembership(userId);
 }
 
 const patchSchema = z.object({
@@ -54,7 +52,7 @@ export async function PATCH(
     }
   }
 
-  // No permitimos cambiar el slug — si querés renombrar fuerte, mejor crear
+  // No permitimos cambiar el slug — si quieres renombrar fuerte, mejor crear
   // uno nuevo y migrar miembros. El name sí se puede tocar libremente.
   const updated = await prisma.role.update({
     where: { id },
@@ -100,7 +98,7 @@ export async function DELETE(
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   }
 
-  // Bloquear delete si hay miembros usándolo (memberships o invitations)
+  // Bloquear delete si hay miembros usandolo (memberships o invitations)
   const [membersUsing, invitesUsing] = await Promise.all([
     prisma.membership.count({
       where: { agencyId: me.agencyId, role: role.slug },
@@ -117,7 +115,7 @@ export async function DELETE(
   if (membersUsing + invitesUsing > 0) {
     return NextResponse.json(
       {
-        error: `No se puede eliminar: ${membersUsing} miembros y ${invitesUsing} invitaciones usan este rol. Reasigná primero.`,
+        error: `No se puede eliminar: ${membersUsing} miembros y ${invitesUsing} invitaciones usan este rol. Reasigna primero.`,
       },
       { status: 409 },
     );

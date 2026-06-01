@@ -101,7 +101,7 @@ export async function getEffectivePlanId(agencyId: string): Promise<PlanId> {
     // Plan vencido sin renovar: damos N días de gracia (setting
     // gracePeriodDays, default 5) con el plan funcionando + aviso diario.
     // El banner in-app y el dunning email avisan que renueve. El cron baja
-    // a free al pasar la gracia; acá replicamos el cálculo como fallback
+    // a free al pasar la gracia; aquí replicamos el cálculo como fallback
     // por si el cron no corrió.
     // pastDueSinceAt es el ancla; updatedAt es fallback para subs viejas.
     const graceDays = await getSystemSetting("gracePeriodDays").catch(() => 5);
@@ -154,7 +154,7 @@ export async function canCreateBrand(
       ok: false,
       reason: `Tu plan ${PLANS[limits.planId].name} permite ${limits.maxBrands} ${
         limits.maxBrands === 1 ? "marca" : "marcas"
-      }. Pasá a ${PLANS[suggested].name} para crear más, o agregá una marca extra como add-on.`,
+      }. Pasa a ${PLANS[suggested].name} para crear más, o agrega una marca extra como add-on.`,
       currentCount: count,
       limit: limits.maxBrands,
       suggestedPlan: suggested,
@@ -183,7 +183,7 @@ export async function canCreatePost(
   if (count >= limits.maxPostsPerMonth) {
     return {
       ok: false,
-      reason: `Tu plan ${PLANS[limits.planId].name} permite ${limits.maxPostsPerMonth} posts por mes. Pasá a Pro para posts ilimitados.`,
+      reason: `Tu plan ${PLANS[limits.planId].name} permite ${limits.maxPostsPerMonth} posts por mes. Pasa a Pro para posts ilimitados.`,
       currentCount: count,
       limit: limits.maxPostsPerMonth,
       suggestedPlan: "pro",
@@ -213,7 +213,7 @@ export async function canInviteClient(
       ok: false,
       reason: `Tu plan ${PLANS[limits.planId].name} permite ${limits.maxClientsPerBrand} cliente${
         limits.maxClientsPerBrand === 1 ? "" : "s"
-      } por marca. Pasá a Pro para clientes ilimitados.`,
+      } por marca. Pasa a Pro para clientes ilimitados.`,
       currentCount: count,
       limit: limits.maxClientsPerBrand,
       suggestedPlan: "pro",
@@ -243,7 +243,7 @@ export async function canInviteTeamMember(
       ok: false,
       reason: `Tu plan ${PLANS[limits.planId].name} permite ${limits.maxTeamMembers} ${
         limits.maxTeamMembers === 1 ? "miembro" : "miembros"
-      } de equipo. Pasá a ${PLANS[suggested].name} para más.`,
+      } de equipo. Pasa a ${PLANS[suggested].name} para más.`,
       currentCount: count,
       limit: limits.maxTeamMembers,
       suggestedPlan: suggested,

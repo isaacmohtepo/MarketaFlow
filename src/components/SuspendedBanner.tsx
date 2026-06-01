@@ -28,10 +28,10 @@ export default function SuspendedBanner({
           <p className="mt-0.5 text-[11px] text-rose-700">
             {reason
               ? `Motivo: ${reason}.`
-              : "No podés crear ni editar contenido."}{" "}
+              : "No puedes crear ni editar contenido."}{" "}
             {isOwner
-              ? "Resolvé en facturación o contactá soporte."
-              : "Contactá al owner de la agencia."}
+              ? "Resuelve en facturación o contacta soporte."
+              : "Contacta al owner de la agencia."}
           </p>
         </div>
         {isOwner && (

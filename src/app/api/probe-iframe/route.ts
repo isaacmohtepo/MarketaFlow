@@ -63,7 +63,7 @@ function isBlockedIp(ip: string): boolean {
  *
  * Limitación: existe una ventana TOCTOU entre el resolve y el fetch (la
  * resolución del browser/Node podría refrescarse al hacer el fetch). Para
- * eliminarla del todo habría que fetchear por IP con header Host, lo cual
+ * eliminarla del todo habrea que fetchear por IP con header Host, lo cual
  * rompe SNI / certificados HTTPS. La ventana es de milisegundos y los
  * resolvers cachean, así que el riesgo residual es bajo.
  */

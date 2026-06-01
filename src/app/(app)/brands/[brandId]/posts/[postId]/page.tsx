@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft, ExternalLink, Globe } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostAccess, hasPermission } from "@/lib/permissions";
+import { resolveBrandRef, resolvePostId } from "@/lib/slugs";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
@@ -19,13 +20,21 @@ export default async function PostPage({
 }: {
   params: Promise<{ brandId: string; postId: string }>;
 }) {
-  const { brandId, postId } = await params;
+  const { brandId, postId: postRef } = await params;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const result = await getPostAccess(user.id, postId);
-  if (!result || result.post.brandId !== brandId) notFound();
+  // La URL es /brands/<slug-o-id>/posts/<número-o-id>. Resolvemos la marca y
+  // luego el post dentro de esa marca (acepta el número legible o el cuid).
+  const urlBrand = await resolveBrandRef(brandId);
+  if (!urlBrand) notFound();
+  const realPostId = await resolvePostId(urlBrand.id, postRef);
+  if (!realPostId) notFound();
+  const result = await getPostAccess(user.id, realPostId);
+  if (!result || result.post.brandId !== urlBrand.id) notFound();
   const { post, access } = result;
+  const postId = post.id; // ref → id real (para queries/APIs downstream)
+  const realBrandId = post.brandId;
 
   const images = await prisma.postImage.findMany({
     where: { postId },
@@ -44,13 +53,17 @@ export default async function PostPage({
 
   // Vecinos para flechas ← →
   const siblings = await prisma.post.findMany({
-    where: { brandId, deletedAt: null },
+    where: { brandId: realBrandId, deletedAt: null },
     orderBy: [{ position: "asc" }, { createdAt: "desc" }],
-    select: { id: true },
+    select: { id: true, number: true },
   });
   const idx = siblings.findIndex((s) => s.id === postId);
-  const prevId = idx > 0 ? siblings[idx - 1].id : null;
-  const nextId = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1].id : null;
+  // Para la URL usamos el número legible (o el id como fallback).
+  const refOf = (s: { id: string; number: number | null }) =>
+    String(s.number ?? s.id);
+  const prevId = idx > 0 ? refOf(siblings[idx - 1]) : null;
+  const nextId =
+    idx >= 0 && idx < siblings.length - 1 ? refOf(siblings[idx + 1]) : null;
 
   if (access.role === "client" && post.status === "draft") notFound();
 
@@ -66,16 +79,16 @@ export default async function PostPage({
     canWriteComments,
     canResolveComments,
   ] = await Promise.all([
-    hasPermission(user.id, access.agencyId, "posts.edit_caption", brandId),
-    hasPermission(user.id, access.agencyId, "posts.upload_media", brandId),
-    hasPermission(user.id, access.agencyId, "posts.create", brandId),
-    hasPermission(user.id, access.agencyId, "posts.delete", brandId),
-    hasPermission(user.id, access.agencyId, "posts.schedule", brandId),
-    hasPermission(user.id, access.agencyId, "posts.publish", brandId),
-    hasPermission(user.id, access.agencyId, "posts.approve", brandId),
-    hasPermission(user.id, access.agencyId, "posts.approve_internal", brandId),
-    hasPermission(user.id, access.agencyId, "comments.write", brandId),
-    hasPermission(user.id, access.agencyId, "comments.resolve", brandId),
+    hasPermission(user.id, access.agencyId, "posts.edit_caption", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.upload_media", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.create", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.delete", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.schedule", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.publish", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.approve", realBrandId),
+    hasPermission(user.id, access.agencyId, "posts.approve_internal", realBrandId),
+    hasPermission(user.id, access.agencyId, "comments.write", realBrandId),
+    hasPermission(user.id, access.agencyId, "comments.resolve", realBrandId),
   ]);
 
   const [comments, lastApproval, agencyName, brand] = await Promise.all([
@@ -97,7 +110,7 @@ export default async function PostPage({
       include: { user: { select: { id: true, name: true, email: true } } },
     }),
     getUserAgencyName(user.id),
-    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.brand.findUnique({ where: { id: realBrandId } }),
   ]);
 
   return (
@@ -191,7 +204,7 @@ export default async function PostPage({
             </div>
             {/* El iframe del sitio se renderiza dentro de WebDesignBoard
                 más abajo (con UI de comentarios + breakpoints). Antes
-                duplicábamos un <WebsiteEmbed /> acá y se veía el sitio
+                duplicábamos un <WebsiteEmbed /> aquí y se veía el sitio
                 2 veces — eso confundía al user. */}
           </div>
         )}

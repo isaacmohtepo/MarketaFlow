@@ -140,7 +140,7 @@ function RotateModal({
                 <strong>
                   {configsCount} {configsCount === 1 ? "integración" : "integraciones"}
                 </strong>{" "}
-                que tenés guardadas (Wompi, etc.)
+                que tienes guardadas (Wompi, etc.)
               </li>
               <li>3. Reemplazar la key vieja por la nueva</li>
               <li>
@@ -166,7 +166,7 @@ function RotateModal({
 
           <label className="block">
             <span className="text-[12px] font-semibold text-zinc-700">
-              Para confirmar, escribí{" "}
+              Para confirmar, escribe{" "}
               <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[11px]">
                 ROTATE
               </code>
@@ -257,7 +257,7 @@ function ExportModal({ onClose }: { onClose: () => void }) {
               Exportar master key
             </h3>
             <p className="mt-1 text-[12px] text-zinc-500">
-              Copiá este valor a tu password manager. Si perdés el DB y este
+              Copia este valor a tu password manager. Si pierdes el DB y este
               valor, las integraciones guardadas son irrecuperables.
             </p>
           </div>
@@ -319,7 +319,7 @@ function ExportModal({ onClose }: { onClose: () => void }) {
                 )}
               </button>
               <p className="text-center text-[11.5px] text-zinc-500">
-                Pegalo en 1Password / Bitwarden / lo que uses, después cerrá
+                Pegalo en 1Password / Bitwarden / lo que uses, después cierra
                 este modal.
               </p>
             </>

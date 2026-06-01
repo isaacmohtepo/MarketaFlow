@@ -37,15 +37,15 @@ export default function AdminTwoFAReminder({
             }`}
           >
             {expired
-              ? "Activá 2FA YA — sos admin y tu cuenta es de alto valor"
-              : `Activá 2FA en tu cuenta de admin (${daysLeft} ${daysLeft === 1 ? "día restante" : "días restantes"})`}
+              ? "Activa 2FA YA — eres admin y tu cuenta es de alto valor"
+              : `Activa 2FA en tu cuenta de admin (${daysLeft} ${daysLeft === 1 ? "día restante" : "días restantes"})`}
           </p>
           <p
             className={`mt-0.5 text-[11px] ${
               expired ? "text-rose-700" : "text-amber-800"
             }`}
           >
-            Como admin tenés acceso a datos sensibles de toda la plataforma.
+            Como admin tienes acceso a datos sensibles de toda la plataforma.
             2FA evita compromisos en caso de leak de password.
           </p>
         </div>

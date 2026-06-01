@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess, hasPermission } from "@/lib/permissions";
+import { generateBrandSlug } from "@/lib/slugs";
 import { audit } from "@/lib/audit";
 
 const schema = z.object({
@@ -53,8 +54,14 @@ export async function PATCH(
   }
 
   const updated = await prisma.brand.update({
-    where: { id },
-    data: body,
+    where: { id: access.brandId },
+    data: {
+      ...body,
+      // El slug sigue al nombre: al renombrar, regeneramos slug único.
+      ...(body.name !== undefined
+        ? { slug: await generateBrandSlug(body.name, access.brandId) }
+        : {}),
+    },
   });
   return NextResponse.json({ brand: updated });
 }
@@ -91,19 +98,19 @@ export async function DELETE(
   }
 
   const brand = await prisma.brand.findUnique({
-    where: { id },
+    where: { id: access.brandId },
     select: { name: true, agencyId: true },
   });
   if (!brand) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
-  await prisma.brand.delete({ where: { id } });
+  await prisma.brand.delete({ where: { id: access.brandId } });
 
   audit({
     category: "team",
     action: "brand.deleted",
     actorUserId: user.id,
     actorEmail: user.email,
-    targetId: id,
+    targetId: access.brandId,
     metadata: { agencyId: brand.agencyId, name: brand.name },
     req,
   });

@@ -11,7 +11,7 @@ import PendingPoller from "./PendingPoller";
 
 /**
  * Página a la que Wompi redirige después del checkout. El webhook se
- * encarga de la lógica real (idempotente y server-to-server). Acá solo
+ * encarga de la lógica real (idempotente y server-to-server). Aquí solo
  * mostramos un mensaje al user según el estado actual del invoice.
  */
 export default async function BillingReturnPage({
@@ -70,7 +70,7 @@ export default async function BillingReturnPage({
           No encontramos tu pago
         </h1>
         <p className="mt-2 text-sm text-zinc-500">
-          Si recién pagaste, esperá unos segundos y refrescá. Si el problema
+          Si recién pagaste, espera unos segundos y refresca. Si el problema
           persiste, contactanos.
         </p>
         <Link
@@ -88,7 +88,7 @@ export default async function BillingReturnPage({
   // preguntamos a Wompi directo. Esto evita que el user se quede en
   // "Procesando..." infinito si el webhook falla (firma inválida, env
   // mismatch, o no configurado en Wompi sandbox).
-  // method_validation NO se procesa acá — el webhook es el único que sabe
+  // method_validation NO se procesa aquí — el webhook es el único que sabe
   // crear el payment_source desde el card token + anular el cobro. Si la
   // return page marcara el invoice como paid, el webhook se abortaría por
   // idempotencia y el source nunca se crearía. Dejamos que el poller espere
@@ -119,7 +119,7 @@ export default async function BillingReturnPage({
               addonUpdates.whiteLabelAddon = true;
             }
             // method_validation: lo manejamos abajo (try void → fallback credit).
-            // No aplicamos crédito acá porque el webhook intentará voiding primero.
+            // No aplicamos crédito aquí porque el webhook intentará voiding primero.
             // Para method_validation no aplicamos addon updates (queda
             // para el webhook que intenta void primero). Solo marcamos
             // invoice paid si todavía está pending.
@@ -291,8 +291,8 @@ export default async function BillingReturnPage({
           <AlertCircle className="mx-auto h-12 w-12 text-rose-500" />
           <h1 className="mt-4 text-2xl font-bold text-zinc-900">El pago falló</h1>
           <p className="mt-2 text-sm text-zinc-500">
-            {invoice.failedReason ?? "No pudimos procesar el pago."} Probá de
-            nuevo o usá otro método de pago.
+            {invoice.failedReason ?? "No pudimos procesar el pago."} Prueba de
+            nuevo o usa otro método de pago.
           </p>
         </>
       ) : (

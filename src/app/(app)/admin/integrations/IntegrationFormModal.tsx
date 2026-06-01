@@ -111,7 +111,7 @@ export default function IntegrationFormModal({
     // Validar campos requeridos antes de pegarle a la API externa
     for (const f of schema.fields) {
       if (f.required && !fields[f.key]?.trim()) {
-        toast.error(`Faltan campos: completá "${f.label}"`);
+        toast.error(`Faltan campos: completa "${f.label}"`);
         return;
       }
     }
@@ -150,7 +150,7 @@ export default function IntegrationFormModal({
     }
     if (hasMismatch) {
       toast.error(
-        "Hay llaves del environment equivocado. El servidor las va a rechazar — corregilas o cambiá el ambiente.",
+        "Hay llaves del environment equivocado. El servidor las va a rechazar — corregilas o cambia el ambiente.",
       );
       return;
     }
@@ -208,10 +208,10 @@ export default function IntegrationFormModal({
         <div className="space-y-3 p-5">
           {isEdit && (
             <div className="rounded-lg bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800 ring-1 ring-amber-200">
-              ⚠ Editás la configuración existente. Por seguridad las llaves no se
-              pre-llenan — tenés que pegarlas de nuevo. Si dejás un campo en
-              blanco, se conserva el valor anterior solo si lo dejás VACÍO; si
-              ponés cualquier cosa, se sobrescribe.
+              ⚠ Editas la configuración existente. Por seguridad las llaves no se
+              pre-llenan — tienes que pegarlas de nuevo. Si dejas un campo en
+              blanco, se conserva el valor anterior solo si lo dejas VACÍO; si
+              pones cualquier cosa, se sobrescribe.
             </div>
           )}
           {schema.fields.map((f) => {
@@ -243,7 +243,7 @@ export default function IntegrationFormModal({
                     <strong>
                       {environment === "production" ? "sandbox" : "production"}
                     </strong>
-                    , pero estás guardándola en{" "}
+                    , pero estás guardandola en{" "}
                     <strong>{environment}</strong>. Wompi va a rechazarla.
                   </span>
                 ) : f.helpText ? (
@@ -371,7 +371,7 @@ const SCHEMAS: Record<string, ProviderSchema> = {
     label: "Wompi (Bancolombia)",
     category: "payment",
     helpText:
-      "Pegá las 4 llaves de tu dashboard de Wompi → Configuración → API Keys.",
+      "Pega las 4 llaves de tu dashboard de Wompi → Configuración → API Keys.",
     fields: [
       {
         key: "publicKey",
@@ -409,7 +409,7 @@ const SCHEMAS: Record<string, ProviderSchema> = {
   stripe: {
     label: "Stripe",
     category: "payment",
-    helpText: "Configurá si querés aceptar tarjetas internacionales.",
+    helpText: "Configura si quieres aceptar tarjetas internacionales.",
     fields: [
       {
         key: "publishableKey",

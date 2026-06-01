@@ -47,7 +47,7 @@ const SECRET_PATTERNS: Array<[RegExp, string]> = [
   ],
   // Hex strings largos (típicos de tokens / hashes — > 32 chars)
   // Lo dejamos fuera porque genera muchos falsos positivos (transactionIds,
-  // UUIDs, etc.). Si querés extra paranoia, descomentar:
+  // UUIDs, etc.). Si quieres extra paranoia, descomentar:
   // [/[a-f0-9]{40,}/gi, "[REDACTED]"],
 ];
 

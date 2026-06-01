@@ -119,8 +119,8 @@ export default async function AdminHealthPage() {
       </ul>
 
       <p className="text-center text-[10.5px] text-zinc-400">
-        Estos chequeos se hacen en tiempo real cada vez que cargás la página.
-        Para alertas automáticas considerá Vercel Cron + webhook a Slack.
+        Estos chequeos se hacen en tiempo real cada vez que cargas la página.
+        Para alertas automáticas considera Vercel Cron + webhook a Slack.
       </p>
     </div>
   );

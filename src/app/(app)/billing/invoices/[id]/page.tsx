@@ -23,8 +23,10 @@ export default async function InvoiceDetailPage({
   if (!user) redirect("/login");
 
   const { id } = await params;
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
+  // El segmento acepta el número legible de factura (MF-2026-000001) o el
+  // cuid (back-compat con links viejos).
+  const invoice = await prisma.invoice.findFirst({
+    where: { OR: [{ id }, { invoiceNumber: id }] },
     include: {
       subscription: { include: { agency: true } },
     },
@@ -237,7 +239,7 @@ export default async function InvoiceDetailPage({
 
           {/* Footer */}
           <footer className="mt-12 border-t border-zinc-100 pt-6 text-center text-[10.5px] text-zinc-400">
-            Gracias por tu confianza en MarketaFlow. Si tenés preguntas sobre
+            Gracias por tu confianza en MarketaFlow. Si tienes preguntas sobre
             esta factura, escribinos a soporte@marketaflow.app.
           </footer>
         </div>

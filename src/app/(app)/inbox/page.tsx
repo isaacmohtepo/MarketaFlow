@@ -102,14 +102,90 @@ export default async function InboxPage() {
         take: 5,
         include: { brand: true },
       }),
-      // Notificaciones personales (in-app)
+      // Notificaciones personales (in-app) — solo las no archivadas
       prisma.notification.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, archivedAt: null },
         orderBy: { createdAt: "desc" },
-        take: 50,
+        take: 60,
       }),
-      prisma.notification.count({ where: { userId: user.id, read: false } }),
+      prisma.notification.count({
+        where: { userId: user.id, read: false, archivedAt: null },
+      }),
     ]);
+
+  // Enriquecer cada notificación con su FUENTE (de dónde viene) para que el
+  // inbox sea claro tipo correo: título de la tarea / caption del post / marca.
+  const nTaskIds = [
+    ...new Set(notifications.map((n) => n.taskId).filter(Boolean) as string[]),
+  ];
+  const nPostIds = [
+    ...new Set(notifications.map((n) => n.postId).filter(Boolean) as string[]),
+  ];
+  const nBrandIds = [
+    ...new Set(notifications.map((n) => n.brandId).filter(Boolean) as string[]),
+  ];
+  const [nTasks, nPosts, nBrands] = await Promise.all([
+    nTaskIds.length
+      ? prisma.task.findMany({
+          where: { id: { in: nTaskIds } },
+          select: { id: true, title: true, brand: { select: { name: true } } },
+        })
+      : Promise.resolve([]),
+    nPostIds.length
+      ? prisma.post.findMany({
+          where: { id: { in: nPostIds } },
+          select: {
+            id: true,
+            number: true,
+            caption: true,
+            brandId: true,
+            brand: { select: { name: true, slug: true } },
+          },
+        })
+      : Promise.resolve([]),
+    nBrandIds.length
+      ? prisma.brand.findMany({
+          where: { id: { in: nBrandIds } },
+          select: { id: true, slug: true, name: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const taskMap = new Map(nTasks.map((t) => [t.id, t]));
+  const postMap = new Map(nPosts.map((p) => [p.id, p]));
+  const brandMap = new Map(nBrands.map((b) => [b.id, b]));
+
+  type NotifSource = {
+    kind: "task" | "post" | "brand";
+    title: string;
+    context: string | null;
+    href: string;
+  } | null;
+
+  function resolveSource(n: (typeof notifications)[number]): NotifSource {
+    if (n.taskId && taskMap.has(n.taskId)) {
+      const t = taskMap.get(n.taskId)!;
+      return {
+        kind: "task",
+        title: t.title,
+        context: t.brand?.name ?? null,
+        href: `/tasks?open=${n.taskId}`,
+      };
+    }
+    if (n.postId && postMap.has(n.postId)) {
+      const p = postMap.get(n.postId)!;
+      return {
+        kind: "post",
+        title: (p.caption?.trim() || "Post sin texto").slice(0, 70),
+        context: p.brand?.name ?? null,
+        href: `/brands/${p.brand?.slug ?? p.brandId}/posts/${p.number ?? p.id}`,
+      };
+    }
+    if (n.brandId && brandMap.has(n.brandId)) {
+      const b = brandMap.get(n.brandId)!;
+      return { kind: "brand", title: b.name, context: null, href: `/brands/${b.slug ?? n.brandId}` };
+    }
+    return null;
+  }
 
   const notifItems = notifications.map((n) => ({
     id: n.id,
@@ -117,9 +193,12 @@ export default async function InboxPage() {
     body: n.body,
     brandId: n.brandId,
     postId: n.postId,
+    taskId: n.taskId,
     actorName: n.actorName,
+    actorAvatarUrl: n.actorAvatarUrl,
     read: n.read,
     createdAt: n.createdAt.toISOString(),
+    source: resolveSource(n),
   }));
 
   const empty =
@@ -169,7 +248,7 @@ export default async function InboxPage() {
               {pendingApproval.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brandId}/posts/${p.id}`}
+                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}
@@ -194,7 +273,7 @@ export default async function InboxPage() {
                 return (
                   <Row
                     key={p.id}
-                    href={`/brands/${p.brandId}/posts/${p.id}`}
+                    href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
                     imageUrl={p.imageUrl}
                     brandName={p.brand.name}
                     caption={
@@ -222,7 +301,7 @@ export default async function InboxPage() {
               {readyToPublish.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brandId}/posts/${p.id}`}
+                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}
@@ -250,7 +329,7 @@ export default async function InboxPage() {
               {upcoming.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brandId}/posts/${p.id}`}
+                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}
@@ -273,7 +352,7 @@ export default async function InboxPage() {
               {recentlyPublished.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brandId}/posts/${p.id}`}
+                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}

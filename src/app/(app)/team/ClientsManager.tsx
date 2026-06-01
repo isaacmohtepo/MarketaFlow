@@ -116,11 +116,11 @@ export default function ClientsManager() {
 
   async function invite() {
     if (!email.trim()) {
-      toast.error("Ingresá un email");
+      toast.error("Ingresa un email");
       return;
     }
     if (selectedBrands.size === 0) {
-      toast.error("Seleccioná al menos una marca");
+      toast.error("Selecciona al menos una marca");
       return;
     }
     setInviting(true);
@@ -370,7 +370,7 @@ export default function ClientsManager() {
             Sin clientes invitados todavía
           </p>
           <p className="mt-0.5 text-[11.5px] text-zinc-500">
-            Invitá un cliente para que pueda ver, comentar y aprobar el
+            Invita un cliente para que pueda ver, comentar y aprobar el
             contenido de su marca sin tener que crearle cuenta de team.
           </p>
         </div>

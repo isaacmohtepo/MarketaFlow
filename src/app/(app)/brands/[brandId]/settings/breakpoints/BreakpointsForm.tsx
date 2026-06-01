@@ -56,7 +56,7 @@ export default function BreakpointsForm({
   async function save() {
     const err = validateBreakpoints(values);
     if (err) {
-      toast.error("Revisá los valores", { description: err });
+      toast.error("Revisa los valores", { description: err });
       return;
     }
     setBusy(true);
@@ -84,7 +84,7 @@ export default function BreakpointsForm({
     const ok = await confirmDialog({
       title: "¿Restaurar a defaults?",
       description:
-        "Volvés a los valores estándar de Elementor (767 / 1024 / 1200 / 1366 / 2400). Esta acción se puede deshacer guardando otros valores.",
+        "Vuelves a los valores estándar de Elementor (767 / 1024 / 1200 / 1366 / 2400). Esta acción se puede deshacer guardando otros valores.",
       confirmLabel: "Restaurar",
       cancelLabel: "Cancelar",
     });

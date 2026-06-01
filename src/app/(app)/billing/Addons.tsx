@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Sparkles, Building2, Users, Loader2, Plus, Minus, Check, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type SavedMethod = {
   id: string;
@@ -35,7 +36,7 @@ type AddonDef = {
  * Cada compra genera un Wompi Payment Link y al confirmar el pago el
  * webhook incrementa el contador en la Subscription.
  *
- * No soporta remover desde acá (sin reembolso prorrateado) — para bajar
+ * No soporta remover desde aquí (sin reembolso prorrateado) — para bajar
  * un add-on hay que contactar soporte.
  */
 export default function Addons({
@@ -54,6 +55,7 @@ export default function Addons({
   isPro: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useConfirm();
   const [busy, setBusy] = useState<AddonId | null>(null);
   const [defaultMethod, setDefaultMethod] = useState<SavedMethod | null>(null);
 
@@ -126,7 +128,15 @@ export default function Addons({
   }
 
   async function removeOne(addonId: AddonId) {
-    if (!confirm("¿Quitar 1 unidad? Se ajusta inmediato y no se cobra en la próxima factura.")) return;
+    const ok = await confirm({
+      title: "¿Quitar 1 unidad?",
+      description:
+        "Se ajusta inmediato y no se cobra en la próxima factura.",
+      confirmLabel: "Quitar",
+      cancelLabel: "Cancelar",
+      variant: "warning",
+    });
+    if (!ok) return;
     setBusy(addonId);
     try {
       const r = await fetch("/api/billing/addons", {
@@ -160,7 +170,7 @@ export default function Addons({
     return (
       <p className="text-[12px] text-zinc-500">
         Tu plan Agency ya incluye marcas ilimitadas, miembros ilimitados y
-        white-label. No necesitás add-ons.
+        white-label. No necesitas add-ons.
       </p>
     );
   }
@@ -261,7 +271,7 @@ export default function Addons({
                   disabled={busy === a.id || owned === 0}
                   className="grid h-7 w-7 place-items-center rounded text-zinc-600 transition hover:bg-zinc-100 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
                   aria-label="Quitar 1"
-                  title={owned === 0 ? "No tenés ninguno" : "Quitar 1 (sin reembolso)"}
+                  title={owned === 0 ? "No tienes ninguno" : "Quitar 1 (sin reembolso)"}
                 >
                   {busy === a.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -295,12 +305,12 @@ export default function Addons({
               ? `Nequi ····${defaultMethod.last4}`
               : `${defaultMethod.brand} ····${defaultMethod.last4}`}
             ) sin redirigir a Wompi. Si falla, te ofrecemos pagar via link.
-            Para remover un add-on contactá soporte.
+            Para remover un add-on contacta soporte.
           </>
         ) : (
           <>
             Los add-ons se cobran como un pago único mensual y se aplican
-            inmediatamente al confirmar el pago. Para removerlos contactá
+            inmediatamente al confirmar el pago. Para removerlos contacta
             soporte.
           </>
         )}

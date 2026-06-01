@@ -59,7 +59,7 @@ export default async function AdminPostsPage({
         <h1 className="text-xl font-bold text-zinc-900">Posts</h1>
         <p className="mt-0.5 text-[12px] text-zinc-500">
           Búsqueda cross-tenant. Útil cuando un user reporta un post que no
-          aparece o necesitás ver el contenido original.
+          aparece o necesitas ver el contenido original.
         </p>
       </div>
 

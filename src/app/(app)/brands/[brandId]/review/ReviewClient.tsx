@@ -26,6 +26,11 @@ type ReviewPost = {
 type Decision = "approved" | "changes_requested" | "skipped";
 type HistoryEntry = { postId: string; decision: Decision };
 
+/** Detecta video por extensión (las slides son URLs sin mime). */
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|m4v|ogg|ogv)(\?|#|$)/i.test(url);
+}
+
 export default function ReviewClient({
   brandId,
   brandName,
@@ -241,13 +246,24 @@ export default function ReviewClient({
         <div className="card relative overflow-hidden p-2">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-zinc-100">
             {slides[slide] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={slides[slide]}
-                alt=""
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
+              isVideoUrl(slides[slide]) ? (
+                <video
+                  key={slides[slide]}
+                  src={slides[slide]}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="h-full w-full bg-black object-contain"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={slides[slide]}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  draggable={false}
+                />
+              )
             ) : (
               <div className="flex h-full w-full items-center justify-center text-zinc-400">
                 Sin imagen

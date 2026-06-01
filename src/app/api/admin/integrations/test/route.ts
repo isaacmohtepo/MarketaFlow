@@ -100,7 +100,7 @@ async function testWompi(
     if (!res.ok) {
       return NextResponse.json({
         ok: false,
-        error: `Wompi respondió ${res.status}. Verificá las llaves.`,
+        error: `Wompi respondió ${res.status}. Verifica las llaves.`,
         status: res.status,
       });
     }

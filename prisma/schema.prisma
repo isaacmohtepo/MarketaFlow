@@ -48,8 +48,15 @@ model User {
   sessions      Session[]
   notifications Notification[]
   activities    Activity[]
-  tasksAssigned Task[]    @relation("TaskAssignee")
-  tasksCreated  Task[]    @relation("TaskCreator")
+  /// Legacy: asignee único. Deprecated en favor de `tasksAssignedMulti` que
+  /// soporta múltiples assignees por tarea. La columna se mantiene en DB
+  /// hasta un cleanup futuro — todo el código nuevo usa la M2M.
+  tasksAssigned       Task[] @relation("TaskAssignee")
+  /// NUEVO: source of truth de asignaciones (1 o más users por task).
+  tasksAssignedMulti  Task[] @relation("TaskAssignees")
+  tasksCreated        Task[] @relation("TaskCreator")
+  taskComments        TaskComment[]  @relation("TaskCommentAuthor")
+  taskActivities      TaskActivity[] @relation("TaskActivityActor")
 }
 
 model Notification {
@@ -59,7 +66,16 @@ model Notification {
   body      String
   brandId   String?
   postId    String?
+  /// Tarea relacionada (notifs task_assigned / task_mention / task_due_*).
+  /// Permite linkear la notificación a /tasks?open=<taskId>. NULL para notifs
+  /// de posts. No es FK con cascade a propósito: si la tarea se borra, la
+  /// notificación histórica queda (el link simplemente no abrirá nada).
+  taskId    String?
   actorName String?
+  /// Foto de perfil de quien gatilló la notificación (denormalizado, igual
+  /// que actorName) para mostrar el avatar real en el inbox/campana. Null →
+  /// se muestra la inicial.
+  actorAvatarUrl String?
   read      Boolean  @default(false)
   /// Si está seteado, la notificación se considera "snoozed" hasta esa
   /// fecha — UI la oculta del feed principal pero NO la elimina.
@@ -91,6 +107,10 @@ model Session {
 model Agency {
   id           String            @id @default(cuid())
   name         String
+  /// Slug legible para URLs admin (`/admin/agencies/acme`). Único global,
+  /// sigue al nombre. Nullable: rows sin slug se resuelven por id.
+  slug         String?           @unique
+  updatedAt    DateTime          @default(now()) @updatedAt
   /// Soft-suspend por admin: si está seteado, todas las brands quedan en
   /// read-only y los members no pueden mutar. Se mantiene la data para
   /// poder revertir o auditar. Distinto de borrar (delete cascade).
@@ -100,6 +120,17 @@ model Agency {
   /// resuelve via hasFeature(agencyId, "flag"). Lo que está acá sobrescribe
   /// los defaults del plan. Ej: { "beta_analytics": true, "white_label": false }.
   featureFlags     Json?
+  /// Colores customizados de las columnas del Kanban de tareas. Shape:
+  /// { todo: "slate", in_progress: "blue", review: "violet", done: "emerald" }.
+  /// Si null o falta una key, usa el default hardcodeado.
+  /// Valores válidos: slate, zinc, red, orange, amber, yellow, lime, emerald,
+  /// teal, cyan, sky, blue, indigo, violet, fuchsia, pink, rose.
+  taskStatusColors Json?
+  /// Columnas del Kanban de tareas, customizables por agency. Reemplaza al
+  /// set fijo todo/in_progress/review/done. Shape: array ordenado de
+  /// { id, label, color, isDone }. Si null, se siembra desde los 4 defaults
+  /// (y mergea taskStatusColors legacy para colores).
+  taskColumns      Json?
   /// Branding white-label. Solo se aplica si la agency tiene el add-on
   /// `whiteLabelAddon` activo (o un plan que lo incluya como Agency).
   /// Si está vacío y el add-on activo, se muestra el branding default.
@@ -133,6 +164,7 @@ model Agency {
   customRoles  Role[]
   subscription Subscription?
   tasks        Task[]
+  taskTags     TaskTag[]
 }
 
 /// Suscripción 1:1 con Agency. Define qué plan tiene activo, su estado de
@@ -612,6 +644,10 @@ model Brand {
   id          String       @id @default(cuid())
   agencyId    String
   name        String
+  /// Slug legible para la URL (`/brands/acme`). Único global. Sigue al
+  /// nombre al renombrar. Nullable para back-compat: rows sin slug se
+  /// resuelven por id (ver lib/slugs.ts resolveBrandRef).
+  slug        String?      @unique
   handle      String?
   inviteCode  String       @unique @default(cuid())
   publicToken String?      @unique
@@ -653,6 +689,9 @@ model Brand {
   hashtagSets  HashtagSet[]
   templates    PostTemplate[]
   tasks        Task[]
+
+  // Listar marcas activas de una agency (uso constante: brands, KPIs, sidebar).
+  @@index([agencyId, lockedAt])
 }
 
 model HashtagSet {
@@ -681,11 +720,15 @@ model PostView {
 model Presence {
   id        String   @id @default(cuid())
   userId    String
-  postId    String
+  /// Presencia en un post (aprobación) O en una tarea — uno de los dos.
+  postId    String?
+  taskId    String?
   updatedAt DateTime @updatedAt
 
   @@unique([userId, postId])
+  @@unique([userId, taskId])
   @@index([postId, updatedAt])
+  @@index([taskId, updatedAt])
 }
 
 model PostTemplate {
@@ -712,6 +755,10 @@ model Post {
   id          String     @id @default(cuid())
   brandId     String
   authorId    String
+  /// Número legible y secuencial POR marca para la URL
+  /// (`/brands/acme/posts/42`). Único dentro de la marca. Nullable para
+  /// back-compat: posts sin número se resuelven por id.
+  number      Int?
   title       String?
   caption     String     @default("")
   imageUrl    String?
@@ -743,6 +790,13 @@ model Post {
   versions    PostVersion[]
   activities  Activity[]
   tasks       Task[]
+
+  // Queries calientes: tablero/lista por marca (excluyendo papelera + por
+  // estado) y el cron de publicación (posts programados vencidos).
+  @@index([brandId, deletedAt, status])
+  @@index([status, scheduledAt])
+  // Número legible único por marca (para URLs /brands/<slug>/posts/<n>).
+  @@unique([brandId, number])
 }
 
 model Activity {
@@ -820,6 +874,8 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
 
   @@index([assignedToId])
+  // Cargar los comentarios de un post ordenados por fecha (uso constante).
+  @@index([postId, createdAt])
 }
 
 model WidgetPing {
@@ -883,6 +939,11 @@ model Task {
   /// y reescribimos en bulk con paso 1000.
   position    Int       @default(0)
   completedAt DateTime?
+  /// Soft delete — cuando != null la tarea está en la papelera. Las
+  /// queries de listado/kanban filtran por deletedAt:null por default.
+  /// Restaurar = set deletedAt a null. Hard delete real desde la papelera.
+  deletedAt   DateTime?
+  deletedById String?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -890,14 +951,84 @@ model Task {
   agency      Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   brand       Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
   post        Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  /// Legacy single assignee — mantener para compat con queries existentes.
+  /// El código nuevo usa `assignees` (M2M).
   assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   creator     User      @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  /// NUEVO: lista de assignees (1 o más users por tarea).
+  assignees   User[]    @relation("TaskAssignees")
   subtasks    Subtask[]
+  tags        TaskTag[] @relation("TaskTagsOnTask")
+  comments    TaskComment[]  @relation("TaskComments")
+  activities  TaskActivity[] @relation("TaskActivities")
 
   @@index([agencyId, status])
   @@index([assigneeId, status])
   @@index([brandId])
   @@index([dueDate])
+  // Tablero principal (agencyId + sin papelera) y poll SSE (updatedAt > cursor).
+  @@index([agencyId, deletedAt])
+  @@index([agencyId, updatedAt])
+}
+
+/// Comentarios en tareas — discusión async sobre cada tarea. Markdown-lite
+/// soportado en el body (igual que Description). Solo internal team puede
+/// comentar (clients NUNCA ven tareas, así que no aplica).
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  body      String   @db.Text
+  editedAt  DateTime?
+  createdAt DateTime @default(now())
+
+  task      Task     @relation("TaskComments", fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation("TaskCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+}
+
+/// Activity log de cambios en una tarea — historial auditable que se
+/// renderiza como timeline en el drawer ("X cambió status de Y a Z").
+/// Tipos: status_changed, assignee_added, assignee_removed, priority_changed,
+///        brand_changed, due_changed, title_changed, tag_added, tag_removed,
+///        comment_added, completed, reopened.
+model TaskActivity {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String?
+  type      String
+  /// JSON con el contexto del cambio. Ej:
+  /// status_changed: { from: "todo", to: "in_progress" }
+  /// assignee_added: { userId: "abc", userName: "Juan" }
+  /// priority_changed: { from: "normal", to: "urgent" }
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  task      Task     @relation("TaskActivities", fields: [taskId], references: [id], onDelete: Cascade)
+  user      User?    @relation("TaskActivityActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+}
+
+/// Etiquetas/labels de tareas — clasificadores visuales además del estado.
+/// Ej: "Bug", "Cliente VIP", "Diseño", "Bloqueado". Scope por agency
+/// (cada equipo crea las suyas). Color hex para diferenciarlas visualmente.
+model TaskTag {
+  id        String   @id @default(cuid())
+  agencyId  String
+  name      String   @db.VarChar(40)
+  /// Hex color: #RRGGBB. Default zinc-500 si no se pasa.
+  color     String   @default("#71717a")
+  createdAt DateTime @default(now())
+
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  tasks     Task[]   @relation("TaskTagsOnTask")
+
+  /// Evita duplicados case-insensitive — el endpoint debe normalizar a
+  /// lowercase antes de validar / crear.
+  @@unique([agencyId, name])
+  @@index([agencyId])
 }
 
 /// Checklist dentro de una tarea (subtareas tipo Trello). Se marcan

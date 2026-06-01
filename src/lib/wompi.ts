@@ -173,7 +173,7 @@ export async function createPaymentLink(args: {
   customerEmail?: string;
   /** Customer data pre-fills + ayuda al anti-fraude de Wompi a confiar
    *  en la transacción. Más datos identificables = menos chance de WS02.
-   *  Cualquier campo opcional — si no lo tenés, Wompi muestra el form vacío. */
+   *  Cualquier campo opcional — si no lo tienes, Wompi muestra el form vacío. */
   customerData?: {
     fullName?: string | null;
     phoneNumber?: string | null;

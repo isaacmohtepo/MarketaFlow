@@ -22,9 +22,9 @@ export default async function BrandSettingsGeneral({
   const access = await getBrandAccess(user.id, brandId);
   if (!access || !access.canEdit) notFound();
   const [brand, clients] = await Promise.all([
-    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.brand.findUnique({ where: { id: access.brandId } }),
     prisma.membership.findMany({
-      where: { brandId, role: "client" },
+      where: { brandId: access.brandId, role: "client" },
       include: { user: { select: { id: true, name: true, email: true, createdAt: true } } },
     }),
   ]);
@@ -34,7 +34,7 @@ export default async function BrandSettingsGeneral({
     user.id,
     access.agencyId,
     "brands.delete",
-    brandId,
+    access.brandId,
   );
 
   return (

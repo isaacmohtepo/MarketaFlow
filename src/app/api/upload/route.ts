@@ -7,9 +7,9 @@ import { validateMagicBytes } from "@/lib/magic-bytes";
  * Allowlist de MIME types permitidos para upload. Bloqueamos:
  * - text/html, image/svg+xml → vector de XSS si se sirven desde nuestro dominio
  * - application/x-msdownload, .exe, .bat, .sh → ejecutables
- * - cualquier cosa que no esté explícitamente acá
+ * - cualquier cosa que no esté explícitamente aquí
  *
- * Para agregar un tipo, sumalo acá Y verificá que el preview UI lo soporte.
+ * Para agregar un tipo, sumalo aquí Y verifica que el preview UI lo soporte.
  */
 const ALLOWED_MIME = new Set<string>([
   // Imágenes (no SVG por XSS)
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
   // Cap a 100MB. Para archivos > ~4MB el cliente debería usar
   // /api/upload/presign que hace PUT directo a R2, esquivando el límite
-  // del request body de Vercel. Acá igual aceptamos hasta 100MB para
+  // del request body de Vercel. Aquí igual aceptamos hasta 100MB para
   // dev local y para clientes sin presign disponible.
   if (file.size > 100 * 1024 * 1024) {
     return NextResponse.json(

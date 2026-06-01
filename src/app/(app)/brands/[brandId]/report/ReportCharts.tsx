@@ -108,7 +108,7 @@ export function ApprovalDonut({
           Sin decisiones este mes
         </p>
         <p className="mt-1 text-[11px] text-zinc-500">
-          Cuando un cliente apruebe o pida cambios, el ratio aparecerá acá.
+          Cuando un cliente apruebe o pida cambios, el ratio aparecerá aquí.
         </p>
       </div>
     );

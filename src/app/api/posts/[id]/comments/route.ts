@@ -173,6 +173,7 @@ export async function POST(
         postId: id,
         body: body.body,
         actorName: user.name ?? user.email,
+        actorAvatarUrl: user.avatarUrl,
         excludeUserId: user.id,
       }),
     )

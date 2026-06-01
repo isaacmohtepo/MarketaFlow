@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBrandAccess, hasPermission } from "@/lib/permissions";
+import { generateBrandSlug } from "@/lib/slugs";
 import { canCreateBrand } from "@/lib/billing";
 
 /**
@@ -17,14 +18,15 @@ export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id: brandRef } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const access = await getBrandAccess(user.id, id);
+  const access = await getBrandAccess(user.id, brandRef);
   if (!access) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
+  const id = access.brandId; // ref → id real
   const ok = await hasPermission(user.id, access.agencyId, "brands.create");
   if (!ok) {
     return NextResponse.json({ error: "Sin permiso: brands.create" }, { status: 403 });
@@ -54,10 +56,13 @@ export async function POST(
     );
   }
 
+  const copyName = `${source.name} (copia)`;
+  const newSlug = await generateBrandSlug(copyName);
   const newBrand = await prisma.$transaction(async (tx) => {
     const created = await tx.brand.create({
       data: {
-        name: `${source.name} (copia)`,
+        name: copyName,
+        slug: newSlug,
         handle: null, // handle único, dejamos al usuario que lo defina
         agencyId: source.agencyId,
         color: source.color,
@@ -97,5 +102,5 @@ export async function POST(
     return created;
   });
 
-  return NextResponse.json({ id: newBrand.id });
+  return NextResponse.json({ id: newBrand.id, slug: newBrand.slug });
 }

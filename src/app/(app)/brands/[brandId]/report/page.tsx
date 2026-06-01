@@ -49,7 +49,7 @@ export default async function BrandReportPage({
   if (!access) notFound();
 
   const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
+    where: { id: access.brandId },
     include: { agency: true },
   });
   if (!brand) notFound();
@@ -71,16 +71,16 @@ export default async function BrandReportPage({
     approvalsForAvg,
   ] = await Promise.all([
     prisma.post.findMany({
-      where: { brandId, deletedAt: null, publishedAt: dateRange },
+      where: { brandId: access.brandId, deletedAt: null, publishedAt: dateRange },
       orderBy: { publishedAt: "asc" },
     }),
     prisma.post.findMany({
-      where: { brandId, deletedAt: null, status: "in_review", updatedAt: dateRange },
+      where: { brandId: access.brandId, deletedAt: null, status: "in_review", updatedAt: dateRange },
       orderBy: { updatedAt: "asc" },
     }),
     prisma.post.findMany({
       where: {
-        brandId,
+        brandId: access.brandId,
         deletedAt: null,
         status: { in: ["scheduled", "approved"] },
         scheduledAt: dateRange,
@@ -89,20 +89,20 @@ export default async function BrandReportPage({
       orderBy: { scheduledAt: "asc" },
     }),
     prisma.approval.findMany({
-      where: { post: { brandId }, createdAt: dateRange },
+      where: { post: { brandId: access.brandId }, createdAt: dateRange },
       include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.comment.count({
       where: {
-        post: { brandId },
+        post: { brandId: access.brandId },
         createdAt: dateRange,
         parentId: null,
         ...(access.role === "client" ? { internal: false } : {}),
       },
     }),
     prisma.approval.findMany({
-      where: { decision: "approved", createdAt: dateRange, post: { brandId } },
+      where: { decision: "approved", createdAt: dateRange, post: { brandId: access.brandId } },
       select: { createdAt: true, post: { select: { createdAt: true } } },
     }),
   ]);

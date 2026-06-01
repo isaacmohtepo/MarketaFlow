@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { hasAgencyPermission } from "@/lib/permissions";
 import {
   getUserTaskAgency,
+  getAgencyTaskColumns,
   isTaskPriority,
-  isTaskStatus,
   sanitizeTaskTitle,
+  recordTaskActivity,
   TASK_STATUSES,
 } from "@/lib/tasks";
+import { computeAutoStatus } from "@/lib/tasks-types";
 
 /**
  * GET /api/tasks?onlyMine=1&brandId=X&assigneeId=Y&priority=high
@@ -23,11 +25,11 @@ export async function GET(req: Request) {
   const agency = await getUserTaskAgency(user.id);
   if (!agency)
     return NextResponse.json(
-      { error: "Sin acceso a tareas (no sos parte de ninguna agencia)" },
+      { error: "Sin acceso a tareas (no eres parte de ninguna agencia)" },
       { status: 403 },
     );
 
-  const ok = await hasPermission(user.id, agency.agencyId, "tasks.read");
+  const ok = await hasAgencyPermission(user.id, agency.agencyId, "tasks.read");
   if (!ok)
     return NextResponse.json({ error: "Sin permiso: tasks.read" }, { status: 403 });
 
@@ -37,8 +39,11 @@ export async function GET(req: Request) {
   const assigneeIdParam = url.searchParams.get("assigneeId");
   const priorityParam = url.searchParams.get("priority");
 
-  // Build where dinámico
-  const where: Record<string, unknown> = { agencyId: agency.agencyId };
+  // Build where dinámico — default excluye papelera (deletedAt:null)
+  const where: Record<string, unknown> = {
+    agencyId: agency.agencyId,
+    deletedAt: null,
+  };
   if (onlyMine) where.assigneeId = user.id;
   else if (assigneeIdParam === "none") where.assigneeId = null;
   else if (assigneeIdParam) where.assigneeId = assigneeIdParam;
@@ -52,10 +57,12 @@ export async function GET(req: Request) {
     orderBy: [{ position: "asc" }, { createdAt: "desc" }],
     include: {
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
       creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
       brand: { select: { id: true, name: true, color: true, logoUrl: true } },
       post: { select: { id: true, title: true, caption: true } },
       subtasks: { orderBy: { position: "asc" } },
+      tags: { select: { id: true, name: true, color: true } },
     },
   });
 
@@ -93,6 +100,8 @@ export async function GET(req: Request) {
       }),
   ]);
 
+  const columns = await getAgencyTaskColumns(agency.agencyId);
+
   return NextResponse.json({
     tasks,
     brands,
@@ -100,6 +109,7 @@ export async function GET(req: Request) {
     agencyId: agency.agencyId,
     currentUserId: user.id,
     statuses: TASK_STATUSES,
+    columns,
   });
 }
 
@@ -131,7 +141,7 @@ export async function POST(req: Request) {
   if (!agency)
     return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
 
-  const canWrite = await hasPermission(user.id, agency.agencyId, "tasks.write");
+  const canWrite = await hasAgencyPermission(user.id, agency.agencyId, "tasks.write");
   if (!canWrite)
     return NextResponse.json({ error: "Sin permiso: tasks.write" }, { status: 403 });
 
@@ -152,13 +162,19 @@ export async function POST(req: Request) {
     );
   }
 
-  const status = body.status && isTaskStatus(body.status) ? body.status : "todo";
+  // Validar status contra las columnas reales de la agency (dinámicas).
+  const columns = await getAgencyTaskColumns(agency.agencyId);
+  const colIds = new Set(columns.map((c) => c.id));
+  const baseStatus =
+    body.status && colIds.has(body.status)
+      ? body.status
+      : columns[0]?.id ?? "todo";
   const priority =
     body.priority && isTaskPriority(body.priority) ? body.priority : "normal";
 
   // Si quiere asignar a alguien distinto a uno mismo, requiere tasks.assign
   if (body.assigneeId && body.assigneeId !== user.id) {
-    const canAssign = await hasPermission(
+    const canAssign = await hasAgencyPermission(
       user.id,
       agency.agencyId,
       "tasks.assign",
@@ -220,6 +236,18 @@ export async function POST(req: Request) {
     dueDate = d;
   }
 
+  // Aplicar reglas de auto-movimiento (creación siempre dispara). Ej: si
+  // creas una tarea ya completada de un cliente con regla, va a su columna.
+  const auto = computeAutoStatus(columns, {
+    baseStatus,
+    brandId: resolvedBrandId,
+    priority,
+    assigneeIds: body.assigneeId ? [body.assigneeId] : [],
+    trigger: "field",
+  });
+  const status = auto.status;
+  const statusIsDone = auto.isDone;
+
   // position = max(actual) + 1000 (paso grande para insertar entre dos sin
   // reescribir todo). Por columna (status).
   const last = await prisma.task.findFirst({
@@ -238,7 +266,13 @@ export async function POST(req: Request) {
       description: body.description ?? null,
       status,
       priority,
+      completedAt: statusIsDone ? new Date() : null,
+      // Legacy single assignee — mantenemos sync con el primer M2M
       assigneeId: body.assigneeId ?? null,
+      // M2M: si hay assigneeId también lo agregamos a la lista
+      assignees: body.assigneeId
+        ? { connect: { id: body.assigneeId } }
+        : undefined,
       creatorId: user.id,
       dueDate,
       position,
@@ -253,12 +287,17 @@ export async function POST(req: Request) {
     },
     include: {
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
       creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
       brand: { select: { id: true, name: true, color: true, logoUrl: true } },
       post: { select: { id: true, title: true, caption: true } },
       subtasks: { orderBy: { position: "asc" } },
+      tags: { select: { id: true, name: true, color: true } },
     },
   });
+
+  // Activity log: tarea creada
+  recordTaskActivity(task.id, user.id, "created", { title: task.title });
 
   // Notif al asignado (si distinto del creator)
   if (task.assigneeId && task.assigneeId !== user.id) {
@@ -266,6 +305,7 @@ export async function POST(req: Request) {
     notifyTaskAssigned({
       task,
       actorName: user.name ?? user.email,
+      actorAvatarUrl: user.avatarUrl,
     }).catch((err) => console.error("notifyTaskAssigned", err));
   }
 

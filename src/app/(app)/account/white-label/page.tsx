@@ -52,7 +52,7 @@ export default async function WhiteLabelPage() {
         </h1>
       </div>
       <p className="mt-1 text-[13px] text-zinc-500">
-        Reemplazá &quot;MarketaFlow&quot; con tu propio branding en los lugares
+        Reemplaza &quot;MarketaFlow&quot; con tu propio branding en los lugares
         que ven tus clientes: páginas públicas de revisión, emails y footers.
       </p>
 
@@ -62,7 +62,7 @@ export default async function WhiteLabelPage() {
             White-label no está activo en tu plan
           </p>
           <p className="mt-1 text-[12px] text-zinc-500">
-            Para usar tu propio branding tenés que estar en el plan Agency
+            Para usar tu propio branding tienes que estar en el plan Agency
             (que lo incluye) o comprar el add-on White-label encima de Pro
             ($59.000 COP/mes).
           </p>
@@ -100,12 +100,12 @@ export default async function WhiteLabelPage() {
             y los colores del gradient se aplican a botones, badges,
             indicadores activos y CTAs.
           </li>
-          <li>Página pública de revisión (cuando compartís un feed via link)</li>
+          <li>Página pública de revisión (cuando compartes un feed via link)</li>
           <li>Emails (invitación, pago confirmado, pago fallido)</li>
           <li>Footer de las páginas que ven tus clientes externos</li>
         </ul>
         <p className="mt-2 text-zinc-500">
-          Refrescá después de guardar para ver el cambio aplicado en el
+          Refresca después de guardar para ver el cambio aplicado en el
           sidebar y en toda la app.
         </p>
       </div>

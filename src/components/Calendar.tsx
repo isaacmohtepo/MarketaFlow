@@ -8,6 +8,7 @@ import { STATUS_COLOR } from "@/lib/utils";
 
 type CalPost = {
   id: string;
+  number: number | null;
   imageUrl: string | null;
   status: string;
   scheduledAt: Date | null;
@@ -281,7 +282,7 @@ export default function Calendar({
                     } ${savingId === p.id ? "animate-pulse" : ""}`}
                   >
                     <Link
-                      href={`/brands/${brandId}/posts/${p.id}`}
+                      href={`/brands/${brandId}/posts/${p.number ?? p.id}`}
                       className="group/post flex items-center gap-1.5 rounded-md bg-zinc-50 p-1 ring-1 ring-transparent transition hover:ring-fuchsia-400 hover:bg-white"
                       draggable={false}
                       onClick={(e) => {

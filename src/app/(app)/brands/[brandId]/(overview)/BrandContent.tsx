@@ -203,6 +203,7 @@ export default async function BrandContent({
                 !!lastComment && (!viewedAt || lastComment > viewedAt);
               return {
                 id: p.id,
+                number: p.number,
                 imageUrl: p.imageUrl,
                 status: p.status,
                 imageCount: p._count.images || (p.imageUrl ? 1 : 0),
@@ -224,6 +225,7 @@ export default async function BrandContent({
             brandId={brandId}
             posts={visiblePosts.map((p) => ({
               id: p.id,
+              number: p.number,
               imageUrl: p.imageUrl,
               status: p.status,
               scheduledAt: p.scheduledAt,
@@ -268,6 +270,7 @@ export default async function BrandContent({
               const viewedAt = lastViewed.get(p.id);
               return {
                 id: p.id,
+                number: p.number,
                 imageUrl: p.imageUrl,
                 status: p.status,
                 caption: p.caption,

@@ -214,7 +214,7 @@ export default function AgencyActions({
   async function deleteAgency() {
     const confirmText = await prompt({
       title: "Borrar agencia permanentemente",
-      description: `Vas a borrar "${agencyName}" y TODO su contenido: brands, posts, members, invoices, etc. Para confirmar, escribí el nombre exacto.`,
+      description: `Vas a borrar "${agencyName}" y TODO su contenido: brands, posts, members, invoices, etc. Para confirmar, escribe el nombre exacto.`,
       placeholder: agencyName,
       required: true,
       confirmLabel: "Borrar",

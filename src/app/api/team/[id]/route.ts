@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { hasPermission, isSystemRole, getSystemRole } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 
@@ -21,10 +22,7 @@ export async function DELETE(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const me = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true },
-  });
+  const me = await getActiveAgencyMembership(user.id);
   if (!me) return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
 
   if (!(await hasPermission(user.id, me.agencyId, "team.remove"))) {
@@ -118,10 +116,7 @@ export async function PATCH(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const me = await prisma.membership.findFirst({
-    where: { userId: user.id, brandId: null },
-    select: { agencyId: true, role: true },
-  });
+  const me = await getActiveAgencyMembership(user.id);
   if (!me) return NextResponse.json({ error: "Sin agencia" }, { status: 403 });
 
   if (!(await hasPermission(user.id, me.agencyId, "team.assign_roles"))) {

@@ -2,18 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { notifyBrandAgency } from "@/lib/notifications";
 import { rateLimit } from "@/lib/rate-limit";
+import { widgetCors } from "@/lib/cors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-export function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS });
+export function OPTIONS(req: Request) {
+  return new Response(null, {
+    status: 204,
+    headers: widgetCors(req.headers.get("origin")),
+  });
 }
 
 function safeOrigin(url: string): string {
@@ -36,6 +34,7 @@ function normalizeUrl(raw: string): string {
 }
 
 export async function POST(req: Request) {
+  const CORS = widgetCors(req.headers.get("origin"));
   // Heartbeat es chatty (cada carga de página del widget). Limitamos a 60/min
   // por IP — suficiente para uso legítimo, frena flood obvio.
   const rl = rateLimit(req, {

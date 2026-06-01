@@ -8,7 +8,7 @@ type Mode = "sandbox" | "production";
 /**
  * Selector explícito de modo de cobros. Persistido server-side en
  * SystemConfig.PAYMENT_MODE — el endpoint /api/checkout lo lee al iniciar
- * cada pago. Lo que elija el admin acá manda, sin importar cuál pasarela
+ * cada pago. Lo que elija el admin aquí manda, sin importar cuál pasarela
  * tenga el toggle "ACTIVO".
  */
 export default function PaymentModeSelector({
@@ -47,7 +47,7 @@ export default function PaymentModeSelector({
             Modo de cobros
           </h3>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Elegí si querés cobrar de verdad (production) o testear con
+            Elige si quieres cobrar de verdad (production) o testear con
             tarjetas de prueba (sandbox).
           </p>
         </div>

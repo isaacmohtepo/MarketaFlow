@@ -41,7 +41,7 @@ export async function expireStalePendingInvoices(
     data: {
       status: "canceled",
       failedAt: new Date(),
-      failedReason: "Pago no completado dentro del plazo (60 min). Iniciá un nuevo checkout si querés intentar de nuevo.",
+      failedReason: "Pago no completado dentro del plazo (60 min). Inicia un nuevo checkout si quieres intentar de nuevo.",
     },
   });
   return result.count;

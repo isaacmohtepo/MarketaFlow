@@ -8,7 +8,11 @@ type Mentionable = { userId: string; name: string; handle: string; role: string 
 type Props = {
   value: string;
   onChange: (value: string) => void;
-  brandId: string;
+  /** Para posts: el endpoint de mentionables se arma con brandId. */
+  brandId?: string;
+  /** Override del endpoint de mentionables (ej. tareas, agency-scoped).
+   *  Si se pasa, se usa esta URL base en vez de /api/brands/{brandId}. */
+  mentionablesUrl?: string;
   placeholder?: string;
   multiline?: boolean;
   rows?: number;
@@ -31,6 +35,7 @@ export default function MentionInput({
   value,
   onChange,
   brandId,
+  mentionablesUrl,
   placeholder,
   multiline = false,
   rows = 2,
@@ -87,12 +92,12 @@ export default function MentionInput({
   useEffect(() => {
     if (!open || query === null) return;
     let cancelled = false;
+    const base = mentionablesUrl ?? `/api/brands/${brandId}/mentionables`;
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(
-          `/api/brands/${brandId}/mentionables?q=${encodeURIComponent(query)}`,
-          { cache: "no-store" },
-        );
+        const r = await fetch(`${base}?q=${encodeURIComponent(query)}`, {
+          cache: "no-store",
+        });
         if (!r.ok) return;
         const j = await r.json();
         if (!cancelled) setItems(j.users ?? []);
@@ -102,7 +107,7 @@ export default function MentionInput({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [open, query, brandId]);
+  }, [open, query, brandId, mentionablesUrl]);
 
   function insertMention(item: Mentionable) {
     const el = (multiline ? textareaRef.current : inputRef.current) as

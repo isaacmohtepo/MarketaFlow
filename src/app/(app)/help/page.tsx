@@ -77,7 +77,7 @@ export default function HelpCenterPage() {
       <section className="card border-fuchsia-200 bg-gradient-to-br from-fuchsia-50/40 via-white to-amber-50/30 p-6 text-center">
         <Mail className="h-8 w-8 mx-auto text-fuchsia-600" />
         <h2 className="mt-3 text-base font-bold text-zinc-900">
-          ¿Necesitás más ayuda?
+          ¿Necesitas más ayuda?
         </h2>
         <p className="mt-1 text-[12.5px] text-zinc-600">
           Escribinos y te respondemos en menos de 24h hábiles.
@@ -109,21 +109,21 @@ const SECTIONS: {
     content: (
       <>
         <p>
-          Cada cliente que manejás en MarketaFlow se representa como una{" "}
+          Cada cliente que manejas en MarketaFlow se representa como una{" "}
           <strong>marca</strong>. Cada marca tiene su propio feed de posts,
           equipo y aprobaciones independientes.
         </p>
         <ol>
           <li>
-            Andá a <Link href="/brands" className="text-fuchsia-600 hover:underline">Marcas</Link> y clic en "Nueva marca"
+            Ve a <Link href="/brands" className="text-fuchsia-600 hover:underline">Marcas</Link> y clic en "Nueva marca"
           </li>
-          <li>Completá el nombre, color y logo (opcional)</li>
+          <li>Completa el nombre, color y logo (opcional)</li>
           <li>
-            En la página de la marca podés invitar clientes con un link público
+            En la página de la marca puedes invitar clientes con un link público
             (sin registro) o por email
           </li>
           <li>
-            Cada post lo creás dentro de una marca específica — el cliente
+            Cada post lo creas dentro de una marca específica — el cliente
             solo ve la suya
           </li>
         </ol>
@@ -140,24 +140,24 @@ const SECTIONS: {
         <p>El flujo estándar de un post es:</p>
         <ol>
           <li>
-            <strong>Draft</strong>: lo creás internamente. Solo visible para tu
-            equipo. Podés iterar libremente.
+            <strong>Draft</strong>: lo creas internamente. Solo visible para tu
+            equipo. Puedes iterar libremente.
           </li>
           <li>
-            <strong>En revisión</strong>: lo enviás al cliente. Se notifica por
+            <strong>En revisión</strong>: lo envías al cliente. Se notifica por
             email + en-app. El cliente puede comentar sobre la imagen y aprobar
             o pedir cambios.
           </li>
           <li>
             <strong>Cambios solicitados</strong>: si el cliente comentó, vuelve
-            acá. Podés iterar sin re-crear el post.
+            aquí. Puedes iterar sin re-crear el post.
           </li>
           <li>
             <strong>Aprobado</strong>: el cliente lo aprobó. Listo para
             programar.
           </li>
           <li>
-            <strong>Programado</strong>: definís fecha/hora. El cron de
+            <strong>Programado</strong>: defines fecha/hora. El cron de
             publicación lo manda al canal real cuando llega el momento.
           </li>
           <li>
@@ -190,7 +190,7 @@ const SECTIONS: {
           </li>
         </ul>
         <p>
-          Andá a{" "}
+          Ve a{" "}
           <Link href="/team" className="text-fuchsia-600 hover:underline">
             Equipo
           </Link>{" "}
@@ -207,7 +207,7 @@ const SECTIONS: {
     content: (
       <>
         <p>
-          MarketaFlow tiene 3 planes con límites distintos. Empezás siempre
+          MarketaFlow tiene 3 planes con límites distintos. Empiezas siempre
           con un trial de 14 días en Pro automático.
         </p>
         <ul>
@@ -224,18 +224,18 @@ const SECTIONS: {
           </li>
         </ul>
         <p>
-          Para upgradear, andá a{" "}
+          Para upgradear, ve a{" "}
           <Link
             href="/billing"
             className="text-fuchsia-600 hover:underline"
           >
             Facturación
           </Link>{" "}
-          y elegí el plan. Soportamos pagos con tarjeta (Visa/Master/Amex), PSE,
+          y elige el plan. Soportamos pagos con tarjeta (Visa/Master/Amex), PSE,
           Nequi y Daviplata via Wompi.
         </p>
         <p>
-          Las facturas las podés descargar en PDF y exportar a CSV desde la
+          Las facturas las puedes descargar en PDF y exportar a CSV desde la
           misma página. Cobramos automáticamente cada mes/año al método
           guardado.
         </p>
@@ -256,18 +256,18 @@ const SECTIONS: {
         </p>
         <ol>
           <li>
-            En la página de la marca, abrí "Settings" y copiá el script del
+            En la página de la marca, abre "Settings" y copia el script del
             widget
           </li>
           <li>
             Pegalo antes de <code>{"</body>"}</code> en el sitio del cliente
           </li>
           <li>
-            Esperá unos segundos a que el script pinguee y la URL aparezca
+            Espera unos segundos a que el script pinguee y la URL aparezca
             en MarketaFlow
           </li>
           <li>
-            Creá un post tipo "web design" con la URL del sitio. Tu cliente
+            Crea un post tipo "web design" con la URL del sitio. Tu cliente
             puede comentar directo sobre cualquier elemento de la página
           </li>
         </ol>
@@ -294,8 +294,8 @@ const SECTIONS: {
             <kbd className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10.5px] font-mono">
               Ctrl+K
             </kbd>{" "}
-            (Windows): paleta de comandos. Buscás cualquier marca, post o
-            navegás rápido.
+            (Windows): paleta de comandos. Buscas cualquier marca, post o
+            navegas rápido.
           </li>
           <li>
             <kbd className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10.5px] font-mono">

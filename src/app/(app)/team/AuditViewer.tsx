@@ -104,7 +104,7 @@ export default function AuditViewer() {
             Todavía no hay actividad
           </p>
           <p className="mt-0.5 text-[11.5px] text-zinc-500">
-            Cuando alguien invite, edite roles o cambie permisos, aparecerá acá.
+            Cuando alguien invite, edite roles o cambie permisos, aparecerá aquí.
           </p>
         </div>
       ) : (
