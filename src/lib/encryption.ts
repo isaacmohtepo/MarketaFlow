@@ -252,3 +252,18 @@ export async function rotateMasterKey(args: {
 
   return { configsReEncrypted: reEncrypted.length };
 }
+
+/**
+ * Descifra un valor que PUEDE ser legacy en claro (rollout gradual de
+ * cifrado sin migración): si `decrypt` falla porque el valor no es un
+ * ciphertext nuestro, devuelve el valor tal cual. Usar SOLO para campos en
+ * transición (ej. User.totpSecret — los rows viejos están en claro y los
+ * nuevos cifrados).
+ */
+export async function decryptMaybe(stored: string): Promise<string> {
+  try {
+    return await decrypt(stored);
+  } catch {
+    return stored;
+  }
+}

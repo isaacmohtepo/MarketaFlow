@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
 import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, verifyPassword } from "@/lib/auth";
@@ -16,6 +17,15 @@ const schema = z.object({ password: z.string().min(1) });
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  // Anti brute-force del password con una sesión robada.
+  const rl = await rateLimitAsync(req, {
+    key: "2fa-disable",
+    limit: 5,
+    windowMs: 60 * 60_000,
+    extra: user.id,
+  });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   let body;
   try {

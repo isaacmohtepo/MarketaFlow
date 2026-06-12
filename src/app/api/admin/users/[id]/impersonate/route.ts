@@ -60,6 +60,14 @@ export async function POST(
       { status: 400 },
     );
   }
+  // No impersonar a OTRO admin: limita el blast radius si una cuenta admin
+  // se ve comprometida (no puede saltar a las demás cuentas admin).
+  if (await isAdmin(target.id)) {
+    return NextResponse.json(
+      { error: "No se puede impersonar a otro admin" },
+      { status: 403 },
+    );
+  }
 
   // Guardamos el token original del admin en un cookie httpOnly para poder
   // restaurar su sesión cuando termine el impersonate.

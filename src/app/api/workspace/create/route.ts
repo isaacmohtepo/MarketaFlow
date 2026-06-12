@@ -53,6 +53,23 @@ export async function POST(req: Request) {
     );
   }
 
+  // Anti-abuso: cada agencia nueva arranca un TRIAL — sin límite temporal se
+  // podían farmear trials creando muchas agencias de golpe. Máx 2 por día.
+  const recentOwned = await prisma.membership.count({
+    where: {
+      userId: user.id,
+      role: "owner",
+      brandId: null,
+      agency: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+    },
+  });
+  if (recentOwned >= 2) {
+    return NextResponse.json(
+      { error: "Máximo 2 agencias nuevas por día. Intenta mañana." },
+      { status: 429 },
+    );
+  }
+
   // Crear agencia + membership owner atómico.
   const agencySlug = await generateAgencySlug(body.name);
   const membership = await prisma.membership.create({

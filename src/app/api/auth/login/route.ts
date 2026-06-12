@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
+import { decryptMaybe } from "@/lib/encryption";
 import { verifyToken, verifyRecoveryCode } from "@/lib/totp";
 import { getSystemSetting } from "@/lib/system-settings";
 
@@ -125,7 +126,7 @@ export async function POST(req: Request) {
     const isDigits = /^\d{6}$/.test(body.totpToken);
     let twoFaOk = false;
     if (isDigits) {
-      twoFaOk = verifyToken(user.totpSecret, body.totpToken);
+      twoFaOk = verifyToken(await decryptMaybe(user.totpSecret), body.totpToken);
     }
     if (!twoFaOk) {
       // Fallback: recovery code. Si matchea, lo consumimos atómicamente

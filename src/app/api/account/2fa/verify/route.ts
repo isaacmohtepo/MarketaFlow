@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { verifyToken, generateRecoveryCodes } from "@/lib/totp";
+import { decryptMaybe } from "@/lib/encryption";
+import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 
 /**
@@ -18,6 +20,14 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rl = await rateLimitAsync(req, {
+    key: "2fa-verify",
+    limit: 8,
+    windowMs: 15 * 60_000,
+    extra: user.id,
+  });
+  if (!rl.ok) return rateLimitResponse(rl);
+
   let body;
   try {
     body = schema.parse(await req.json());
@@ -32,7 +42,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const ok = verifyToken(user.totpSecret, body.token);
+  const ok = verifyToken(await decryptMaybe(user.totpSecret), body.token);
   if (!ok) {
     return NextResponse.json(
       { error: "Código inválido. Asegurate que el reloj de tu teléfono esté sincronizado." },

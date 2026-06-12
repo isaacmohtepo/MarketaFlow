@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { generateSecret, buildOtpauthUrl, buildQrDataUrl } from "@/lib/totp";
+import { encrypt } from "@/lib/encryption";
+import { rateLimitAsync, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * POST /api/account/2fa
@@ -13,9 +15,17 @@ import { generateSecret, buildOtpauthUrl, buildQrDataUrl } from "@/lib/totp";
  *
  * Si el user ya tenía 2FA activo, devuelve 400.
  */
-export async function POST() {
+export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rl = await rateLimitAsync(req, {
+    key: "2fa-setup",
+    limit: 5,
+    windowMs: 60 * 60_000,
+    extra: user.id,
+  });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   if (user.totpEnabledAt) {
     return NextResponse.json(
@@ -30,7 +40,8 @@ export async function POST() {
   // huérfano pero el login no lo exige hasta que totpEnabledAt esté seteado.
   await prisma.user.update({
     where: { id: user.id },
-    data: { totpSecret: secret, totpEnabledAt: null },
+    // Cifrado at-rest: un dump de la DB no expone los secretos TOTP.
+    data: { totpSecret: await encrypt(secret), totpEnabledAt: null },
   });
 
   const otpauthUrl = buildOtpauthUrl({ email: user.email, secret });
