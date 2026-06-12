@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, Printer, Building2, CreditCard } from "lucide-react";
+import { ChevronLeft, Building2, CreditCard } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatCop, PLANS, type PlanId } from "@/lib/plans";
+import { StatusPill } from "@/components/ui";
+import type { Tone } from "@/lib/tones";
 import InvoicePrintButton from "./InvoicePrintButton";
 
 /**
@@ -110,7 +112,7 @@ export default async function InvoiceDetailPage({
                 {invoice.invoiceNumber ?? "Pendiente de emisión"}
               </p>
               <div className="mt-2 inline-flex">
-                <StatusPill status={invoice.status} />
+                <InvoiceStatusPill status={invoice.status} />
               </div>
             </div>
           </div>
@@ -263,34 +265,17 @@ function Row({
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    paid: {
-      label: "Pagada",
-      cls: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    },
-    pending: {
-      label: "Pendiente",
-      cls: "bg-amber-50 text-amber-700 ring-amber-200",
-    },
-    failed: {
-      label: "Fallida",
-      cls: "bg-rose-50 text-rose-700 ring-rose-200",
-    },
-    refunded: {
-      label: "Reembolsada",
-      cls: "bg-zinc-100 text-zinc-600 ring-zinc-200",
-    },
+function InvoiceStatusPill({ status }: { status: string }) {
+  const map: Record<string, { label: string; tone: Tone }> = {
+    paid: { label: "Pagada", tone: "good" },
+    pending: { label: "Pendiente", tone: "warn" },
+    failed: { label: "Fallida", tone: "bad" },
+    refunded: { label: "Reembolsada", tone: "neutral" },
   };
-  const meta = map[status] ?? {
-    label: status,
-    cls: "bg-zinc-100 text-zinc-600 ring-zinc-200",
-  };
+  const meta = map[status] ?? { label: status, tone: "neutral" as Tone };
   return (
-    <span
-      className={`rounded-full px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
-    >
+    <StatusPill tone={meta.tone} size="sm" className="px-2.5">
       {meta.label}
-    </span>
+    </StatusPill>
   );
 }

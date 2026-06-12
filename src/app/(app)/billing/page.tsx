@@ -12,6 +12,7 @@ import { getEffectiveLimits } from "@/lib/billing";
 import { syncBrandLocks } from "@/lib/brand-lock";
 import { expireStalePendingInvoices } from "@/lib/invoice-cleanup";
 import { formatCop } from "@/lib/plans";
+import { Button, EmptyState } from "@/components/ui";
 import BrandLockToggle from "./BrandLockToggle";
 
 /**
@@ -262,14 +263,12 @@ export default async function BillingPage() {
         </div>
 
         {recentInvoices.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <p className="text-[13px] font-medium text-zinc-700">
-              Aún no hay facturas
-            </p>
-            <p className="mt-1 text-[11.5px] text-zinc-500">
-              Cuando hagas un pago vas a verlo aquí.
-            </p>
-          </div>
+          <EmptyState
+            variant="bare"
+            title="Aún no hay facturas"
+            subtitle="Cuando hagas un pago vas a verlo aquí."
+            className="px-6 py-12"
+          />
         ) : (
           <ul className="divide-y divide-zinc-100">
             {recentInvoices.map((inv) => (
@@ -309,21 +308,17 @@ function NoOwner() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold text-zinc-900">Facturación</h1>
-      <div className="card mt-6 p-8 text-center">
-        <CreditCard className="mx-auto h-10 w-10 text-zinc-300" />
-        <p className="mt-4 text-[14px] font-semibold text-zinc-900">
-          No eres owner de ninguna agencia
-        </p>
-        <p className="mt-1 text-[12px] text-zinc-500">
-          Solo el owner puede ver y gestionar la facturación.
-        </p>
-        <Link
-          href="/dashboard"
-          className="btn-secondary mt-6 inline-block rounded-md px-4 py-2 text-[12px] font-semibold"
-        >
-          Volver al dashboard
-        </Link>
-      </div>
+      <EmptyState
+        icon={CreditCard}
+        title="No eres owner de ninguna agencia"
+        subtitle="Solo el owner puede ver y gestionar la facturación."
+        action={
+          <Button href="/dashboard" variant="secondary">
+            Volver al dashboard
+          </Button>
+        }
+        className="mt-6 p-8"
+      />
     </div>
   );
 }

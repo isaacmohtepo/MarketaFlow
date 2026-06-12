@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckSquare, Plus, ArrowRight, Loader2 } from "lucide-react";
+import { CheckSquare, Plus, Loader2 } from "lucide-react";
+import { Panel, PanelEmpty } from "@/components/ui";
 
 type TaskUser = { id: string; name: string | null; email: string; avatarUrl: string | null };
 type Task = {
@@ -106,29 +107,15 @@ export default function BrandTasksCard({ brandId }: { brandId: string }) {
   if (!loading && !canWrite && tasks.length === 0) return null;
 
   return (
-    <section className="mt-4 card overflow-hidden p-0">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="grid h-6 w-6 place-items-center rounded-md bg-fuchsia-50 text-fuchsia-600">
-            <CheckSquare className="h-3.5 w-3.5" />
-          </span>
-          <h2 className="text-[13px] font-semibold tracking-tight text-zinc-900">
-            Tareas de la marca
-          </h2>
-          {open.length > 0 && (
-            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold tabular-nums text-zinc-600">
-              {open.length}
-            </span>
-          )}
-        </div>
-        <Link
-          href="/tasks"
-          className="flex items-center gap-0.5 text-2xs font-medium text-zinc-400 transition hover:text-zinc-700"
-        >
-          Ver tablero <ArrowRight className="h-3 w-3" />
-        </Link>
-      </div>
-
+    <Panel
+      title="Tareas de la marca"
+      icon={CheckSquare}
+      count={open.length}
+      href="/tasks"
+      hrefLabel="Ver tablero"
+      tint="text-fuchsia-600 bg-fuchsia-50"
+      className="mt-4"
+    >
       {/* Quick create */}
       {canWrite && (
         <div className="flex items-center gap-2 border-b border-zinc-100 px-3 py-2">
@@ -150,9 +137,7 @@ export default function BrandTasksCard({ brandId }: { brandId: string }) {
       {loading ? (
         <p className="px-4 py-5 text-center text-[12px] text-zinc-400">Cargando…</p>
       ) : open.length === 0 ? (
-        <p className="px-4 py-5 text-center text-[12px] text-zinc-400">
-          Sin tareas abiertas para esta marca.
-        </p>
+        <PanelEmpty text="Sin tareas abiertas para esta marca." />
       ) : (
         <ul className="divide-y divide-zinc-100/80">
           {open.slice(0, 6).map((t) => {
@@ -202,6 +187,6 @@ export default function BrandTasksCard({ brandId }: { brandId: string }) {
           })}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }

@@ -6,7 +6,6 @@ import {
   ArrowUpDown,
   ChevronRight,
   FileText,
-  Plus,
   Search,
   Settings,
   Sparkles,
@@ -14,6 +13,7 @@ import {
 import Sparkline from "@/app/(app)/dashboard/Sparkline";
 import { approvalRateTone, formatHours, type BrandKpis } from "@/lib/kpis-utils";
 import { usePermissions } from "@/components/PermissionsProvider";
+import { EmptyState, Menu, MenuItem, Stat } from "@/components/ui";
 
 const TONE_COLOR: Record<"good" | "warn" | "bad" | "neutral", string> = {
   good: "text-emerald-600",
@@ -148,15 +148,12 @@ export default function BrandsList({
           <BrandCard key={b.id} brand={b} colorFallback={BRAND_COLORS[i % BRAND_COLORS.length]} canViewTasks={canViewTasks} />
         ))}
         {filtered.length === 0 && (
-          <div className="card sm:col-span-2 lg:col-span-3 p-10 text-center">
-            <Sparkles className="mx-auto h-7 w-7 text-zinc-300" />
-            <p className="mt-2 text-[14px] font-medium text-zinc-700">
-              No se encontraron marcas
-            </p>
-            <p className="text-[12px] text-zinc-500">
-              {query ? "Prueba otra búsqueda." : "Ajusta los filtros."}
-            </p>
-          </div>
+          <EmptyState
+            icon={Sparkles}
+            title="No se encontraron marcas"
+            subtitle={query ? "Prueba otra búsqueda." : "Ajusta los filtros."}
+            className="sm:col-span-2 lg:col-span-3"
+          />
         )}
       </div>
     </div>
@@ -241,7 +238,7 @@ function BrandCard({
       >
         <Stat label="Posts" value={b.total} />
         <span className="h-7 w-px bg-zinc-200" />
-        <Stat label="Pendientes" value={b.pending} accent={b.pending > 0 ? "rose" : undefined} />
+        <Stat label="Pendientes" value={b.pending} tone={b.pending > 0 ? "bad" : undefined} />
         <span className="h-7 w-px bg-zinc-200" />
         <Stat label="Publicados" value={b.published} />
         {canViewTasks && (
@@ -250,7 +247,7 @@ function BrandCard({
             <Stat
               label="Tareas"
               value={b.openTasks}
-              accent={b.overdueTasks > 0 ? "rose" : undefined}
+              tone={b.overdueTasks > 0 ? "bad" : undefined}
               hint={b.overdueTasks > 0 ? `${b.overdueTasks} vencida${b.overdueTasks === 1 ? "" : "s"}` : undefined}
             />
           </>
@@ -293,34 +290,6 @@ function BrandCard({
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-  hint,
-}: {
-  label: string;
-  value: number;
-  accent?: "rose";
-  hint?: string;
-}) {
-  return (
-    <div className="flex-1">
-      <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
-        {label}
-      </p>
-      <p
-        className={`mt-0.5 text-[16px] font-semibold tabular-nums ${
-          accent === "rose" ? "text-rose-600" : "text-zinc-900"
-        }`}
-      >
-        {value}
-      </p>
-      {hint && <p className="text-[9px] font-medium text-rose-500">{hint}</p>}
-    </div>
-  );
-}
-
 function SortDropdown({
   value,
   onChange,
@@ -330,38 +299,23 @@ function SortDropdown({
   onChange: (k: SortKey) => void;
   canViewTasks: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const keys = (Object.keys(SORT_LABELS) as SortKey[]).filter(
     (k) => canViewTasks || k !== "tasks",
   );
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="btn-secondary inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold"
-      >
-        <ArrowUpDown className="h-3.5 w-3.5" />
-        {SORT_LABELS[value]}
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border bg-white shadow-lg divider">
-          {keys.map((k) => (
-            <button
-              key={k}
-              onMouseDown={() => {
-                onChange(k);
-                setOpen(false);
-              }}
-              className={`block w-full px-3 py-2 text-left text-[13px] transition hover:bg-zinc-50 ${
-                k === value ? "font-semibold text-zinc-900" : "text-zinc-700"
-              }`}
-            >
-              {SORT_LABELS[k]}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <Menu
+      button={
+        <span className="btn-secondary inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold">
+          <ArrowUpDown className="h-3.5 w-3.5" />
+          {SORT_LABELS[value]}
+        </span>
+      }
+    >
+      {keys.map((k) => (
+        <MenuItem key={k} active={k === value} onSelect={() => onChange(k)}>
+          {SORT_LABELS[k]}
+        </MenuItem>
+      ))}
+    </Menu>
   );
 }

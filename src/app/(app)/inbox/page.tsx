@@ -6,7 +6,7 @@ import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma";
 import InboxNotifications from "./InboxNotifications";
-import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
+import { StatusPill } from "@/components/ui";
 import MediaThumb from "@/components/MediaThumb";
 
 const MONTHS = [
@@ -469,11 +469,7 @@ function Row({
           </p>
         </div>
         <div className="flex flex-shrink-0 flex-col items-end gap-1">
-          <span
-            className={`rounded-full px-1.5 py-0.5 text-3xs font-medium ${STATUS_COLOR[status] ?? "bg-zinc-200"}`}
-          >
-            {STATUS_LABEL[status] ?? status}
-          </span>
+          <StatusPill status={status} className="px-1.5 text-3xs font-medium" />
           {rightLabel && (
             <span
               className={`text-3xs tabular-nums ${

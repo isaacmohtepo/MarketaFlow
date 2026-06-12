@@ -9,6 +9,7 @@ import { syncBrandLocks } from "@/lib/brand-lock";
 import NewBrandTile from "@/app/(app)/dashboard/NewBrandTile";
 import { getKpisForBrands } from "@/lib/kpis";
 import BrandsList, { type BrandRow } from "./BrandsList";
+import { PageHeader } from "@/components/ui";
 
 export default async function BrandsIndexPage() {
   const user = await getCurrentUser();
@@ -143,20 +144,12 @@ export default async function BrandsIndexPage() {
   return (
     <>
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="flex items-center gap-1.5 text-[12px] font-medium text-zinc-500">
-              <Layers className="h-3.5 w-3.5" />
-              Workspace
-            </p>
-            <h1 className="mt-1 text-[26px] font-semibold tracking-tight text-zinc-900">
-              Marcas
-            </h1>
-            <p className="mt-0.5 text-[13px] text-zinc-500">
-              Todos los clientes de tu agencia, con su performance y atajos.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Workspace"
+          icon={Layers}
+          title="Marcas"
+          subtitle="Todos los clientes de tu agencia, con su performance y atajos."
+        />
 
         {/* Banner de marcas pausadas por exceso de plan */}
         {lockedCount > 0 && (

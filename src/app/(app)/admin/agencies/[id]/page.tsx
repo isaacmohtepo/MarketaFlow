@@ -11,6 +11,7 @@ import {
 import { prisma } from "@/lib/db";
 import { resolveAgencyRef } from "@/lib/slugs";
 import { PLANS, formatCop, type PlanId } from "@/lib/plans";
+import { Stat, StatusPill } from "@/components/ui";
 import AgencyActions from "./AgencyActions";
 import FeatureFlagsPanel from "./FeatureFlagsPanel";
 import {
@@ -121,9 +122,9 @@ export default async function AdminAgencyDetailPage({
                       {agency.name}
                     </h1>
                     {agency.suspendedAt && (
-                      <span className="rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+                      <StatusPill tone="bad" size="sm">
                         Suspendida
-                      </span>
+                      </StatusPill>
                     )}
                   </div>
                   <p className="mt-0.5 font-mono text-[10.5px] text-zinc-400">
@@ -168,13 +169,15 @@ export default async function AdminAgencyDetailPage({
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-zinc-100 sm:grid-cols-5">
-          <Stat label="Brands" value={agency._count.brands} />
-          <Stat label="Equipo" value={agency._count.members} />
-          <Stat label="Invitaciones" value={agency._count.invitations} />
-          <Stat label="Facturas pagas" value={
-            invoices.filter((i) => i.status === "paid").length
-          } />
-          <Stat label="LTV" value={formatCop(totalPaid)} text />
+          <Stat label="Brands" value={agency._count.brands} className="px-4 py-3" />
+          <Stat label="Equipo" value={agency._count.members} className="px-4 py-3" />
+          <Stat label="Invitaciones" value={agency._count.invitations} className="px-4 py-3" />
+          <Stat
+            label="Facturas pagas"
+            value={invoices.filter((i) => i.status === "paid").length}
+            className="px-4 py-3"
+          />
+          <Stat label="LTV" value={formatCop(totalPaid)} className="px-4 py-3" />
         </div>
       </div>
 
@@ -396,33 +399,12 @@ export default async function AdminAgencyDetailPage({
   );
 }
 
-function Stat({
-  label,
-  value,
-  text,
-}: {
-  label: string;
-  value: number | string;
-  text?: boolean;
-}) {
-  return (
-    <div className="px-4 py-3 text-center">
-      <p className={`${text ? "text-[14px]" : "text-[18px]"} font-bold tabular-nums text-zinc-900`}>
-        {value}
-      </p>
-      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
-        {label}
-      </p>
-    </div>
-  );
-}
-
 function InvoiceStatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    paid: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    pending: "bg-amber-50 text-amber-700 ring-amber-200",
-    failed: "bg-rose-50 text-rose-700 ring-rose-200",
-    refunded: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+  const tones: Record<string, "good" | "warn" | "bad" | "neutral"> = {
+    paid: "good",
+    pending: "warn",
+    failed: "bad",
+    refunded: "neutral",
   };
   const labels: Record<string, string> = {
     paid: "Pagada",
@@ -431,10 +413,8 @@ function InvoiceStatusBadge({ status }: { status: string }) {
     refunded: "Reembolsada",
   };
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
-    >
+    <StatusPill tone={tones[status] ?? "neutral"} size="sm">
       {labels[status] ?? status}
-    </span>
+    </StatusPill>
   );
 }

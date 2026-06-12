@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { StatusPill } from "@/components/ui";
 import RetryButton from "./RetryButton";
 
 export default async function AdminWebhookDetail({
@@ -117,17 +118,15 @@ function Field({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    ok: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    signature_invalid: "bg-amber-50 text-amber-700 ring-amber-200",
-    error: "bg-rose-50 text-rose-700 ring-rose-200",
-    deduped: "bg-zinc-100 text-zinc-500 ring-zinc-200",
+  const tones: Record<string, "good" | "warn" | "bad" | "neutral"> = {
+    ok: "good",
+    signature_invalid: "warn",
+    error: "bad",
+    deduped: "neutral",
   };
   return (
-    <span
-      className={`rounded-full px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
-    >
+    <StatusPill tone={tones[status] ?? "neutral"} size="sm">
       {status}
-    </span>
+    </StatusPill>
   );
 }

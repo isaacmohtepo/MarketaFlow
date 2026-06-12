@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { CreditCard } from "lucide-react";
+import { Button, EmptyState } from "@/components/ui";
 import { requireBillingShell } from "@/lib/billing-shell";
 import PlanSwitcher from "../PlanSwitcher";
 import type { PlanId } from "@/lib/plans";
@@ -35,21 +35,17 @@ function NoOwner() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold text-zinc-900">Plan</h1>
-      <div className="card mt-6 p-8 text-center">
-        <CreditCard className="mx-auto h-10 w-10 text-zinc-300" />
-        <p className="mt-4 text-[14px] font-semibold text-zinc-900">
-          No eres owner de ninguna agencia
-        </p>
-        <p className="mt-1 text-[12px] text-zinc-500">
-          Solo el owner puede ver y cambiar el plan.
-        </p>
-        <Link
-          href="/dashboard"
-          className="btn-secondary mt-6 inline-block rounded-md px-4 py-2 text-[12px] font-semibold"
-        >
-          Volver al dashboard
-        </Link>
-      </div>
+      <EmptyState
+        icon={CreditCard}
+        title="No eres owner de ninguna agencia"
+        subtitle="Solo el owner puede ver y cambiar el plan."
+        action={
+          <Button href="/dashboard" variant="secondary">
+            Volver al dashboard
+          </Button>
+        }
+        className="mt-6 p-8"
+      />
     </div>
   );
 }

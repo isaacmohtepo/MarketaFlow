@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ChevronLeft,
-  Mail,
   Calendar,
   KeyRound,
   Shield,
@@ -10,6 +9,7 @@ import {
   Building2,
 } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { Stat, StatusPill } from "@/components/ui";
 import UserActions from "./UserActions";
 import {
   formatAuditAction,
@@ -119,9 +119,9 @@ export default async function AdminUserDetailPage({
               </h1>
               <RolePill role={user.role} />
               {user.disabledAt && (
-                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+                <StatusPill tone="bad" size="sm">
                   Deshabilitado
-                </span>
+                </StatusPill>
               )}
             </div>
             <p className="mt-0.5 text-[13px] text-zinc-500">{user.email}</p>
@@ -161,11 +161,11 @@ export default async function AdminUserDetailPage({
 
         {/* Mini stats */}
         <div className="grid grid-cols-2 divide-x divide-zinc-100 border-t border-zinc-100 sm:grid-cols-5">
-          <Stat label="Memberships" value={user._count.memberships} />
-          <Stat label="Sesiones activas" value={sessions.length} />
-          <Stat label="Comentarios" value={user._count.comments} />
-          <Stat label="Aprobaciones" value={user._count.approvals} />
-          <Stat label="Actividad" value={user._count.activities} />
+          <Stat label="Memberships" value={user._count.memberships} className="px-4 py-3" />
+          <Stat label="Sesiones activas" value={sessions.length} className="px-4 py-3" />
+          <Stat label="Comentarios" value={user._count.comments} className="px-4 py-3" />
+          <Stat label="Aprobaciones" value={user._count.approvals} className="px-4 py-3" />
+          <Stat label="Actividad" value={user._count.activities} className="px-4 py-3" />
         </div>
       </div>
 
@@ -335,17 +335,6 @@ export default async function AdminUserDetailPage({
           </ol>
         )}
       </section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="px-4 py-3 text-center">
-      <p className="text-[18px] font-bold tabular-nums text-zinc-900">{value}</p>
-      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
-        {label}
-      </p>
     </div>
   );
 }

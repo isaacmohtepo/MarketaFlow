@@ -1,4 +1,3 @@
-import { TrendingUp, Users, RotateCw, Sparkles } from "lucide-react";
 import {
   cohortRetention,
   trialConversion,
@@ -7,6 +6,7 @@ import {
   topAgenciesByRevenue,
 } from "@/lib/metrics";
 import { formatCop } from "@/lib/plans";
+import { PageHeader, Stat } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -21,37 +21,34 @@ export default async function AdminMetricsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-900">Métricas</h1>
-        <p className="mt-0.5 text-[12px] text-zinc-500">
-          Análisis del crecimiento y retención de la plataforma.
-        </p>
-      </div>
+      <PageHeader
+        title="Métricas"
+        subtitle="Análisis del crecimiento y retención de la plataforma."
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat
-          icon={<TrendingUp className="h-3.5 w-3.5" />}
-          label="MRR actual"
-          value={formatCop(mrr)}
-        />
-        <Stat
-          icon={<Sparkles className="h-3.5 w-3.5" />}
-          label="Conversión 90d"
-          value={`${(conv.rate * 100).toFixed(1)}%`}
-          subtitle={`${conv.trialsConverted}/${conv.trialsStarted}`}
-        />
-        <Stat
-          icon={<RotateCw className="h-3.5 w-3.5" />}
-          label="Churn 30d"
-          value={`${(churn.rate * 100).toFixed(1)}%`}
-          subtitle={`${churn.canceled} cancelaciones`}
-          tone={churn.rate > 0.05 ? "rose" : undefined}
-        />
-        <Stat
-          icon={<Users className="h-3.5 w-3.5" />}
-          label="Subs activas"
-          value={String(churn.active)}
-        />
+        <div className="card p-3">
+          <Stat label="MRR actual" value={formatCop(mrr)} />
+        </div>
+        <div className="card p-3">
+          <Stat label="Conversión 90d" value={`${(conv.rate * 100).toFixed(1)}%`} />
+          <p className="mt-0.5 text-[10.5px] text-zinc-500">
+            {conv.trialsConverted}/{conv.trialsStarted}
+          </p>
+        </div>
+        <div className="card p-3">
+          <Stat
+            label="Churn 30d"
+            value={`${(churn.rate * 100).toFixed(1)}%`}
+            tone={churn.rate > 0.05 ? "bad" : undefined}
+          />
+          <p className="mt-0.5 text-[10.5px] text-zinc-500">
+            {churn.canceled} cancelaciones
+          </p>
+        </div>
+        <div className="card p-3">
+          <Stat label="Subs activas" value={String(churn.active)} />
+        </div>
       </div>
 
       {/* Cohort table */}
@@ -173,35 +170,3 @@ export default async function AdminMetricsPage() {
   );
 }
 
-function Stat({
-  icon,
-  label,
-  value,
-  subtitle,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subtitle?: string;
-  tone?: "rose";
-}) {
-  return (
-    <div className="card p-3">
-      <div className="flex items-center gap-1.5 text-3xs font-bold uppercase tracking-wider text-zinc-400">
-        <span className="grid h-5 w-5 place-items-center rounded bg-zinc-100 text-zinc-500">
-          {icon}
-        </span>
-        {label}
-      </div>
-      <p
-        className={`mt-1.5 text-[18px] font-bold tabular-nums ${tone === "rose" ? "text-rose-700" : "text-zinc-900"}`}
-      >
-        {value}
-      </p>
-      {subtitle && (
-        <p className="mt-0.5 text-[10.5px] text-zinc-500">{subtitle}</p>
-      )}
-    </div>
-  );
-}

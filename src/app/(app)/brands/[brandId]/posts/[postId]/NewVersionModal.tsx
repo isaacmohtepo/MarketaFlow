@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud, X, Loader2, ImagePlus, Pencil } from "lucide-react";
+import { Modal } from "@/components/ui";
 
 export default function NewVersionModal({
   postId,
@@ -88,30 +89,12 @@ export default function NewVersionModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="card w-full max-w-lg p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-zinc-900">Nueva versión</h2>
-            <p className="text-[12px] text-zinc-500">
-              Sube la imagen corregida. El cliente recibirá una notificación.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="grid h-7 w-7 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} title="Nueva versión">
+      <p className="-mt-4 text-[12px] text-zinc-500">
+        Sube la imagen corregida. El cliente recibirá una notificación.
+      </p>
 
-        <input
+      <input
           ref={fileInputRef}
           type="file"
           accept="image/*,video/*"
@@ -270,7 +253,6 @@ export default function NewVersionModal({
             {loading ? "Subiendo..." : "Subir nueva versión"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

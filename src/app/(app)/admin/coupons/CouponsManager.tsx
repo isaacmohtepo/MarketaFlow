@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/ui";
 
 type Coupon = {
   id: string;
@@ -376,15 +377,11 @@ export default function CouponsManager() {
           Cargando…
         </div>
       ) : coupons.length === 0 ? (
-        <div className="card p-8 text-center">
-          <Tag className="mx-auto h-7 w-7 text-zinc-300" />
-          <p className="mt-2 text-[13px] font-semibold text-zinc-700">
-            Sin cupones todavía
-          </p>
-          <p className="mt-0.5 text-[11.5px] text-zinc-500">
-            Crea uno para empezar promociones o referidos.
-          </p>
-        </div>
+        <EmptyState
+          icon={Tag}
+          title="Sin cupones todavía"
+          subtitle="Crea uno para empezar promociones o referidos."
+        />
       ) : (
         <ul className="space-y-2">
           {coupons.map((c) => (

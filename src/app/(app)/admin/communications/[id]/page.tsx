@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { sanitizeBroadcastHtml } from "@/lib/sanitize-html";
+import { Stat, StatusPill } from "@/components/ui";
 import SendButton from "./SendButton";
 
 export default async function BroadcastDetailPage({
@@ -44,9 +45,9 @@ export default async function BroadcastDetailPage({
 
         {b.status === "sent" && (
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <Stat label="Total" value={b.totalCount} />
-            <Stat label="Enviados" value={b.sentCount} tone="emerald" />
-            <Stat label="Fallidos" value={b.failedCount} tone={b.failedCount > 0 ? "rose" : undefined} />
+            <StatBox label="Total" value={b.totalCount} />
+            <StatBox label="Enviados" value={b.sentCount} tone="good" />
+            <StatBox label="Fallidos" value={b.failedCount} tone={b.failedCount > 0 ? "bad" : undefined} />
           </div>
         )}
 
@@ -90,43 +91,32 @@ export default async function BroadcastDetailPage({
   );
 }
 
-function Stat({
+function StatBox({
   label,
   value,
   tone,
 }: {
   label: string;
   value: number;
-  tone?: "emerald" | "rose";
+  tone?: "good" | "bad";
 }) {
   return (
-    <div className="rounded-md border border-zinc-200 bg-white p-3 text-center">
-      <p
-        className={`text-[18px] font-bold tabular-nums ${
-          tone === "emerald" ? "text-emerald-700" : tone === "rose" ? "text-rose-700" : "text-zinc-900"
-        }`}
-      >
-        {value}
-      </p>
-      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
-        {label}
-      </p>
+    <div className="rounded-md border border-zinc-200 bg-white p-3">
+      <Stat label={label} value={value} tone={tone} />
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    draft: "bg-zinc-100 text-zinc-600 ring-zinc-200",
-    sending: "bg-blue-50 text-blue-700 ring-blue-200",
-    sent: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    failed: "bg-rose-50 text-rose-700 ring-rose-200",
+  const tones: Record<string, "neutral" | "info" | "good" | "bad"> = {
+    draft: "neutral",
+    sending: "info",
+    sent: "good",
+    failed: "bad",
   };
   return (
-    <span
-      className={`rounded-full px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status]}`}
-    >
+    <StatusPill tone={tones[status] ?? "neutral"} size="sm">
       {status}
-    </span>
+    </StatusPill>
   );
 }

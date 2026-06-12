@@ -15,6 +15,7 @@ import {
   CreditCard,
   Building2,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui";
 import {
   formatAuditAction,
   formatAuditTime,
@@ -98,15 +99,12 @@ export default function AuditViewer() {
       {loading && events.length === 0 ? (
         <p className="text-[12px] text-zinc-500">Cargando...</p>
       ) : events.length === 0 ? (
-        <div className="card p-6 text-center">
-          <ScrollText className="mx-auto h-8 w-8 text-zinc-300" />
-          <p className="mt-2 text-[13px] font-semibold text-zinc-700">
-            Todavía no hay actividad
-          </p>
-          <p className="mt-0.5 text-[11.5px] text-zinc-500">
-            Cuando alguien invite, edite roles o cambie permisos, aparecerá aquí.
-          </p>
-        </div>
+        <EmptyState
+          icon={ScrollText}
+          title="Todavía no hay actividad"
+          subtitle="Cuando alguien invite, edite roles o cambie permisos, aparecerá aquí."
+          className="p-6"
+        />
       ) : (
         <ul className="card divide-y divide-zinc-100/80 overflow-hidden">
           {events.map((e) => {

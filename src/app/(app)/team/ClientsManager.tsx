@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/ui";
 
 type Brand = { id: string; name: string };
 
@@ -364,16 +365,13 @@ export default function ClientsManager() {
       )}
 
       {invitations.length === 0 && clients.length === 0 && !showForm && (
-        <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/40 p-8 text-center">
-          <Handshake className="mx-auto h-7 w-7 text-zinc-300" />
-          <p className="mt-2 text-[13px] font-semibold text-zinc-700">
-            Sin clientes invitados todavía
-          </p>
-          <p className="mt-0.5 text-[11.5px] text-zinc-500">
-            Invita un cliente para que pueda ver, comentar y aprobar el
-            contenido de su marca sin tener que crearle cuenta de team.
-          </p>
-        </div>
+        <EmptyState
+          variant="bare"
+          icon={Handshake}
+          title="Sin clientes invitados todavía"
+          subtitle="Invita un cliente para que pueda ver, comentar y aprobar el contenido de su marca sin tener que crearle cuenta de team."
+          className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/40 p-8"
+        />
       )}
     </div>
   );

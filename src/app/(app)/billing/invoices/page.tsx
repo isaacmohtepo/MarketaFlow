@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, Receipt, CreditCard } from "lucide-react";
+import { Button, EmptyState, StatusPill } from "@/components/ui";
+import type { Tone } from "@/lib/tones";
 import { prisma } from "@/lib/db";
 import { requireBillingShell } from "@/lib/billing-shell";
 import { expireStalePendingInvoices } from "@/lib/invoice-cleanup";
@@ -95,19 +97,21 @@ export default async function BillingInvoicesPage({
       <InvoiceFilters years={years} exportUrl={exportUrl} />
 
         {invoices.length === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-8 text-center">
-            <Receipt className="mx-auto h-8 w-8 text-zinc-300" />
-            <p className="mt-3 text-[13px] font-medium text-zinc-700">
-              {totalCount === 0
+          <EmptyState
+            variant="bare"
+            icon={Receipt}
+            title={
+              totalCount === 0
                 ? "Aún no hay facturas"
-                : "No hay facturas que matcheen el filtro"}
-            </p>
-            <p className="mt-1 text-[11.5px] text-zinc-500">
-              {totalCount === 0
+                : "No hay facturas que matcheen el filtro"
+            }
+            subtitle={
+              totalCount === 0
                 ? "Cuando hagas un pago vas a verlo aquí."
-                : "Prueba limpiar los filtros."}
-            </p>
-          </div>
+                : "Prueba limpiar los filtros."
+            }
+            className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-8"
+          />
         ) : (
           <>
             <div className="mt-4 overflow-x-auto">
@@ -202,18 +206,16 @@ function NoOwner() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold text-zinc-900">Facturas</h1>
-      <div className="card mt-6 p-8 text-center">
-        <CreditCard className="mx-auto h-10 w-10 text-zinc-300" />
-        <p className="mt-4 text-[14px] font-semibold text-zinc-900">
-          No eres owner de ninguna agencia
-        </p>
-        <Link
-          href="/dashboard"
-          className="btn-secondary mt-6 inline-block rounded-md px-4 py-2 text-[12px] font-semibold"
-        >
-          Volver al dashboard
-        </Link>
-      </div>
+      <EmptyState
+        icon={CreditCard}
+        title="No eres owner de ninguna agencia"
+        action={
+          <Button href="/dashboard" variant="secondary">
+            Volver al dashboard
+          </Button>
+        }
+        className="mt-6 p-8"
+      />
     </div>
   );
 }
@@ -235,19 +237,17 @@ function buildExportUrl(
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    paid: { label: "Pagada", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-    pending: { label: "Pendiente", cls: "bg-amber-50 text-amber-700 ring-amber-200" },
-    failed: { label: "Falló", cls: "bg-rose-50 text-rose-700 ring-rose-200" },
-    canceled: { label: "Cancelada", cls: "bg-zinc-100 text-zinc-600 ring-zinc-200" },
-    refunded: { label: "Reembolsada", cls: "bg-zinc-100 text-zinc-600 ring-zinc-200" },
+  const map: Record<string, { label: string; tone: Tone }> = {
+    paid: { label: "Pagada", tone: "good" },
+    pending: { label: "Pendiente", tone: "warn" },
+    failed: { label: "Falló", tone: "bad" },
+    canceled: { label: "Cancelada", tone: "neutral" },
+    refunded: { label: "Reembolsada", tone: "neutral" },
   };
-  const meta = map[status] ?? { label: status, cls: "bg-zinc-100 text-zinc-600 ring-zinc-200" };
+  const meta = map[status] ?? { label: status, tone: "neutral" as Tone };
   return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
-    >
+    <StatusPill tone={meta.tone} size="sm">
       {meta.label}
-    </span>
+    </StatusPill>
   );
 }

@@ -23,6 +23,7 @@ import {
 } from "@/lib/metrics";
 import AreaChart from "@/components/admin/AreaChart";
 import BarChart from "@/components/admin/BarChart";
+import { PageHeader, Stat } from "@/components/ui";
 
 /**
  * Admin → Dashboard. KPIs, charts (MRR + signups), top agencies, recent
@@ -89,12 +90,10 @@ export default async function AdminSummary() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-900">Resumen</h1>
-        <p className="mt-0.5 text-[12px] text-zinc-500">
-          Pulso de la plataforma en tiempo real.
-        </p>
-      </div>
+      <PageHeader
+        title="Resumen"
+        subtitle="Pulso de la plataforma en tiempo real."
+      />
 
       {/* Alertas operativas */}
       <div className="space-y-2">
@@ -200,19 +199,19 @@ export default async function AdminSummary() {
       {/* Stats secundarias */}
       <div className="card p-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <SubStat label="Usuarios" value={totalUsers} />
-          <SubStat label="Brands" value={totalBrands} />
-          <SubStat
+          <Stat label="Usuarios" value={totalUsers.toLocaleString("es")} />
+          <Stat label="Brands" value={totalBrands.toLocaleString("es")} />
+          <Stat
             label="Suspendidas"
-            value={suspendedAgencies}
-            danger={suspendedAgencies > 0}
+            value={suspendedAgencies.toLocaleString("es")}
+            tone={suspendedAgencies > 0 ? "bad" : undefined}
           />
-          <SubStat
+          <Stat
             label="Users disabled"
-            value={disabledUsers}
-            danger={disabledUsers > 0}
+            value={disabledUsers.toLocaleString("es")}
+            tone={disabledUsers > 0 ? "bad" : undefined}
           />
-          <SubStat label="Pasarelas on" value={integrationsCount} />
+          <Stat label="Pasarelas on" value={integrationsCount.toLocaleString("es")} />
         </div>
       </div>
 
@@ -487,29 +486,6 @@ function ChartLegend({
       {visible.map((v) => (
         <span key={v.i}>{v.label}</span>
       ))}
-    </div>
-  );
-}
-
-function SubStat({
-  label,
-  value,
-  danger,
-}: {
-  label: string;
-  value: number;
-  danger?: boolean;
-}) {
-  return (
-    <div className="text-center">
-      <p
-        className={`text-[18px] font-bold tabular-nums ${danger ? "text-rose-700" : "text-zinc-900"}`}
-      >
-        {value.toLocaleString("es")}
-      </p>
-      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
-        {label}
-      </p>
     </div>
   );
 }

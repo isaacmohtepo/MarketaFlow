@@ -2,6 +2,7 @@ import { Database, HardDrive, Activity, AlertTriangle, Image as ImageIcon, FileV
 import { prisma } from "@/lib/db";
 import { r2UsageByPrefix, isR2Configured } from "@/lib/storage";
 import { getUsagePlans } from "@/lib/usage-plans";
+import { PageHeader, Stat } from "@/components/ui";
 import PlansEditor from "./PlansEditor";
 
 /**
@@ -95,12 +96,10 @@ export default async function AdminUsagePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-zinc-900">Uso e infraestructura</h1>
-        <p className="mt-0.5 text-[12px] text-zinc-500">
-          Capacidad real consumida y cuánto queda en los tiers free de cada servicio.
-        </p>
-      </div>
+      <PageHeader
+        title="Uso e infraestructura"
+        subtitle="Capacidad real consumida y cuánto queda en los tiers free de cada servicio."
+      />
 
       {/* Totales DB */}
       <section>
@@ -318,12 +317,7 @@ function StatCard({
 }) {
   return (
     <div className="card p-4">
-      <p className="text-[10.5px] font-semibold uppercase tracking-wider text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-1 text-[22px] font-bold text-zinc-900 tabular-nums">
-        {value}
-      </p>
+      <Stat label={label} value={value} />
       {hint && <p className="mt-0.5 text-2xs text-zinc-500">{hint}</p>}
     </div>
   );

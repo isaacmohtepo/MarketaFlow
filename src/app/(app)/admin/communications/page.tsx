@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Send, ChevronRight, Plus, CheckCircle2, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { Button, EmptyState, PageHeader, StatusPill } from "@/components/ui";
 
 export default async function AdminCommunicationsPage() {
   const items = await prisma.emailBroadcast.findMany({
@@ -10,32 +11,23 @@ export default async function AdminCommunicationsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-900">Comunicaciones</h1>
-          <p className="mt-0.5 text-[12px] text-zinc-500">
-            Envíos masivos a usuarios — anuncios, newsletters, avisos.
-          </p>
-        </div>
-        <Link
-          href="/admin/communications/new"
-          className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-semibold"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Nuevo broadcast
-        </Link>
-      </div>
+      <PageHeader
+        title="Comunicaciones"
+        subtitle="Envíos masivos a usuarios — anuncios, newsletters, avisos."
+        actions={
+          <Button href="/admin/communications/new">
+            <Plus className="h-3.5 w-3.5" />
+            Nuevo broadcast
+          </Button>
+        }
+      />
 
       {items.length === 0 ? (
-        <div className="card p-10 text-center">
-          <Send className="mx-auto h-10 w-10 text-zinc-300" />
-          <p className="mt-3 text-[13.5px] font-semibold text-zinc-900">
-            Aún no enviaste ninguna comunicación
-          </p>
-          <p className="mt-1 text-[12px] text-zinc-500">
-            Crea tu primer broadcast con el botón de arriba.
-          </p>
-        </div>
+        <EmptyState
+          icon={Send}
+          title="Aún no enviaste ninguna comunicación"
+          subtitle="Crea tu primer broadcast con el botón de arriba."
+        />
       ) : (
         <ul className="space-y-2">
           {items.map((b) => (
@@ -104,11 +96,11 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    draft: "bg-zinc-100 text-zinc-600 ring-zinc-200",
-    sending: "bg-blue-50 text-blue-700 ring-blue-200",
-    sent: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    failed: "bg-rose-50 text-rose-700 ring-rose-200",
+  const tones: Record<string, "neutral" | "info" | "good" | "bad"> = {
+    draft: "neutral",
+    sending: "info",
+    sent: "good",
+    failed: "bad",
   };
   const labels: Record<string, string> = {
     draft: "Borrador",
@@ -117,11 +109,9 @@ function StatusBadge({ status }: { status: string }) {
     failed: "Falló",
   };
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
-    >
+    <StatusPill tone={tones[status] ?? "neutral"} size="sm">
       {labels[status] ?? status}
-    </span>
+    </StatusPill>
   );
 }
 

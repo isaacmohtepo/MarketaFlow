@@ -23,7 +23,7 @@ import NewBrandTile from "./NewBrandTile";
 import NewPostButton from "./NewPostButton";
 import AdminQuickAccess from "./AdminQuickAccess";
 import MediaThumb from "@/components/MediaThumb";
-import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
+import { Panel, PanelEmpty, StatusPill } from "@/components/ui";
 import DashboardAnalytics from "./DashboardAnalytics";
 
 const MONTHS = [
@@ -463,7 +463,7 @@ export default async function DashboardPage() {
           {/* Por revisar */}
           <Panel title="Por revisar" icon={Clock} count={inReview} href="/inbox" hrefLabel="Ver inbox" tint="text-amber-600 bg-amber-50">
             {pendingPosts.length === 0 ? (
-              <Empty text="No hay nada esperando revisión. 🎉" />
+              <PanelEmpty text="No hay nada esperando revisión. 🎉" />
             ) : (
               <ul className="divide-y divide-zinc-100/80">
                 {pendingPosts.map((p) => (
@@ -476,9 +476,7 @@ export default async function DashboardPage() {
                         <p className="truncate text-[12.5px] font-semibold text-zinc-800">{p.brand.name}</p>
                         <p className="truncate text-[11.5px] text-zinc-500">{p.caption || "Sin caption"}</p>
                       </div>
-                      <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-3xs font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}>
-                        {STATUS_LABEL[p.status] ?? p.status}
-                      </span>
+                      <StatusPill status={p.status} className="flex-shrink-0" />
                     </Link>
                   </li>
                 ))}
@@ -492,7 +490,7 @@ export default async function DashboardPage() {
           {/* Mis tareas */}
           <Panel title="Mis tareas" icon={CheckSquare} count={myTasksTotal} href="/tasks" hrefLabel="Ver todas" tint="text-fuchsia-600 bg-fuchsia-50">
             {myTasks.length === 0 ? (
-              <Empty text="Sin tareas pendientes." />
+              <PanelEmpty text="Sin tareas pendientes." />
             ) : (
               <ul className="divide-y divide-zinc-100/80">
                 {myTasks.map((t) => {
@@ -517,7 +515,7 @@ export default async function DashboardPage() {
           {/* Notificaciones */}
           <Panel title="Notificaciones" icon={Bell} count={unreadNotifCount} href="/inbox" hrefLabel="Ver inbox" tint="text-rose-600 bg-rose-50">
             {recentNotifications.length === 0 ? (
-              <Empty text="Sin notificaciones." />
+              <PanelEmpty text="Sin notificaciones." />
             ) : (
               <ul className="divide-y divide-zinc-100/80">
                 {recentNotifications.map((n) => (
@@ -536,7 +534,7 @@ export default async function DashboardPage() {
           {/* Actividad reciente */}
           <Panel title="Actividad" icon={ActivityIcon} href={brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/activity` : undefined} hrefLabel="Ver más" tint="text-zinc-600 bg-zinc-100">
             {recentActivities.length === 0 ? (
-              <Empty text="Sin actividad reciente." />
+              <PanelEmpty text="Sin actividad reciente." />
             ) : (
               <ul className="space-y-0.5 p-2.5">
                 {recentActivities.map((a) => (
@@ -573,52 +571,4 @@ function activityVerb(type: string): string {
     case "scheduled": return "programó";
     default: return "actualizó";
   }
-}
-
-function Panel({
-  id,
-  title,
-  icon: Icon,
-  count,
-  href,
-  hrefLabel,
-  tint = "text-zinc-600 bg-zinc-100",
-  children,
-}: {
-  id?: string;
-  title: string;
-  icon: typeof Layers;
-  count?: number;
-  href?: string;
-  hrefLabel?: string;
-  tint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="card overflow-hidden p-0">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className={`grid h-6 w-6 place-items-center rounded-md ${tint}`}>
-            <Icon className="h-3.5 w-3.5" />
-          </span>
-          <h2 className="text-[13px] font-semibold tracking-tight text-zinc-900">{title}</h2>
-          {count !== undefined && count > 0 && (
-            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold tabular-nums text-zinc-600">
-              {count}
-            </span>
-          )}
-        </div>
-        {href && hrefLabel && (
-          <Link href={href} className="flex items-center gap-0.5 text-2xs font-medium text-zinc-400 transition hover:text-zinc-700">
-            {hrefLabel} <ArrowRight className="h-3 w-3" />
-          </Link>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return <p className="px-3.5 py-6 text-center text-[12px] text-zinc-400">{text}</p>;
 }

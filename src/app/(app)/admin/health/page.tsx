@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { runAllChecks } from "@/lib/health";
+import { PageHeader } from "@/components/ui";
 
 // Forzar render dinámico — health checks siempre frescos
 export const dynamic = "force-dynamic";
@@ -12,23 +13,21 @@ export default async function AdminHealthPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-900">Salud del sistema</h1>
-          <p className="mt-0.5 text-[12px] text-zinc-500">
-            Estado de servicios externos y configuración crítica.
-          </p>
-        </div>
-        <form action="" method="get">
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-zinc-700 hover:bg-zinc-50"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Re-chequear
-          </button>
-        </form>
-      </div>
+      <PageHeader
+        title="Salud del sistema"
+        subtitle="Estado de servicios externos y configuración crítica."
+        actions={
+          <form action="" method="get">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-zinc-700 hover:bg-zinc-50"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Re-chequear
+            </button>
+          </form>
+        }
+      />
 
       <div
         className={`card flex items-center gap-3 p-5 ${

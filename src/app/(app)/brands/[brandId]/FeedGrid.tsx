@@ -20,7 +20,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
+import { STATUS_LABEL } from "@/lib/utils";
+import { StatusPill } from "@/components/ui";
 import { assetTypeLabel } from "@/lib/asset-types";
 
 type FeedPost = {
@@ -266,13 +267,10 @@ export default function FeedGrid({
                     <Square className="h-4 w-4 text-zinc-400" />
                   )}
                 </span>
-                <span
-                  className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-3xs font-semibold leading-none backdrop-blur-md ${
-                    STATUS_COLOR[p.status] ?? "bg-zinc-200/80"
-                  }`}
-                >
-                  {STATUS_LABEL[p.status] ?? p.status}
-                </span>
+                <StatusPill
+                  status={p.status}
+                  className="absolute right-2 top-2 px-2 text-3xs leading-none backdrop-blur-md"
+                />
                 {isSelected && (
                   <span aria-hidden className="absolute inset-0 bg-fuchsia-500/10" />
                 )}
@@ -321,11 +319,10 @@ export default function FeedGrid({
 
                 <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-3xs font-semibold leading-none backdrop-blur-md ${STATUS_COLOR[p.status] ?? "bg-zinc-200/80"}`}
-                    >
-                      {STATUS_LABEL[p.status] ?? p.status}
-                    </span>
+                    <StatusPill
+                      status={p.status}
+                      className="px-2 text-3xs leading-none backdrop-blur-md"
+                    />
                     {p.assetType && p.assetType !== "social_post" && (
                       <span
                         className="rounded-full bg-white/85 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 backdrop-blur-md"

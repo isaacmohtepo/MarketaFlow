@@ -7,7 +7,7 @@ import { resolveBrandRef, resolvePostId } from "@/lib/slugs";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
-import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
+import { StatusPill } from "@/components/ui";
 import { ASSET_TYPE_TAB_LABEL, assetTypeLabel, assetTypeTint, getAdPlatformMeta, isAssetType } from "@/lib/asset-types";
 import { FileList } from "@/components/AssetPreview";
 import PostBoard from "./PostBoard";
@@ -134,11 +134,7 @@ export default async function PostPage({
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[post.status] ?? "bg-zinc-200"}`}
-              >
-                {STATUS_LABEL[post.status] ?? post.status}
-              </span>
+              <StatusPill status={post.status} className="text-xs font-medium" />
               <span
                 className={`inline-block rounded-full px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider ring-1 ${assetTypeTint(post.assetType)}`}
               >

@@ -1,4 +1,4 @@
-import { Tag } from "lucide-react";
+import { PageHeader } from "@/components/ui";
 import CouponsManager from "./CouponsManager";
 
 /**
@@ -8,14 +8,10 @@ import CouponsManager from "./CouponsManager";
 export default function AdminCouponsPage() {
   return (
     <div>
-      <div className="flex items-center gap-2">
-        <Tag className="h-5 w-5 text-fuchsia-600" />
-        <h2 className="text-xl font-bold tracking-tight text-zinc-900">Cupones</h2>
-      </div>
-      <p className="mt-0.5 text-[12.5px] text-zinc-500">
-        Códigos de descuento aplicables en el checkout. El user los ingresa
-        antes de pagar y el descuento se aplica al primer cobro.
-      </p>
+      <PageHeader
+        title="Cupones"
+        subtitle="Códigos de descuento aplicables en el checkout. El user los ingresa antes de pagar y el descuento se aplica al primer cobro."
+      />
       <div className="mt-6">
         <CouponsManager />
       </div>

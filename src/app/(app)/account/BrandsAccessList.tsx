@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Layers } from "lucide-react";
+import { EmptyState } from "@/components/ui";
 
 const ROLE_LABEL: Record<string, string> = {
   owner: "Dueño",
@@ -30,13 +31,12 @@ export default function BrandsAccessList({
 }) {
   if (brands.length === 0) {
     return (
-      <div className="card p-6 text-center">
-        <Layers className="mx-auto h-6 w-6 text-zinc-300" />
-        <p className="mt-2 text-[13px] font-medium text-zinc-700">Sin acceso a marcas</p>
-        <p className="text-2xs text-zinc-500">
-          Cuando te inviten a una marca aparecerá aquí.
-        </p>
-      </div>
+      <EmptyState
+        icon={Layers}
+        title="Sin acceso a marcas"
+        subtitle="Cuando te inviten a una marca aparecerá aquí."
+        className="p-6"
+      />
     );
   }
 

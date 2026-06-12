@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/ui";
 import { PERMISSION_GROUPS } from "@/lib/permissions-data";
 
 type Tone = "amber" | "indigo" | "fuchsia" | "emerald" | "sky" | "violet" | "zinc";
@@ -244,16 +245,12 @@ export default function RolesManager({
         {loading ? (
           <p className="mt-3 text-[12px] text-zinc-500">Cargando...</p>
         ) : customRoles.length === 0 ? (
-          <div className="card mt-3 p-6 text-center">
-            <Shield className="mx-auto h-8 w-8 text-zinc-300" />
-            <p className="mt-2 text-[13px] font-semibold text-zinc-700">
-              Todavía no creaste ningún rol custom
-            </p>
-            <p className="mt-0.5 text-[11.5px] text-zinc-500">
-              Los roles del sistema cubren la mayoría de los casos. Crea uno
-              custom solo si necesitas algo específico.
-            </p>
-          </div>
+          <EmptyState
+            icon={Shield}
+            title="Todavía no creaste ningún rol custom"
+            subtitle="Los roles del sistema cubren la mayoría de los casos. Crea uno custom solo si necesitas algo específico."
+            className="mt-3 p-6"
+          />
         ) : (
           <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
             {customRoles.map((r) => (

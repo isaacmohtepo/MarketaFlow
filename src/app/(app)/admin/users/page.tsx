@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Users, UserPlus, Search, ChevronRight } from "lucide-react";
+import { Users, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma";
+import { DataTable, EmptyState, PageHeader, StatusPill } from "@/components/ui";
 import UsersFilters from "./UsersFilters";
 import CreateUserButton from "./CreateUserButton";
 
@@ -59,144 +60,135 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-900">Usuarios</h1>
-          <p className="mt-0.5 text-[12px] text-zinc-500">
-            {totalAll} usuarios totales · {totalDisabled} deshabilitados
-          </p>
-        </div>
-        <CreateUserButton />
-      </div>
+      <PageHeader
+        title="Usuarios"
+        subtitle={`${totalAll} usuarios totales · ${totalDisabled} deshabilitados`}
+        actions={<CreateUserButton />}
+      />
 
       <div className="card p-4">
         <UsersFilters />
-
-        {items.length === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-8 text-center">
-            <Users className="mx-auto h-8 w-8 text-zinc-300" />
-            <p className="mt-3 text-[13px] font-medium text-zinc-700">
-              {totalAll === 0
-                ? "Aún no hay usuarios"
-                : "Ningún usuario matchea los filtros"}
-            </p>
-            {totalAll > 0 && (
-              <p className="mt-1 text-[11.5px] text-zinc-500">
-                Prueba limpiar la búsqueda.
-              </p>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="text-3xs uppercase tracking-wider text-zinc-400">
-                  <tr className="border-b border-zinc-100">
-                    <th className="py-2 pr-3 font-semibold">Usuario</th>
-                    <th className="py-2 pr-3 font-semibold">Rol</th>
-                    <th className="py-2 pr-3 font-semibold">Estado</th>
-                    <th className="py-2 pr-3 font-semibold">Memberships</th>
-                    <th className="py-2 pr-3 font-semibold">Creado</th>
-                    <th className="py-2 font-semibold"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {items.map((u) => (
-                    <tr
-                      key={u.id}
-                      className="group transition hover:bg-zinc-50/60"
-                    >
-                      <td className="py-3 pr-3">
-                        <Link
-                          href={`/admin/users/${u.id}`}
-                          className="flex items-center gap-3"
-                        >
-                          {u.avatarUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={u.avatarUrl}
-                              alt=""
-                              className="h-8 w-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100 text-2xs font-bold text-zinc-600">
-                              {(u.name ?? u.email).slice(0, 2).toUpperCase()}
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-zinc-900">
-                              {u.name ?? "—"}
-                            </p>
-                            <p className="text-[11.5px] text-zinc-500">
-                              {u.email}
-                            </p>
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="py-3 pr-3">
-                        <RolePill role={u.role} />
-                      </td>
-                      <td className="py-3 pr-3">
-                        {u.disabledAt ? (
-                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
-                            Deshabilitado
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
-                            Activo
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 pr-3 text-[12px] tabular-nums text-zinc-600">
-                        {u._count.memberships}
-                      </td>
-                      <td className="py-3 pr-3 text-[11.5px] text-zinc-500">
-                        {u.createdAt.toLocaleDateString("es", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="py-3 text-right">
-                        <Link
-                          href={`/admin/users/${u.id}`}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                        >
-                          Detalle
-                          <ChevronRight className="h-3 w-3" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-2xs text-zinc-500">
-                  Mostrando {(page - 1) * PAGE_SIZE + 1}–
-                  {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount}
-                </p>
-                <div className="flex gap-1">
-                  <PageLink
-                    page={page - 1}
-                    disabled={page <= 1}
-                    label="Anterior"
-                    sp={sp}
-                  />
-                  <PageLink
-                    page={page + 1}
-                    disabled={page >= totalPages}
-                    label="Siguiente"
-                    sp={sp}
-                  />
-                </div>
-              </div>
-            )}
-          </>
-        )}
       </div>
+
+      <DataTable
+        rows={items}
+        rowKey={(u) => u.id}
+        empty={
+          <EmptyState
+            variant="bare"
+            icon={Users}
+            title={
+              totalAll === 0
+                ? "Aún no hay usuarios"
+                : "Ningún usuario matchea los filtros"
+            }
+            subtitle={totalAll > 0 ? "Prueba limpiar la búsqueda." : undefined}
+          />
+        }
+        columns={[
+          {
+            header: "Usuario",
+            cell: (u) => (
+              <Link
+                href={`/admin/users/${u.id}`}
+                className="flex items-center gap-3"
+              >
+                {u.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={u.avatarUrl}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100 text-2xs font-bold text-zinc-600">
+                    {(u.name ?? u.email).slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-zinc-900">
+                    {u.name ?? "—"}
+                  </p>
+                  <p className="text-[11.5px] text-zinc-500">{u.email}</p>
+                </div>
+              </Link>
+            ),
+          },
+          {
+            header: "Rol",
+            cell: (u) => <RolePill role={u.role} />,
+          },
+          {
+            header: "Estado",
+            cell: (u) =>
+              u.disabledAt ? (
+                <StatusPill tone="bad" size="sm">
+                  Deshabilitado
+                </StatusPill>
+              ) : (
+                <StatusPill tone="good" size="sm">
+                  Activo
+                </StatusPill>
+              ),
+          },
+          {
+            header: "Memberships",
+            cell: (u) => (
+              <span className="text-[12px] tabular-nums text-zinc-600">
+                {u._count.memberships}
+              </span>
+            ),
+          },
+          {
+            header: "Creado",
+            cell: (u) => (
+              <span className="text-[11.5px] text-zinc-500">
+                {u.createdAt.toLocaleDateString("es", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            ),
+          },
+          {
+            header: "",
+            align: "right",
+            cell: (u) => (
+              <Link
+                href={`/admin/users/${u.id}`}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+              >
+                Detalle
+                <ChevronRight className="h-3 w-3" />
+              </Link>
+            ),
+          },
+        ]}
+      />
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-2xs text-zinc-500">
+            Mostrando {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount}
+          </p>
+          <div className="flex gap-1">
+            <PageLink
+              page={page - 1}
+              disabled={page <= 1}
+              label="Anterior"
+              sp={sp}
+            />
+            <PageLink
+              page={page + 1}
+              disabled={page >= totalPages}
+              label="Siguiente"
+              sp={sp}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

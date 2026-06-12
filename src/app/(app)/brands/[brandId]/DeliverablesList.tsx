@@ -21,7 +21,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { STATUS_COLOR, STATUS_LABEL } from "@/lib/utils";
+import { StatusPill } from "@/components/ui";
 import {
   ASSET_TYPE_LABEL,
   ASSET_TYPE_NEW_CTA,
@@ -302,11 +302,10 @@ export default function DeliverablesList({
 
               <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-3xs font-semibold leading-none backdrop-blur-md ${STATUS_COLOR[d.status] ?? "bg-zinc-200/80"}`}
-                  >
-                    {STATUS_LABEL[d.status] ?? d.status}
-                  </span>
+                  <StatusPill
+                    status={d.status}
+                    className="px-2 text-3xs leading-none backdrop-blur-md"
+                  />
                   {d.hasNewActivity && (
                     <span className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-3xs font-bold text-white shadow-sm">
                       <span className="relative inline-flex h-1.5 w-1.5">
