@@ -209,7 +209,7 @@ export default function CommandPalette() {
             className="flex-1 border-0 bg-transparent py-3 text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
           />
           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />}
-          <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500">
+          <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-3xs font-mono text-zinc-500">
             Esc
           </kbd>
         </div>
@@ -268,14 +268,14 @@ export default function CommandPalette() {
                       {r.kind === "nav" ? (
                         <>
                           <p className="text-[13px] font-semibold text-zinc-900">{r.label}</p>
-                          <p className="text-[10px] uppercase tracking-wider text-zinc-400">Ir a</p>
+                          <p className="text-3xs uppercase tracking-wider text-zinc-400">Ir a</p>
                         </>
                       ) : r.kind === "brand" ? (
                         <>
                           <p className="truncate text-[13px] font-semibold text-zinc-900">
                             {r.data.name}
                           </p>
-                          <p className="truncate text-[11px] text-zinc-500">
+                          <p className="truncate text-2xs text-zinc-500">
                             {r.data.handle ?? "Marca"}
                           </p>
                         </>
@@ -294,7 +294,7 @@ export default function CommandPalette() {
                           <p className="truncate text-[13px] font-semibold text-zinc-900">
                             {r.data.brandName}
                           </p>
-                          <p className="truncate text-[11px] text-zinc-500">
+                          <p className="truncate text-2xs text-zinc-500">
                             {r.data.caption || "Sin caption"}
                           </p>
                         </>
@@ -302,13 +302,13 @@ export default function CommandPalette() {
                     </div>
                     {r.kind === "post" && (
                       <span
-                        className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLOR[r.data.status] ?? "bg-zinc-200"}`}
+                        className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium ${STATUS_COLOR[r.data.status] ?? "bg-zinc-200"}`}
                       >
                         {STATUS_LABEL[r.data.status] ?? r.data.status}
                       </span>
                     )}
                     {r.kind === "comment" && (
-                      <span className="flex-shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                      <span className="flex-shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-3xs font-medium text-amber-700">
                         Comentario
                       </span>
                     )}
@@ -322,7 +322,7 @@ export default function CommandPalette() {
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t divider bg-zinc-50/50 px-4 py-2 text-[10px] text-zinc-500">
+        <div className="flex items-center justify-between border-t divider bg-zinc-50/50 px-4 py-2 text-3xs text-zinc-500">
           <span className="flex items-center gap-3">
             <span>
               <kbd className="font-mono">↑↓</kbd> navegar

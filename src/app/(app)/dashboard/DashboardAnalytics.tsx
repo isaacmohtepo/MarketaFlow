@@ -203,7 +203,7 @@ function Kpi({
   return (
     <div className="card overflow-hidden p-4">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{label}</p>
+        <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-400">{label}</p>
         <span className={`grid h-7 w-7 place-items-center rounded-lg ${tint}`}>
           <Icon className="h-3.5 w-3.5" />
         </span>
@@ -229,7 +229,7 @@ function Kpi({
         </div>
       ) : (
         hint && (
-          <p className="mt-2 flex items-center gap-1 text-[11px] text-zinc-400">
+          <p className="mt-2 flex items-center gap-1 text-2xs text-zinc-400">
             {pulse && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />}
             {hint}
           </p>
@@ -258,7 +258,7 @@ function Insight({
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] text-zinc-500">{label}</p>
+        <p className="text-2xs text-zinc-500">{label}</p>
         <p className="truncate text-[13px] font-semibold text-zinc-900">{value}</p>
       </div>
       <p className="flex-shrink-0 text-[10.5px] text-zinc-400">{sub}</p>
@@ -279,12 +279,12 @@ function ChartHeader({
     <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-3">
       <div>
         <h2 className="text-[13px] font-semibold tracking-tight text-zinc-900">{title}</h2>
-        {subtitle && <p className="text-[11px] text-zinc-400">{subtitle}</p>}
+        {subtitle && <p className="text-2xs text-zinc-400">{subtitle}</p>}
       </div>
       {legend && (
         <div className="flex flex-shrink-0 items-center gap-3">
           {legend.map((l) => (
-            <span key={l.label} className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <span key={l.label} className="flex items-center gap-1.5 text-2xs text-zinc-500">
               <span className="h-2 w-2 rounded-full" style={{ background: l.color }} />
               {l.label}
             </span>

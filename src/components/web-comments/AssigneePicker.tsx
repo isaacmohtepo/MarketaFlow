@@ -89,16 +89,16 @@ export default function AssigneePicker({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-b border-zinc-100 px-2.5 py-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+            <p className="text-3xs font-semibold uppercase tracking-wider text-zinc-500">
               Asignar a…
             </p>
           </div>
           {loading ? (
-            <p className="px-3 py-3 text-center text-[11px] text-zinc-400">
+            <p className="px-3 py-3 text-center text-2xs text-zinc-400">
               Cargando miembros…
             </p>
           ) : items.length === 0 ? (
-            <p className="px-3 py-3 text-center text-[11px] text-zinc-400">
+            <p className="px-3 py-3 text-center text-2xs text-zinc-400">
               Sin miembros disponibles
             </p>
           ) : (
@@ -120,7 +120,7 @@ export default function AssigneePicker({
                       <span
                         className={`grid h-6 w-6 flex-shrink-0 place-items-center rounded-full bg-gradient-to-br ${gradientForName(
                           m.name,
-                        )} text-[10px] font-bold text-white`}
+                        )} text-3xs font-bold text-white`}
                       >
                         {m.name[0]?.toUpperCase()}
                       </span>
@@ -141,7 +141,7 @@ export default function AssigneePicker({
                 onAssign(null);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 border-t border-zinc-100 px-2.5 py-1.5 text-[11px] text-rose-600 hover:bg-rose-50"
+              className="flex w-full items-center gap-2 border-t border-zinc-100 px-2.5 py-1.5 text-2xs text-rose-600 hover:bg-rose-50"
             >
               <XIcon className="h-3 w-3" />
               Quitar asignación

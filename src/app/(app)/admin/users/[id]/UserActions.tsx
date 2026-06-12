@@ -270,7 +270,7 @@ export default function UserActions(props: Props) {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1500);
               }}
-              className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-200"
+              className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-2xs font-semibold text-amber-900 hover:bg-amber-200"
             >
               {copied ? (
                 <Check className="h-3 w-3" />
@@ -282,7 +282,7 @@ export default function UserActions(props: Props) {
             <button
               type="button"
               onClick={() => setTempPassword(null)}
-              className="rounded-md px-2 py-1 text-[11px] font-medium text-amber-900 hover:bg-amber-100"
+              className="rounded-md px-2 py-1 text-2xs font-medium text-amber-900 hover:bg-amber-100"
             >
               Cerrar
             </button>
@@ -418,7 +418,7 @@ export default function UserActions(props: Props) {
             <p className="text-[12.5px] font-semibold text-rose-900">
               Borrar usuario
             </p>
-            <p className="mt-0.5 text-[11px] text-rose-700">
+            <p className="mt-0.5 text-2xs text-rose-700">
               Elimina todos sus datos: memberships, comentarios, aprobaciones,
               sesiones, notificaciones.
             </p>
@@ -486,7 +486,7 @@ function ActionButton({
         <span className="block text-[12.5px] font-semibold text-zinc-900">
           {label}
         </span>
-        <span className="block text-[11px] text-zinc-500">{description}</span>
+        <span className="block text-2xs text-zinc-500">{description}</span>
       </span>
     </button>
   );

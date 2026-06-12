@@ -412,7 +412,7 @@ export default function Sidebar({
       <nav className="scroll-dark flex-1 overflow-y-auto px-2 pb-3">
         {SECTIONS.map((section) => (
           <div key={section.title} className="mt-5 first:mt-3">
-            <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+            <p className="px-3 mb-1.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
               {section.title}
             </p>
             <ul className="space-y-px">
@@ -499,7 +499,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         style={{ border: DARK_LINE }}
       >
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
             Plan Free
           </p>
           <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-fuchsia-400" />
@@ -507,7 +507,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         <p className="mt-1 text-[12px] font-semibold brand-gradient-text">
           Sube a Pro
         </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
+        <p className="mt-0.5 text-2xs text-zinc-500">
           Marcas y posts ilimitados
         </p>
       </Link>
@@ -530,7 +530,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         style={{ border: DARK_LINE }}
       >
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-amber-400">
             Trial {data.planName}
           </p>
           <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-amber-400" />
@@ -538,7 +538,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         <p className="mt-1 text-[12px] font-semibold text-white">
           {daysLeft} {daysLeft === 1 ? "día restante" : "días restantes"}
         </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
+        <p className="mt-0.5 text-2xs text-zinc-500">
           Activa tu suscripción para no perder features
         </p>
       </Link>
@@ -553,7 +553,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         className="group block overflow-hidden rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs transition hover:bg-rose-500/20"
       >
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-rose-300">
+          <p className="text-2xs font-bold uppercase tracking-wider text-rose-300">
             Plan vencido
           </p>
           <ArrowUpRight className="h-3.5 w-3.5 text-rose-300" />
@@ -561,7 +561,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         <p className="mt-1 text-[12px] font-semibold text-white">
           Renueva tu plan
         </p>
-        <p className="mt-0.5 text-[11px] text-rose-200/80">
+        <p className="mt-0.5 text-2xs text-rose-200/80">
           Unos días de gracia antes de bajar a Free
         </p>
       </Link>
@@ -577,7 +577,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         style={{ border: DARK_LINE }}
       >
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-amber-400">
             Plan {data.planName}
           </p>
           <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-amber-400" />
@@ -585,7 +585,7 @@ function PlanCard({ data }: { data: PlanCardData }) {
         <p className="mt-1 text-[12px] font-semibold text-white">
           Cancela el {formatDate(data.currentPeriodEnd)}
         </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
+        <p className="mt-0.5 text-2xs text-zinc-500">
           Toca para reactivar
         </p>
       </Link>
@@ -600,16 +600,16 @@ function PlanCard({ data }: { data: PlanCardData }) {
       style={{ border: DARK_LINE }}
     >
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wider brand-gradient-text">
+        <p className="text-2xs font-semibold uppercase tracking-wider brand-gradient-text">
           Plan {data.planName}
         </p>
         <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition group-hover:text-fuchsia-400" />
       </div>
       <p className="mt-1 text-[12px] font-semibold text-white tabular-nums">
         {formatCop(data.priceMonthlyCents)}
-        <span className="text-[10px] font-normal text-zinc-500"> /mes</span>
+        <span className="text-3xs font-normal text-zinc-500"> /mes</span>
       </p>
-      <p className="mt-0.5 text-[11px] text-zinc-500">
+      <p className="mt-0.5 text-2xs text-zinc-500">
         {data.nextChargeAt
           ? `Renuevas ${formatDate(data.nextChargeAt)}`
           : data.billingCycle === "yearly"

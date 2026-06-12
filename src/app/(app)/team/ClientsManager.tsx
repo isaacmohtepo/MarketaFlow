@@ -217,7 +217,7 @@ export default function ClientsManager() {
       {showForm && (
         <div className="card space-y-3 p-4">
           <div>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            <label className="mb-1 block text-2xs font-semibold uppercase tracking-wide text-zinc-500">
               Email del cliente
             </label>
             <input
@@ -229,7 +229,7 @@ export default function ClientsManager() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            <label className="mb-1 block text-2xs font-semibold uppercase tracking-wide text-zinc-500">
               Marcas a las que dar acceso
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -301,7 +301,7 @@ export default function ClientsManager() {
                     <p className="truncate text-[13px] font-semibold text-zinc-900">
                       {inv.email}
                     </p>
-                    <p className="text-[11px] text-zinc-500">
+                    <p className="text-2xs text-zinc-500">
                       {brandNames || "Sin marcas"} · Expira{" "}
                       {new Date(inv.expiresAt).toLocaleDateString("es", {
                         day: "numeric",
@@ -346,14 +346,14 @@ export default function ClientsManager() {
                 key={c.id}
                 className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3"
               >
-                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-fuchsia-50 text-[11px] font-bold uppercase text-fuchsia-700">
+                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-fuchsia-50 text-2xs font-bold uppercase text-fuchsia-700">
                   {(c.name ?? c.email).slice(0, 2)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-semibold text-zinc-900">
                     {c.name ?? c.email}
                   </p>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-2xs text-zinc-500">
                     {c.email} · {c.brandName}
                   </p>
                 </div>

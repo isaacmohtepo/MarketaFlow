@@ -47,6 +47,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  /* === Design tokens (ver docs/design-system.md) ===
+     Escala tipográfica micro de la app. Sin line-height a propósito: así
+     `text-2xs` se comporta EXACTO igual que el `text-[11px]` arbitrario que
+     reemplaza (los tokens con LH cambiarían el alto de línea heredado).
+     Escala para código nuevo:
+       text-3xs 10px · text-2xs 11px · text-xs 12px · text-sm 14px (Tailwind) */
+  --text-3xs: 10px;
+  --text-2xs: 11px;
+
+  /* Radios estándar: card 14px (superficies), control 10px (botones/inputs). */
+  --radius-card: 14px;
+  --radius-control: 10px;
+
+  /* Sombras nombradas (mismas 2 capas sutiles de .card / dropdowns). */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.03);
+  --shadow-pop: 0 8px 24px -6px rgba(15, 23, 42, 0.12), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+}
+
 html, body { min-height: 100%; }
 
 body {

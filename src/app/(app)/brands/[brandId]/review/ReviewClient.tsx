@@ -210,7 +210,7 @@ export default function ReviewClient({
           </Link>
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <span
-              className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-md text-[11px] font-bold text-white"
+              className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-md text-2xs font-bold text-white"
               style={{ background: brandColor ?? "#8a2be2" }}
             >
               {brandLogoUrl ? (
@@ -222,7 +222,7 @@ export default function ReviewClient({
             </span>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-zinc-900">{brandName}</p>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+              <p className="text-3xs uppercase tracking-wider text-zinc-500">
                 Modo revisión
               </p>
             </div>
@@ -310,7 +310,7 @@ export default function ReviewClient({
         )}
 
         {/* Meta */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-2xs text-zinc-500">
           <span className="rounded-full bg-zinc-100 px-2 py-0.5">{current.platform}</span>
           {current.scheduledAt && (
             <span>
@@ -339,7 +339,7 @@ export default function ReviewClient({
             >
               <Check className="h-4 w-4" />
               Aprobar
-              <kbd className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-mono">A</kbd>
+              <kbd className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-3xs font-mono">A</kbd>
             </button>
             <button
               onClick={() => setShowNote(true)}
@@ -348,7 +348,7 @@ export default function ReviewClient({
             >
               <X className="h-4 w-4" />
               Pedir cambios
-              <kbd className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-mono">R</kbd>
+              <kbd className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-3xs font-mono">R</kbd>
             </button>
             <button
               onClick={skip}
@@ -357,13 +357,13 @@ export default function ReviewClient({
             >
               <ArrowRight className="h-4 w-4" />
               Saltar
-              <kbd className="ml-1 rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-mono">S</kbd>
+              <kbd className="ml-1 rounded bg-zinc-200 px-1.5 py-0.5 text-3xs font-mono">S</kbd>
             </button>
           </div>
         ) : (
           <div className="mt-5 card p-4">
             <p className="text-[12px] font-semibold text-zinc-900">¿Qué hay que cambiar?</p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
+            <p className="mt-0.5 text-2xs text-zinc-500">
               La nota le llega a la agencia. Sé específico para evitar idas y vueltas.
             </p>
             <textarea
@@ -403,7 +403,7 @@ export default function ReviewClient({
           <div className="mt-4 text-center">
             <button
               onClick={back}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+              className="inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-zinc-900"
             >
               <Undo2 className="h-3 w-3" />
               Volver al post anterior
@@ -411,7 +411,7 @@ export default function ReviewClient({
           </div>
         )}
 
-        <p className="mt-6 text-center text-[10px] text-zinc-400">
+        <p className="mt-6 text-center text-3xs text-zinc-400">
           Atajos: <kbd className="font-mono">A</kbd> aprobar ·{" "}
           <kbd className="font-mono">R</kbd> pedir cambios ·{" "}
           <kbd className="font-mono">S</kbd> saltar · <kbd className="font-mono">Esc</kbd> salir
@@ -438,7 +438,7 @@ function Tally({
 }) {
   return (
     <div className={`rounded-xl p-3 ring-1 ${TALLY_TINT[tint]}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+      <p className="text-3xs font-semibold uppercase tracking-wider opacity-80">
         {label}
       </p>
       <p className="mt-1 text-[22px] font-bold tabular-nums">{value}</p>

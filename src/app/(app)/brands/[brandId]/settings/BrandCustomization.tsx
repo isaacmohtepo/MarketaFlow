@@ -104,7 +104,7 @@ export default function BrandCustomization({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-600 hover:text-zinc-900"
+            className="inline-flex items-center gap-1 text-2xs font-semibold text-zinc-600 hover:text-zinc-900"
           >
             <UploadCloud className="h-3 w-3" />
             {logoUrl ? "Cambiar" : "Subir logo"}
@@ -113,7 +113,7 @@ export default function BrandCustomization({
             <button
               type="button"
               onClick={() => setLogoUrl(null)}
-              className="text-[10px] text-zinc-500 hover:text-rose-600"
+              className="text-3xs text-zinc-500 hover:text-rose-600"
             >
               Quitar
             </button>
@@ -133,7 +133,7 @@ export default function BrandCustomization({
 
         <div className="flex-1 space-y-2">
           <div>
-            <label className="block text-[11px] font-medium text-zinc-700">Nombre</label>
+            <label className="block text-2xs font-medium text-zinc-700">Nombre</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -141,7 +141,7 @@ export default function BrandCustomization({
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-zinc-700">Handle</label>
+            <label className="block text-2xs font-medium text-zinc-700">Handle</label>
             <input
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
@@ -154,7 +154,7 @@ export default function BrandCustomization({
 
       {/* Bio */}
       <div>
-        <label className="block text-[11px] font-medium text-zinc-700">Bio</label>
+        <label className="block text-2xs font-medium text-zinc-700">Bio</label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
@@ -163,14 +163,14 @@ export default function BrandCustomization({
           placeholder="Una línea descriptiva de la marca..."
           className="mt-1 w-full rounded-md input-soft px-3 py-2 text-[13px]"
         />
-        <p className="mt-0.5 text-[10px] text-zinc-500 text-right tabular-nums">
+        <p className="mt-0.5 text-3xs text-zinc-500 text-right tabular-nums">
           {bio.length}/280
         </p>
       </div>
 
       {/* Color */}
       <div>
-        <label className="flex items-center gap-1 text-[11px] font-medium text-zinc-700">
+        <label className="flex items-center gap-1 text-2xs font-medium text-zinc-700">
           <Palette className="h-3 w-3" />
           Color principal
         </label>

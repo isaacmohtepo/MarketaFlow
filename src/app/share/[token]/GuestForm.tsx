@@ -53,7 +53,7 @@ export default function GuestForm({ token }: { token: string }) {
       >
         {loading ? "Entrando..." : "Continuar"}
       </button>
-      <p className="text-[10px] text-zinc-500">
+      <p className="text-3xs text-zinc-500">
         Al continuar, podrás ver y aprobar el contenido de esta marca.
       </p>
     </form>

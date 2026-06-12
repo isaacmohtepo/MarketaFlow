@@ -56,7 +56,7 @@ export default function FeedFilters({
             )}
             <span>{f.label}</span>
             <span
-              className={`text-[10px] font-semibold tabular-nums ${
+              className={`text-3xs font-semibold tabular-nums ${
                 active ? "text-white/70" : "text-zinc-400"
               }`}
             >

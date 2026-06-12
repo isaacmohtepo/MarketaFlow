@@ -35,7 +35,7 @@ export default function PendingPoller({
   const elapsedSec = attempts * intervalSec;
   if (attempts >= maxAttempts) {
     return (
-      <p className="mt-3 text-[11px] text-zinc-400">
+      <p className="mt-3 text-2xs text-zinc-400">
         Llevamos {Math.round(elapsedSec / 60)} minutos esperando confirmación.
         Refresca la página manualmente o contacta soporte si pasaron más de 10
         minutos.
@@ -43,7 +43,7 @@ export default function PendingPoller({
     );
   }
   return (
-    <p className="mt-3 text-[11px] text-zinc-400">
+    <p className="mt-3 text-2xs text-zinc-400">
       Verificando automáticamente cada {intervalSec}s
       {attempts > 0 ? ` · intento ${attempts}/${maxAttempts}` : ""}
     </p>

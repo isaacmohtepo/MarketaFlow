@@ -52,7 +52,7 @@ export default function TemplatePicker({
       </button>
       {open && (
         <div className="absolute right-0 top-full z-20 mt-1 w-64 overflow-hidden rounded-xl border bg-white shadow-lg divider">
-          <p className="border-b divider px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="border-b divider px-3 py-2 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
             Plantillas guardadas
           </p>
           <ul className="max-h-72 overflow-auto py-1">
@@ -75,7 +75,7 @@ export default function TemplatePicker({
                       </span>
                     )}
                   </div>
-                  <p className="line-clamp-2 text-[11px] text-zinc-500">
+                  <p className="line-clamp-2 text-2xs text-zinc-500">
                     {t.caption || "Sin caption"}
                   </p>
                 </button>

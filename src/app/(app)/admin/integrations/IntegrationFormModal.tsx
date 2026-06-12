@@ -237,7 +237,7 @@ export default function IntegrationFormModal({
                   }`}
                 />
                 {fieldMismatch === "wrong" ? (
-                  <span className="mt-1 flex items-start gap-1 text-[11px] font-medium text-rose-600">
+                  <span className="mt-1 flex items-start gap-1 text-2xs font-medium text-rose-600">
                     <AlertTriangle className="mt-0.5 h-3 w-3 flex-shrink-0" />
                     Esta llave parece de{" "}
                     <strong>
@@ -247,7 +247,7 @@ export default function IntegrationFormModal({
                     <strong>{environment}</strong>. Wompi va a rechazarla.
                   </span>
                 ) : f.helpText ? (
-                  <span className="mt-1 block text-[11px] text-zinc-500">
+                  <span className="mt-1 block text-2xs text-zinc-500">
                     {f.helpText}
                   </span>
                 ) : null}

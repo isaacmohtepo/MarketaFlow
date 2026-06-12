@@ -117,7 +117,7 @@ export default function NotificationToaster() {
                     {visual.label}
                   </span>
                   {n.actorName && (
-                    <span className="text-[11px] font-medium text-zinc-600">
+                    <span className="text-2xs font-medium text-zinc-600">
                       {n.actorName}
                     </span>
                   )}

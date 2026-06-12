@@ -90,7 +90,7 @@ export default function StatusSelector({
 
   return (
     <div ref={ref} className="card relative p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+      <p className="text-3xs font-semibold uppercase tracking-wider text-zinc-500">
         Estado
       </p>
       <button

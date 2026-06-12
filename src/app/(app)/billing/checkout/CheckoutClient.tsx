@@ -201,7 +201,7 @@ export default function CheckoutClient({
       <div className="card mt-6 space-y-4 p-5">
         {/* Cupón */}
         <div>
-          <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          <label className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-zinc-500">
             <Tag className="h-3 w-3" />
             Código de descuento (opcional)
           </label>
@@ -229,18 +229,18 @@ export default function CheckoutClient({
             )}
           </div>
           {validating && (
-            <p className="mt-1.5 flex items-center gap-1 text-[11px] text-zinc-500">
+            <p className="mt-1.5 flex items-center gap-1 text-2xs text-zinc-500">
               <Loader2 className="h-3 w-3 animate-spin" />
               Validando…
             </p>
           )}
           {!validating && validation && !validation.valid && (
-            <p className="mt-1.5 text-[11px] text-rose-600">
+            <p className="mt-1.5 text-2xs text-rose-600">
               {validation.reason}
             </p>
           )}
           {!validating && validation && validation.valid && (
-            <p className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+            <p className="mt-1.5 flex items-center gap-1 text-2xs font-semibold text-emerald-700">
               <Check className="h-3 w-3" />
               {validation.label} aplicado
             </p>
@@ -325,7 +325,7 @@ export default function CheckoutClient({
 
         <Link
           href="/billing"
-          className="block text-center text-[11px] text-zinc-500 hover:text-zinc-900"
+          className="block text-center text-2xs text-zinc-500 hover:text-zinc-900"
         >
           Cancelar
         </Link>

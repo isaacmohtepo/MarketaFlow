@@ -41,7 +41,7 @@ export default function AdminTwoFAReminder({
               : `Activa 2FA en tu cuenta de admin (${daysLeft} ${daysLeft === 1 ? "día restante" : "días restantes"})`}
           </p>
           <p
-            className={`mt-0.5 text-[11px] ${
+            className={`mt-0.5 text-2xs ${
               expired ? "text-rose-700" : "text-amber-800"
             }`}
           >

@@ -207,9 +207,9 @@ function BrandCard({
               {b.name}
             </h3>
             {b.handle && (
-              <p className="truncate text-[11px] text-zinc-500">{b.handle}</p>
+              <p className="truncate text-2xs text-zinc-500">{b.handle}</p>
             )}
-            <p className="mt-0.5 truncate text-[10px] uppercase tracking-wider text-zinc-400">
+            <p className="mt-0.5 truncate text-3xs uppercase tracking-wider text-zinc-400">
               {b.role}
             </p>
           </div>
@@ -237,7 +237,7 @@ function BrandCard({
       {/* Stats row */}
       <Link
         href={`/brands/${ref}`}
-        className="mt-4 flex items-center gap-3 border-t divider pt-3 text-[11px]"
+        className="mt-4 flex items-center gap-3 border-t divider pt-3 text-2xs"
       >
         <Stat label="Posts" value={b.total} />
         <span className="h-7 w-px bg-zinc-200" />
@@ -264,7 +264,7 @@ function BrandCard({
       >
         <div className="flex flex-col gap-2">
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
               Aprob. 7d
             </p>
             <p className={`text-[14px] font-semibold tabular-nums ${TONE_COLOR[tone]}`}>
@@ -272,7 +272,7 @@ function BrandCard({
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
               Tiempo prom. 30d
             </p>
             <p className="text-[12px] font-semibold tabular-nums text-zinc-700">
@@ -281,7 +281,7 @@ function BrandCard({
           </div>
         </div>
         <div className="flex flex-col items-end">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+          <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
             Public. 7d · {b.kpis.publishedTotal}
           </p>
           <Sparkline data={b.kpis.publishedSparkline} stroke={bg} width={100} height={28} />
@@ -306,7 +306,7 @@ function Stat({
 }) {
   return (
     <div className="flex-1">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+      <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
         {label}
       </p>
       <p

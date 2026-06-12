@@ -69,11 +69,11 @@ export default function TrashRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${post.statusColor}`}
+              className={`rounded-full px-2 py-0.5 text-3xs font-medium ${post.statusColor}`}
             >
               {post.statusLabel}
             </span>
-            <span className="text-[10px] text-zinc-400">
+            <span className="text-3xs text-zinc-400">
               borrado {post.deletedAtFormatted}
             </span>
           </div>
@@ -86,7 +86,7 @@ export default function TrashRow({
         <button
           onClick={restore}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 hover:bg-white hover:shadow-sm disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-2xs font-semibold text-zinc-700 hover:bg-white hover:shadow-sm disabled:opacity-50"
           title="Restaurar"
         >
           <RotateCcw className="h-3 w-3" />
@@ -95,7 +95,7 @@ export default function TrashRow({
         <button
           onClick={purge}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-2xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
           title="Borrar definitivo"
         >
           <Trash2 className="h-3 w-3" />

@@ -50,7 +50,7 @@ export default function PastDueGraceBanner({
                 : `te quedan ${daysLeft} días de gracia`}
           </p>
           <p
-            className={`mt-0.5 text-[11px] ${
+            className={`mt-0.5 text-2xs ${
               urgent ? "text-rose-700" : "text-amber-800"
             }`}
           >

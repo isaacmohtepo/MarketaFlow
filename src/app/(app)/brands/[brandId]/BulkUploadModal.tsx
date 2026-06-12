@@ -202,7 +202,7 @@ export default function BulkUploadModal({
             <p className="text-[14px] font-semibold text-zinc-900">
               Click o arrastra varias imágenes aquí
             </p>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-2xs text-zinc-500">
               PNG, JPG, WEBP — hasta {MAX_FILES} archivos · cada uno será un borrador
             </p>
           </button>
@@ -241,7 +241,7 @@ export default function BulkUploadModal({
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-md border divider bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                className="inline-flex items-center gap-1 rounded-md border divider bg-white px-2.5 py-1 text-2xs font-semibold text-zinc-700 hover:bg-zinc-50"
               >
                 <ImagePlus className="h-3 w-3" />
                 Agregar más
@@ -257,7 +257,7 @@ export default function BulkUploadModal({
                   <ImageThumb file={it.file} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-zinc-800">{it.file.name}</p>
-                    <p className="text-[10px] text-zinc-500">
+                    <p className="text-3xs text-zinc-500">
                       {(it.file.size / 1024 / 1024).toFixed(2)} MB ·{" "}
                       <StatusLabel status={it.status} />
                     </p>

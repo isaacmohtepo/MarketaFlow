@@ -99,7 +99,7 @@ export default function TimezoneSelector({
         <button
           type="button"
           onClick={() => setTz(autoDetected)}
-          className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50"
+          className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-2xs font-medium text-zinc-600 hover:bg-zinc-50"
         >
           <MapPin className="h-3 w-3" />
           Detectada: {autoDetected} — usar

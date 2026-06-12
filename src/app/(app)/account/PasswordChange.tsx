@@ -110,7 +110,7 @@ export default function PasswordChange() {
       <button
         type="button"
         onClick={() => setShow((v) => !v)}
-        className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+        className="inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-zinc-900"
       >
         {show ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
         {show ? "Ocultar" : "Mostrar"} contraseñas
@@ -120,7 +120,7 @@ export default function PasswordChange() {
 
       <div className="flex items-center justify-end gap-2 pt-1">
         {success && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+          <span className="inline-flex items-center gap-1 text-2xs font-medium text-emerald-600">
             <Check className="h-3 w-3" />
             Contraseña actualizada
           </span>

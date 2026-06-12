@@ -196,7 +196,7 @@ export default function PlanSwitcher({
           </p>
         </div>
         {/* Toggle ciclo */}
-        <div className="inline-flex rounded-md border border-zinc-200 bg-white p-0.5 text-[11px] font-semibold">
+        <div className="inline-flex rounded-md border border-zinc-200 bg-white p-0.5 text-2xs font-semibold">
           <button
             type="button"
             onClick={() => setCycle("monthly")}
@@ -319,14 +319,14 @@ export default function PlanSwitcher({
               <p className="mt-2 text-2xl font-bold tabular-nums text-zinc-900">
                 {price === 0 ? "$0" : formatCop(price)}
               </p>
-              <p className="text-[10px] text-zinc-500">
+              <p className="text-3xs text-zinc-500">
                 {price === 0
                   ? "Para siempre"
                   : cycle === "yearly"
                     ? "/año"
                     : "/mes"}
               </p>
-              <ul className="mt-3 space-y-1 text-[11px] text-zinc-600">
+              <ul className="mt-3 space-y-1 text-2xs text-zinc-600">
                 <Feature>
                   {p.limits.maxBrands === -1
                     ? "Marcas ilimitadas"
@@ -362,7 +362,7 @@ export default function PlanSwitcher({
                   Renovar {p.name} ahora
                 </button>
               ) : isCurrent ? (
-                <span className="block rounded-md bg-zinc-100 px-2 py-1.5 text-center text-[11px] font-semibold text-zinc-600">
+                <span className="block rounded-md bg-zinc-100 px-2 py-1.5 text-center text-2xs font-semibold text-zinc-600">
                   Plan actual
                 </span>
               ) : (

@@ -122,7 +122,7 @@ export function WebsiteEmbed({ url }: { url: string }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-2xs font-medium text-zinc-700 hover:bg-zinc-100"
           >
             <ExternalLink className="h-3 w-3" />
             Abrir
@@ -151,7 +151,7 @@ export function FileList({ files }: { files: AssetFile[] }) {
 
   return (
     <div className="rounded-xl ring-1 ring-zinc-200">
-      <p className="border-b border-zinc-100 bg-zinc-50/70 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+      <p className="border-b border-zinc-100 bg-zinc-50/70 px-3 py-2 text-2xs font-semibold uppercase tracking-wider text-zinc-500">
         Archivos del entregable ({nonImages.length})
       </p>
       <ul className="divide-y divide-zinc-100/80">

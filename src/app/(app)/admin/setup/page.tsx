@@ -93,7 +93,7 @@ export default async function AdminSetup() {
               <p className="mt-1 text-[12px] text-amber-800">
                 Antes de poder configurar pasarelas de pago, necesitas generar
                 la master key. Es un solo click. La generamos del lado del
-                servidor con <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[10px]">crypto.randomBytes(32)</code>.
+                servidor con <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-3xs">crypto.randomBytes(32)</code>.
               </p>
             </div>
             <GenerateKeyButton />
@@ -105,7 +105,7 @@ export default async function AdminSetup() {
         <h3 className="text-sm font-semibold text-zinc-900">Cómo funciona</h3>
         <ul className="mt-3 space-y-2 text-[12.5px] text-zinc-600">
           <li className="flex items-start gap-2">
-            <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700">
+            <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-3xs font-bold text-zinc-700">
               1
             </span>
             <span>
@@ -114,7 +114,7 @@ export default async function AdminSetup() {
             </span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700">
+            <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-3xs font-bold text-zinc-700">
               2
             </span>
             <span>
@@ -124,7 +124,7 @@ export default async function AdminSetup() {
             </span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700">
+            <span className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-3xs font-bold text-zinc-700">
               3
             </span>
             <span>
@@ -152,17 +152,17 @@ export default async function AdminSetup() {
                 <div className="min-w-0">
                   <p className="font-medium text-zinc-900">{r.rotatedByEmail}</p>
                   {r.reason && (
-                    <p className="mt-0.5 truncate text-[11px] italic text-zinc-500">
+                    <p className="mt-0.5 truncate text-2xs italic text-zinc-500">
                       "{r.reason}"
                     </p>
                   )}
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2 text-zinc-500">
-                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-700">
+                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold tabular-nums text-zinc-700">
                     {r.configsReEncrypted}{" "}
                     {r.configsReEncrypted === 1 ? "config" : "configs"}
                   </span>
-                  <span className="text-[11px] tabular-nums">
+                  <span className="text-2xs tabular-nums">
                     {r.createdAt.toLocaleDateString("es", {
                       day: "numeric",
                       month: "short",

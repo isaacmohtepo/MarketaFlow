@@ -128,7 +128,7 @@ export function PickerPopover({
 
 export function PickerSection({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+    <p className="px-3 py-1 text-3xs font-bold uppercase tracking-wider text-zinc-400">
       {children}
     </p>
   );

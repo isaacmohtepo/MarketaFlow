@@ -131,7 +131,7 @@ export default async function AdminAgenciesPage({
           <>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="text-[10px] uppercase tracking-wider text-zinc-400">
+                <thead className="text-3xs uppercase tracking-wider text-zinc-400">
                   <tr className="border-b border-zinc-100">
                     <th className="py-2 pr-3 font-semibold">Agencia</th>
                     <th className="py-2 pr-3 font-semibold">Owner</th>
@@ -178,7 +178,7 @@ export default async function AdminAgenciesPage({
                               {owner.name && (
                                 <p className="text-zinc-900">{owner.name}</p>
                               )}
-                              <p className="text-[11px] text-zinc-500">
+                              <p className="text-2xs text-zinc-500">
                                 {owner.email}
                               </p>
                             </>
@@ -227,7 +227,7 @@ export default async function AdminAgenciesPage({
 
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   Mostrando {(page - 1) * PAGE_SIZE + 1}–
                   {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount}
                 </p>
@@ -266,7 +266,7 @@ function Stat({
     <div
       className={`card p-3 ${danger ? "border-rose-200 bg-rose-50/40" : ""}`}
     >
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center gap-1.5 text-3xs font-bold uppercase tracking-wider text-zinc-400">
         <span className="grid h-5 w-5 place-items-center rounded bg-zinc-100 text-zinc-500">
           {icon}
         </span>
@@ -291,7 +291,7 @@ function PlanPill({ plan }: { plan: PlanId }) {
   };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[plan]}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[plan]}`}
     >
       {PLANS[plan].name}
     </span>
@@ -307,12 +307,12 @@ function StatusBadge({
 }) {
   if (suspended) {
     return (
-      <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+      <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
         Suspendida
       </span>
     );
   }
-  if (!sub) return <span className="text-zinc-400 text-[11px]">—</span>;
+  if (!sub) return <span className="text-zinc-400 text-2xs">—</span>;
   const map: Record<string, string> = {
     active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     trialing: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -329,7 +329,7 @@ function StatusBadge({
   };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[sub.status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[sub.status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {labels[sub.status] ?? sub.status}
     </span>

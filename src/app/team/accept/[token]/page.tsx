@@ -72,7 +72,7 @@ export default async function AcceptInvitationPage({
             </>
           ) : (
             <>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                 Te invitan a unirte a
               </p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-zinc-900">

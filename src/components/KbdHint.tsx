@@ -28,7 +28,7 @@ export default function KbdHint({
   const text = mod ? `${modKeyLabel(isMac)}+${children}` : children;
   if (withStyle) {
     return (
-      <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-[10px] text-zinc-700">
+      <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 font-mono text-3xs text-zinc-700">
         {text}
       </kbd>
     );

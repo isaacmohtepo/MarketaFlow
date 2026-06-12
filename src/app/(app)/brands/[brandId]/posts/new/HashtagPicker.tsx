@@ -82,11 +82,11 @@ export default function HashtagPicker({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="text-[13px] font-semibold text-zinc-900">{s.name}</p>
-                          <span className="rounded-full bg-zinc-100 px-1.5 text-[10px] font-medium text-zinc-600 tabular-nums">
+                          <span className="rounded-full bg-zinc-100 px-1.5 text-3xs font-medium text-zinc-600 tabular-nums">
                             {tagCount}
                           </span>
                         </div>
-                        <p className="mt-0.5 truncate text-[10px] text-zinc-500">{s.tags}</p>
+                        <p className="mt-0.5 truncate text-3xs text-zinc-500">{s.tags}</p>
                       </div>
                     </button>
                   </li>

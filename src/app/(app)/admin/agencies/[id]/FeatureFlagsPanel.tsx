@@ -82,7 +82,7 @@ export default function FeatureFlagsPanel({ agencyId }: { agencyId: string }) {
                     {info.label}
                   </p>
                   {info.description && (
-                    <p className="text-[11px] text-zinc-500">
+                    <p className="text-2xs text-zinc-500">
                       {info.description}
                     </p>
                   )}

@@ -167,7 +167,7 @@ function RotateModal({
           <label className="block">
             <span className="text-[12px] font-semibold text-zinc-700">
               Para confirmar, escribe{" "}
-              <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[11px]">
+              <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-2xs">
                 ROTATE
               </code>
             </span>

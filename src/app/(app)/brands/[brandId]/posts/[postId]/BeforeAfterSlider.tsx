@@ -49,7 +49,7 @@ export default function BeforeAfterSlider({
         <button
           type="button"
           onClick={onClose}
-          className="ml-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white/90 hover:text-white"
+          className="ml-1 rounded-full px-2.5 py-1 text-2xs font-semibold text-white/90 hover:text-white"
         >
           Cerrar
         </button>
@@ -140,10 +140,10 @@ function SliderView({
         />
       </div>
 
-      <span className="absolute left-3 top-3 z-20 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
+      <span className="absolute left-3 top-3 z-20 rounded-full bg-black/60 px-2 py-0.5 text-2xs font-semibold text-white backdrop-blur">
         {beforeLabel ?? "Antes"}
       </span>
-      <span className="absolute right-3 top-3 z-20 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
+      <span className="absolute right-3 top-3 z-20 rounded-full bg-black/60 px-2 py-0.5 text-2xs font-semibold text-white backdrop-blur">
         {afterLabel ?? "Después"}
       </span>
 
@@ -196,7 +196,7 @@ function Pane({ src, label }: { src: string; label: string }) {
         draggable={false}
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <span className="absolute left-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
+      <span className="absolute left-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-3xs font-semibold text-white backdrop-blur">
         {label}
       </span>
     </div>

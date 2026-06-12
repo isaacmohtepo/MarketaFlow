@@ -112,7 +112,7 @@ export default async function BillingInvoicesPage({
           <>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="text-[10px] uppercase tracking-wider text-zinc-400">
+                <thead className="text-3xs uppercase tracking-wider text-zinc-400">
                   <tr className="border-b border-zinc-100">
                     <th className="py-2 pr-3 font-semibold">Número</th>
                     <th className="py-2 pr-3 font-semibold">Descripción</th>
@@ -128,7 +128,7 @@ export default async function BillingInvoicesPage({
                       key={inv.id}
                       className="group transition hover:bg-zinc-50/60"
                     >
-                      <td className="py-3 pr-3 font-mono text-[11px] text-zinc-700">
+                      <td className="py-3 pr-3 font-mono text-2xs text-zinc-700">
                         {inv.invoiceNumber ?? (
                           <span className="text-zinc-400">—</span>
                         )}
@@ -169,7 +169,7 @@ export default async function BillingInvoicesPage({
 
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   Página {page} de {totalPages}
                 </p>
                 <div className="flex items-center gap-1.5">
@@ -245,7 +245,7 @@ function StatusBadge({ status }: { status: string }) {
   const meta = map[status] ?? { label: status, cls: "bg-zinc-100 text-zinc-600 ring-zinc-200" };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
     >
       {meta.label}
     </span>

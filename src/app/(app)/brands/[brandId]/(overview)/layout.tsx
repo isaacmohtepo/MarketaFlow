@@ -72,7 +72,7 @@ export default async function BrandOverviewLayout({
       <BrandShortcuts brandId={brandId} canEdit={access.canEdit} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-wider text-zinc-500">Marca</p>
+          <p className="text-2xs uppercase tracking-wider text-zinc-500">Marca</p>
           <h1 className="mt-0.5 truncate text-xl font-bold text-zinc-900 sm:text-2xl">
             {brand.name}
           </h1>

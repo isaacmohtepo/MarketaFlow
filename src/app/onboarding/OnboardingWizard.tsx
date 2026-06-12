@@ -242,7 +242,7 @@ export default function OnboardingWizard({
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="flex items-center">
             <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition ${
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-2xs font-bold transition ${
                 i < step
                   ? "bg-emerald-500 text-white"
                   : i === step
@@ -364,7 +364,7 @@ export default function OnboardingWizard({
                   className="input-soft w-full rounded-md px-3 py-2 text-[13px]"
                 />
               </Field>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-2xs text-zinc-500">
                 Le va a llegar un email con un link para sumarse. Podrá revisar
                 posts y aprobarlos.
               </p>

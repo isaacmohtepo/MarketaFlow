@@ -34,14 +34,14 @@ export default function BrandKpiBlock({
           <span className={`grid h-5 w-5 place-items-center rounded-md ${TONE_BG[tone]}`}>
             <TrendingUp className="h-3 w-3" />
           </span>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <p className="text-2xs font-medium uppercase tracking-wider text-zinc-500">
             Tasa aprobación · 7d
           </p>
         </div>
         <p className={`mt-2 text-[22px] font-semibold tracking-tight tabular-nums ${TONE_VALUE[tone]}`}>
           {kpis.approvalRate !== null ? `${kpis.approvalRate}%` : "—"}
         </p>
-        <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+        <p className="mt-0.5 truncate text-2xs text-zinc-500">
           {kpis.totalDecisions > 0
             ? `${kpis.approvedDecisions} de ${kpis.totalDecisions} decisiones`
             : "Sin decisiones aún"}
@@ -54,14 +54,14 @@ export default function BrandKpiBlock({
           <span className="grid h-5 w-5 place-items-center rounded-md bg-zinc-50 text-zinc-500">
             <Clock className="h-3 w-3" />
           </span>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <p className="text-2xs font-medium uppercase tracking-wider text-zinc-500">
             Tiempo prom. aprobación · 30d
           </p>
         </div>
         <p className="mt-2 text-[22px] font-semibold tracking-tight tabular-nums text-zinc-900">
           {kpis.avgApprovalHours !== null ? formatHours(kpis.avgApprovalHours) : "—"}
         </p>
-        <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+        <p className="mt-0.5 truncate text-2xs text-zinc-500">
           {kpis.avgSampleSize > 0 ? `${kpis.avgSampleSize} aprobaciones` : "Sin datos aún"}
         </p>
       </div>
@@ -72,7 +72,7 @@ export default function BrandKpiBlock({
           <span className="grid h-5 w-5 place-items-center rounded-md bg-fuchsia-50 text-fuchsia-600">
             <TrendingUp className="h-3 w-3" />
           </span>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <p className="text-2xs font-medium uppercase tracking-wider text-zinc-500">
             Publicados · 7d
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function BrandKpiBlock({
           </p>
           <Sparkline data={kpis.publishedSparkline} stroke={stroke} />
         </div>
-        <p className="mt-0.5 text-[11px] text-zinc-500">Últimos 7 días</p>
+        <p className="mt-0.5 text-2xs text-zinc-500">Últimos 7 días</p>
       </div>
     </div>
   );

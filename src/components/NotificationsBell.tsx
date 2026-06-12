@@ -303,7 +303,7 @@ export default function NotificationsBell() {
               <Bell className="h-3.5 w-3.5 text-zinc-500" />
               <h3 className="text-[13px] font-semibold text-zinc-900">Notificaciones</h3>
               {unread > 0 && (
-                <span className="rounded-full bg-fuchsia-50 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-700 tabular-nums">
+                <span className="rounded-full bg-fuchsia-50 px-1.5 py-0.5 text-3xs font-bold text-fuchsia-700 tabular-nums">
                   {unread}
                 </span>
               )}
@@ -311,7 +311,7 @@ export default function NotificationsBell() {
             {unread > 0 && (
               <button
                 onClick={markAll}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-2xs font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
               >
                 <CheckCheck className="h-3 w-3" />
                 Marcar todas
@@ -324,7 +324,7 @@ export default function NotificationsBell() {
             <div className="flex items-center gap-1 border-b border-zinc-100 bg-zinc-50/50 px-3 py-1.5">
               <button
                 onClick={() => setFilter("all")}
-                className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+                className={`rounded-md px-2.5 py-1 text-2xs font-medium transition ${
                   filter === "all"
                     ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200"
                     : "text-zinc-500 hover:text-zinc-900"
@@ -335,7 +335,7 @@ export default function NotificationsBell() {
               </button>
               <button
                 onClick={() => setFilter("unread")}
-                className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+                className={`rounded-md px-2.5 py-1 text-2xs font-medium transition ${
                   filter === "unread"
                     ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200"
                     : "text-zinc-500 hover:text-zinc-900"
@@ -357,7 +357,7 @@ export default function NotificationsBell() {
                 <p className="text-[13px] font-medium text-zinc-700">
                   {filter === "unread" ? "Sin pendientes" : "Todo al día"} ✨
                 </p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   {filter === "unread"
                     ? "No tienes notificaciones sin leer."
                     : "No tienes notificaciones nuevas."}
@@ -481,7 +481,7 @@ export default function NotificationsBell() {
               {hasReadItems ? (
                 <button
                   onClick={deleteAllRead}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-2xs font-medium text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600"
                   title="Borrar todas las notificaciones leídas"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -493,7 +493,7 @@ export default function NotificationsBell() {
               <Link
                 href="/inbox"
                 onClick={() => setOpen(false)}
-                className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+                className="text-2xs font-medium text-zinc-500 hover:text-zinc-900"
               >
                 Ver todo el inbox →
               </Link>

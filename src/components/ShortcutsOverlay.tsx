@@ -95,7 +95,7 @@ export default function ShortcutsOverlay() {
             <div className="scroll-visible mt-4 max-h-[60vh] space-y-5 overflow-y-auto pr-1">
               {GROUPS.map((g) => (
                 <section key={g.title}>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  <h3 className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                     {g.title}
                   </h3>
                   <ul className="mt-2 divide-y divide-zinc-100/80 rounded-lg border divider bg-white">
@@ -107,7 +107,7 @@ export default function ShortcutsOverlay() {
                         <span className="text-zinc-700">
                           {it.label}
                           {it.context && (
-                            <span className="ml-1.5 text-[11px] text-zinc-400">
+                            <span className="ml-1.5 text-2xs text-zinc-400">
                               {it.context}
                             </span>
                           )}
@@ -118,7 +118,7 @@ export default function ShortcutsOverlay() {
                             return (
                               <kbd
                                 key={k}
-                                className="rounded-md border divider bg-zinc-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-800 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                                className="rounded-md border divider bg-zinc-50 px-1.5 py-0.5 font-mono text-2xs font-semibold text-zinc-800 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
                               >
                                 {display}
                               </kbd>

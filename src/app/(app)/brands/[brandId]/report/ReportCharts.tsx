@@ -29,7 +29,7 @@ export function PublishedChart({
         <p className="text-[12px] font-medium text-zinc-700">
           Sin publicaciones este mes
         </p>
-        <p className="mt-1 text-[11px] text-zinc-500">
+        <p className="mt-1 text-2xs text-zinc-500">
           Cuando publiques, este gráfico mostrará la distribución por día.
         </p>
       </div>
@@ -37,7 +37,7 @@ export function PublishedChart({
   }
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3">
-      <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+      <p className="px-1 text-2xs font-semibold uppercase tracking-wider text-zinc-500">
         Publicaciones por día · {total}
       </p>
       <div className="mt-2 h-44 w-full">
@@ -107,7 +107,7 @@ export function ApprovalDonut({
         <p className="text-[12px] font-medium text-zinc-700">
           Sin decisiones este mes
         </p>
-        <p className="mt-1 text-[11px] text-zinc-500">
+        <p className="mt-1 text-2xs text-zinc-500">
           Cuando un cliente apruebe o pida cambios, el ratio aparecerá aquí.
         </p>
       </div>
@@ -116,7 +116,7 @@ export function ApprovalDonut({
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3">
-      <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+      <p className="px-1 text-2xs font-semibold uppercase tracking-wider text-zinc-500">
         Aprobación · {total} {total === 1 ? "decisión" : "decisiones"}
       </p>
       <div className="relative mt-2 h-44 w-full">
@@ -164,7 +164,7 @@ export function ApprovalDonut({
               >
                 {rate}%
               </p>
-              <p className="mt-0.5 text-[10px] text-zinc-500">aprobación</p>
+              <p className="mt-0.5 text-3xs text-zinc-500">aprobación</p>
             </div>
           </div>
         )}

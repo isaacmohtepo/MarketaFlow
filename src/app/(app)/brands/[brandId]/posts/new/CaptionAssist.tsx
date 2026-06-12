@@ -85,7 +85,7 @@ export default function CaptionAssist({
               setOpen(false);
               setVariants([]);
             }}
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+            className="text-2xs font-medium text-zinc-500 hover:text-zinc-900"
           >
             Cerrar
           </button>
@@ -106,7 +106,7 @@ export default function CaptionAssist({
             <div key={i} className="card group p-3">
               <div className="flex items-center justify-between">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  className={`rounded-full px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider ${
                     TONE_COLOR[v.tone] ?? "bg-zinc-100 text-zinc-600"
                   }`}
                 >
@@ -118,7 +118,7 @@ export default function CaptionAssist({
                     onPick(v.text);
                     setOpen(false);
                   }}
-                  className="btn-gradient rounded-md px-3 py-1 text-[11px] font-semibold opacity-0 transition group-hover:opacity-100"
+                  className="btn-gradient rounded-md px-3 py-1 text-2xs font-semibold opacity-0 transition group-hover:opacity-100"
                 >
                   Usar este
                 </button>
@@ -130,7 +130,7 @@ export default function CaptionAssist({
             <button
               type="button"
               onClick={generate}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-fuchsia-700"
+              className="inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-fuchsia-700"
             >
               <RefreshCw className="h-3 w-3" />
               Generar nuevas variantes

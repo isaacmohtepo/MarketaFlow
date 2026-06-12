@@ -80,7 +80,7 @@ export default function ThreadActions({
         type="button"
         onClick={onToggleResolved}
         disabled={busy}
-        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition disabled:opacity-60 ${
+        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-2xs font-semibold transition disabled:opacity-60 ${
           resolved
             ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
             : "bg-zinc-900 text-white hover:bg-zinc-800"

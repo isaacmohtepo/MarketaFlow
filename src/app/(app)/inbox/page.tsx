@@ -363,7 +363,7 @@ export default async function InboxPage() {
               <div className="px-3 py-2 text-center">
                 <Link
                   href="/dashboard"
-                  className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+                  className="text-2xs font-medium text-zinc-500 hover:text-zinc-900"
                 >
                   Ver todos en marcas →
                 </Link>
@@ -419,12 +419,12 @@ function Section({
             {icon}
           </span>
           <h2 className="text-[13px] font-semibold text-zinc-900">{title}</h2>
-          <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600 tabular-nums">
+          <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold text-zinc-600 tabular-nums">
             {count}
           </span>
         </div>
       </div>
-      {hint && <p className="ml-8 text-[11px] text-zinc-500">{hint}</p>}
+      {hint && <p className="ml-8 text-2xs text-zinc-500">{hint}</p>}
       <ul className="card mt-2 divide-y divide-zinc-100/80 overflow-hidden">{children}</ul>
     </section>
   );
@@ -458,7 +458,7 @@ function Row({
             <MediaThumb url={imageUrl} className="h-full w-full object-cover" showPlayIcon={false} />
           </span>
         ) : (
-          <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-[10px] text-zinc-400">
+          <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-3xs text-zinc-400">
             —
           </span>
         )}
@@ -470,13 +470,13 @@ function Row({
         </div>
         <div className="flex flex-shrink-0 flex-col items-end gap-1">
           <span
-            className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLOR[status] ?? "bg-zinc-200"}`}
+            className={`rounded-full px-1.5 py-0.5 text-3xs font-medium ${STATUS_COLOR[status] ?? "bg-zinc-200"}`}
           >
             {STATUS_LABEL[status] ?? status}
           </span>
           {rightLabel && (
             <span
-              className={`text-[10px] tabular-nums ${
+              className={`text-3xs tabular-nums ${
                 rightTone === "warn" ? "font-semibold text-rose-600" : "text-zinc-500"
               }`}
             >

@@ -45,7 +45,7 @@ export default function CommentAttachmentInline({
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-700 hover:bg-zinc-100"
+      className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-2xs text-zinc-700 hover:bg-zinc-100"
     >
       <Paperclip className="h-3 w-3" />
       <span className="truncate">{name ?? "Adjunto"}</span>

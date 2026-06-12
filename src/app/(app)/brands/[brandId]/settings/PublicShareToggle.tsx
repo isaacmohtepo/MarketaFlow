@@ -92,14 +92,14 @@ export default function PublicShareToggle({
         </button>
       </div>
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[11px] text-emerald-700">
+        <p className="flex items-center gap-1.5 text-2xs text-emerald-700">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           Activo · cualquiera con el link puede comentar y aprobar
         </p>
         <button
           onClick={revoke}
           disabled={busy}
-          className="text-[11px] font-medium text-rose-600 hover:underline disabled:opacity-60"
+          className="text-2xs font-medium text-rose-600 hover:underline disabled:opacity-60"
         >
           Desactivar
         </button>

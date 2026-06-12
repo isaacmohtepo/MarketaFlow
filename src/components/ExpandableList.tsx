@@ -34,7 +34,7 @@ export default function ExpandableList({
         <div className="mt-2 flex justify-center">
           <button
             onClick={allShown ? collapse : expand}
-            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-2xs font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
           >
             {allShown ? (
               <>

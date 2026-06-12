@@ -248,10 +248,10 @@ export default function WhiteLabelEditor({
         {effectiveMode === "logo_only" && (
           <div className="mt-5">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              <label className="text-2xs font-semibold uppercase tracking-wide text-zinc-500">
                 Tamaño del logo
               </label>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-600">
+              <span className="font-mono text-2xs tabular-nums text-zinc-600">
                 {logoHeight}px
               </span>
             </div>
@@ -266,7 +266,7 @@ export default function WhiteLabelEditor({
               }
               className="mt-2 w-full"
             />
-            <div className="mt-1 flex justify-between text-[10px] text-zinc-400">
+            <div className="mt-1 flex justify-between text-3xs text-zinc-400">
               <span>chico</span>
               <span>grande</span>
             </div>
@@ -275,7 +275,7 @@ export default function WhiteLabelEditor({
 
         {/* Alineación */}
         <div className="mt-5">
-          <label className="block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          <label className="block text-2xs font-semibold uppercase tracking-wide text-zinc-500">
             Alineación
           </label>
           <div className="mt-2 inline-flex rounded-md border border-zinc-200 bg-white p-0.5">
@@ -337,7 +337,7 @@ export default function WhiteLabelEditor({
           <button
             type="button"
             onClick={resetColors}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+            className="inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-zinc-900"
           >
             <RotateCcw className="h-3 w-3" />
             Restaurar
@@ -387,7 +387,7 @@ export default function WhiteLabelEditor({
 
       {/* Preview */}
       <div className="rounded-lg border border-zinc-200 bg-zinc-100 p-5">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+        <div className="flex items-center gap-1.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
           <Eye className="h-3 w-3" />
           Preview en vivo
         </div>
@@ -433,7 +433,7 @@ export default function WhiteLabelEditor({
                     className="grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden rounded-lg shadow-sm"
                     style={{ background: previewGradient }}
                   >
-                    <span className="text-[11px] font-bold text-white">
+                    <span className="text-2xs font-bold text-white">
                       {effectiveBrandName.charAt(0).toUpperCase()}
                     </span>
                   </span>
@@ -454,7 +454,7 @@ export default function WhiteLabelEditor({
                   {effectiveBrandName}
                 </p>
                 <p
-                  className={`truncate text-[10px] text-zinc-500 ${
+                  className={`truncate text-3xs text-zinc-500 ${
                     headerAlign === "center"
                       ? "text-center"
                       : headerAlign === "right"
@@ -468,18 +468,18 @@ export default function WhiteLabelEditor({
             )}
           </div>
           <div className="space-y-1 px-4 py-3">
-            <div className="flex items-center gap-2 text-[11px] text-white">
+            <div className="flex items-center gap-2 text-2xs text-white">
               <span
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ background: previewGradient }}
               />
               Dashboard
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+            <div className="flex items-center gap-2 text-2xs text-zinc-400">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
               Marcas
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+            <div className="flex items-center gap-2 text-2xs text-zinc-400">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
               Calendario
             </div>
@@ -503,7 +503,7 @@ export default function WhiteLabelEditor({
             CTA accent
           </button>
           <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white"
+            className="rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-white"
             style={{ background: previewGradient }}
           >
             Pro
@@ -544,7 +544,7 @@ function AlignButton({
       type="button"
       onClick={onClick}
       title={label}
-      className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-semibold transition ${
+      className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-2xs font-semibold transition ${
         active
           ? "bg-zinc-900 text-white"
           : "text-zinc-600 hover:bg-zinc-100"
@@ -609,7 +609,7 @@ function ColorField({
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-[11px] font-semibold text-zinc-700">{label}</p>
+      <p className="mb-1.5 text-2xs font-semibold text-zinc-700">{label}</p>
       <div className="flex items-center gap-2">
         <input
           type="color"
@@ -626,7 +626,7 @@ function ColorField({
           className="input-soft w-full rounded-md px-2 py-1.5 font-mono text-[12px] uppercase"
         />
       </div>
-      {hint && <p className="mt-1 text-[10px] text-zinc-500">{hint}</p>}
+      {hint && <p className="mt-1 text-3xs text-zinc-500">{hint}</p>}
     </div>
   );
 }

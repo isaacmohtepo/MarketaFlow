@@ -94,7 +94,7 @@ export default async function InvoiceDetailPage({
                   MarketaFlow
                 </span>
               </div>
-              <p className="mt-2 text-[11px] text-zinc-500">
+              <p className="mt-2 text-2xs text-zinc-500">
                 MarketaFlow SAS
                 <br />
                 NIT: 901.000.000-0
@@ -173,7 +173,7 @@ export default async function InvoiceDetailPage({
                       {invoice.description ?? `Plan ${plan.name}`}
                     </p>
                     {period && (
-                      <p className="mt-0.5 text-[11px] text-zinc-500">{period}</p>
+                      <p className="mt-0.5 text-2xs text-zinc-500">{period}</p>
                     )}
                   </td>
                   <td className="py-3 pr-3 text-right text-[13px] tabular-nums text-zinc-700">
@@ -288,7 +288,7 @@ function StatusPill({ status }: { status: string }) {
   };
   return (
     <span
-      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
+      className={`rounded-full px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
     >
       {meta.label}
     </span>

@@ -116,14 +116,14 @@ export default function BrandTasksCard({ brandId }: { brandId: string }) {
             Tareas de la marca
           </h2>
           {open.length > 0 && (
-            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-600">
+            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold tabular-nums text-zinc-600">
               {open.length}
             </span>
           )}
         </div>
         <Link
           href="/tasks"
-          className="flex items-center gap-0.5 text-[11px] font-medium text-zinc-400 transition hover:text-zinc-700"
+          className="flex items-center gap-0.5 text-2xs font-medium text-zinc-400 transition hover:text-zinc-700"
         >
           Ver tablero <ArrowRight className="h-3 w-3" />
         </Link>
@@ -172,7 +172,7 @@ export default function BrandTasksCard({ brandId }: { brandId: string }) {
                     {t.title}
                   </span>
                   {due && (
-                    <span className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${due.tone}`}>
+                    <span className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-3xs font-semibold ${due.tone}`}>
                       {due.text}
                     </span>
                   )}

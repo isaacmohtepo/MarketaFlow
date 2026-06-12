@@ -60,7 +60,7 @@ export default function BrandTabs({
               {t.label}
               {count > 0 && (
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                  className={`rounded-full px-1.5 py-0.5 text-3xs font-bold tabular-nums ${
                     isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >

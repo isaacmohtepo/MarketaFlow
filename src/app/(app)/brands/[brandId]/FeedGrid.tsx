@@ -267,7 +267,7 @@ export default function FeedGrid({
                   )}
                 </span>
                 <span
-                  className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none backdrop-blur-md ${
+                  className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-3xs font-semibold leading-none backdrop-blur-md ${
                     STATUS_COLOR[p.status] ?? "bg-zinc-200/80"
                   }`}
                 >
@@ -322,7 +322,7 @@ export default function FeedGrid({
                 <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none backdrop-blur-md ${STATUS_COLOR[p.status] ?? "bg-zinc-200/80"}`}
+                      className={`rounded-full px-2 py-0.5 text-3xs font-semibold leading-none backdrop-blur-md ${STATUS_COLOR[p.status] ?? "bg-zinc-200/80"}`}
                     >
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
@@ -336,7 +336,7 @@ export default function FeedGrid({
                     )}
                     {p.hasNewActivity && (
                       <span
-                        className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm"
+                        className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-3xs font-bold text-white shadow-sm"
                         title="Hay actividad nueva desde tu última visita"
                       >
                         <span className="relative inline-flex h-1.5 w-1.5">
@@ -348,7 +348,7 @@ export default function FeedGrid({
                     )}
                   </div>
                   {p.imageCount > 1 && (
-                    <span className="flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                    <span className="flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-3xs font-semibold text-white backdrop-blur-md">
                       <Layers className="h-2.5 w-2.5" />
                       {p.imageCount}
                     </span>
@@ -357,7 +357,7 @@ export default function FeedGrid({
 
                 {p.unresolvedComments > 0 ? (
                   <span
-                    className="absolute bottom-2 right-2 z-10 flex h-7 min-w-[28px] items-center justify-center gap-1 rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white shadow-[0_2px_8px_rgba(244,63,94,0.45)] ring-2 ring-white"
+                    className="absolute bottom-2 right-2 z-10 flex h-7 min-w-[28px] items-center justify-center gap-1 rounded-full bg-rose-500 px-1.5 text-2xs font-bold text-white shadow-[0_2px_8px_rgba(244,63,94,0.45)] ring-2 ring-white"
                     title={`${p.unresolvedComments} comentario${p.unresolvedComments > 1 ? "s" : ""} sin resolver`}
                   >
                     <MessageSquare className="h-3 w-3" strokeWidth={2.5} />
@@ -365,7 +365,7 @@ export default function FeedGrid({
                   </span>
                 ) : p.totalComments > 0 ? (
                   <span
-                    className="absolute bottom-2 right-2 z-10 flex h-7 min-w-[28px] items-center justify-center gap-1 rounded-full bg-white/95 px-1.5 text-[11px] font-bold text-emerald-700 shadow-[0_2px_6px_rgba(0,0,0,0.10)] ring-1 ring-emerald-200"
+                    className="absolute bottom-2 right-2 z-10 flex h-7 min-w-[28px] items-center justify-center gap-1 rounded-full bg-white/95 px-1.5 text-2xs font-bold text-emerald-700 shadow-[0_2px_6px_rgba(0,0,0,0.10)] ring-1 ring-emerald-200"
                     title="Todos los comentarios resueltos"
                   >
                     <CheckCircle2 className="h-3 w-3" strokeWidth={2.5} />
@@ -375,7 +375,7 @@ export default function FeedGrid({
 
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/90 via-black/55 to-transparent p-3 pr-12 transition-transform duration-300 group-hover:translate-y-0">
                   {p.scheduledAt && (
-                    <div className="mb-1 flex items-center gap-1 text-[10px] font-medium text-white/85">
+                    <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-white/85">
                       <CalendarClock className="h-3 w-3" />
                       {formatScheduled(p.scheduledAt)}
                     </div>

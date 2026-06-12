@@ -102,7 +102,7 @@ export default function UserMenu({
             className="h-7 w-7 flex-shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
           />
         ) : (
-          <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white brand-gradient">
+          <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-3xs font-semibold text-white brand-gradient">
             {initials || "?"}
           </span>
         )}
@@ -133,7 +133,7 @@ export default function UserMenu({
               <p className="truncate text-[13px] font-semibold text-zinc-900">
                 {userName}
               </p>
-              <p className="truncate text-[11px] text-zinc-500">{userEmail}</p>
+              <p className="truncate text-2xs text-zinc-500">{userEmail}</p>
             </div>
           </div>
 

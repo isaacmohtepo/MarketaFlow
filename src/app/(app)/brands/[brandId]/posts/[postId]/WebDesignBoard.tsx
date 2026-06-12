@@ -1402,7 +1402,7 @@ export default function WebDesignBoard({
                 <span className="hidden sm:inline">Conversaciones</span>
                 {parents.length > 0 && (
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                    className={`rounded-full px-1.5 py-0.5 text-3xs font-bold tabular-nums ${
                       unresolved > 0
                         ? "bg-white/25 text-white"
                         : "bg-zinc-200 text-zinc-700"
@@ -1441,7 +1441,7 @@ export default function WebDesignBoard({
             </span>
           )}
           {bridge.state === "connecting" && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
+            <span className="inline-flex items-center gap-1 text-2xs text-zinc-500">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span className="hidden sm:inline">Conectando widget…</span>
             </span>
@@ -1610,7 +1610,7 @@ export default function WebDesignBoard({
                 {isHome ? (
                   <Globe className="h-3 w-3" />
                 ) : (
-                  <span className="font-mono text-[10px] opacity-60">/</span>
+                  <span className="font-mono text-3xs opacity-60">/</span>
                 )}
                 <span className="max-w-[140px] truncate">
                   {isHome ? "Home" : p.path.replace(/^\//, "") || "/"}
@@ -1842,7 +1842,7 @@ export default function WebDesignBoard({
                 </div>
               )}
               <div
-                className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg"
+                className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-900 px-3 py-1.5 text-2xs font-semibold text-white shadow-lg"
                 style={{
                   // Counter-scale para que el hint se vea del mismo tamaño
                   // sin importar el zoom del wrapper.
@@ -1897,7 +1897,7 @@ export default function WebDesignBoard({
                   // tamaño visual sin importar el zoom del wrapper.
                   transform: `translate(-50%, -50%) scale(${counterScale * (active ? 1.25 : 1)})`,
                 }}
-                className={`absolute z-20 grid h-9 w-9 place-items-center rounded-full text-[12px] font-bold text-white shadow-md ring-2 transition-transform sm:h-7 sm:w-7 sm:text-[11px] ${
+                className={`absolute z-20 grid h-9 w-9 place-items-center rounded-full text-[12px] font-bold text-white shadow-md ring-2 transition-transform sm:h-7 sm:w-7 sm:text-2xs ${
                   c.resolved
                     ? "bg-emerald-500 ring-white"
                     : orphan
@@ -2015,7 +2015,7 @@ export default function WebDesignBoard({
                       <span
                         className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-gradient-to-br ${gradientForName(
                           c.userName,
-                        )} text-[11px] font-bold text-white`}
+                        )} text-2xs font-bold text-white`}
                       >
                         {c.userName[0]?.toUpperCase()}
                       </span>
@@ -2023,7 +2023,7 @@ export default function WebDesignBoard({
                         <p className="truncate text-[12px] font-semibold text-zinc-900">
                           {c.userName}
                         </p>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-3xs text-zinc-500">
                           {new Date(c.createdAt).toLocaleString()}
                         </p>
                       </div>
@@ -2067,7 +2067,7 @@ export default function WebDesignBoard({
                       <p className="mt-2 whitespace-pre-wrap text-[13px] leading-snug text-zinc-800">
                         <MentionText text={c.body} />
                         {c.updatedAt && c.updatedAt !== c.createdAt && (
-                          <span className="ml-1 text-[10px] italic text-zinc-400">
+                          <span className="ml-1 text-3xs italic text-zinc-400">
                             (editado)
                           </span>
                         )}
@@ -2187,7 +2187,7 @@ export default function WebDesignBoard({
               }}
               className="absolute z-30"
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-fuchsia-600 text-[11px] font-bold text-white shadow-md ring-2 ring-white">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-fuchsia-600 text-2xs font-bold text-white shadow-md ring-2 ring-white">
                 {parents.length + 1}
               </span>
               <div
@@ -2211,7 +2211,7 @@ export default function WebDesignBoard({
                   </p>
                   {isInternalMode && (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-700 ring-1 ring-violet-200"
+                      className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wider text-violet-700 ring-1 ring-violet-200"
                       title="Este entregable está en modo equipo. Cuando cambies el status a 'En revisión' los comentarios nuevos serán visibles al cliente."
                     >
                       🔒 Equipo
@@ -2244,7 +2244,7 @@ export default function WebDesignBoard({
                   modKey={modKey}
                   textareaRef={draftInputRef}
                 />
-                {error && <p className="mt-1 text-[11px] text-rose-600">{error}</p>}
+                {error && <p className="mt-1 text-2xs text-rose-600">{error}</p>}
               </div>
             </div>
           )}
@@ -2438,7 +2438,7 @@ export default function WebDesignBoard({
                           key={f.key}
                           type="button"
                           onClick={() => setFilterMode(f.key)}
-                          className={`flex flex-shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                          className={`flex flex-shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-2xs font-semibold transition ${
                             active
                               ? "bg-zinc-900 text-white"
                               : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
@@ -2494,7 +2494,7 @@ export default function WebDesignBoard({
                                     : "Nada por aquí"}
                 </p>
                 {canComment && parents.length === 0 && bridge.state === "ready" && (
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-2xs text-zinc-500">
                     Toca <span className="font-medium">Comentar</span> y haz click sobre cualquier
                     componente del sitio para anclar feedback.
                   </p>
@@ -2506,7 +2506,7 @@ export default function WebDesignBoard({
                       setFilterMode("pending");
                       setSearchQuery("");
                     }}
-                    className="text-[11px] font-semibold text-fuchsia-700 hover:underline"
+                    className="text-2xs font-semibold text-fuchsia-700 hover:underline"
                   >
                     Limpiar filtros
                   </button>
@@ -2659,7 +2659,7 @@ export default function WebDesignBoard({
                           {/* Parent comment */}
                           <div className="flex items-start gap-2.5">
                             <span
-                              className={`relative z-[1] grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold text-white shadow-sm bg-gradient-to-br ${gradientForName(
+                              className={`relative z-[1] grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-2xs font-bold text-white shadow-sm bg-gradient-to-br ${gradientForName(
                                 c.userName,
                               )}`}
                             >
@@ -2670,7 +2670,7 @@ export default function WebDesignBoard({
                                 <span className="truncate text-[12.5px] font-semibold text-zinc-900">
                                   {c.userName}
                                 </span>
-                                <span className="text-[10px] text-zinc-400">
+                                <span className="text-3xs text-zinc-400">
                                   {relTimeShort(c.createdAt)}
                                 </span>
                                 {c.updatedAt && c.updatedAt !== c.createdAt && (
@@ -2783,7 +2783,7 @@ export default function WebDesignBoard({
                                   setReplyTo({ id: c.id, where: "sidebar" });
                                   setReplyBody("");
                                 }}
-                                className="mt-2.5 ml-9 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                                className="mt-2.5 ml-9 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                               >
                                 <CornerDownRight className="h-3 w-3" />
                                 Responder…

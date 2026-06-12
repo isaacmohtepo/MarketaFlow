@@ -82,7 +82,7 @@ export default async function SharePage({
             </div>
           ) : null}
 
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
             Te invitan a revisar
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-zinc-900">
@@ -100,7 +100,7 @@ export default async function SharePage({
 
           {/* Footer: si white-label activo, "Powered by <brand>".
               Si no, footer default de MarketaFlow. */}
-          <p className="mt-6 text-center text-[10px] text-zinc-400">
+          <p className="mt-6 text-center text-3xs text-zinc-400">
             {wl.enabled
               ? `Hecho con ${wl.brandName}`
               : "Hecho con MarketaFlow"}

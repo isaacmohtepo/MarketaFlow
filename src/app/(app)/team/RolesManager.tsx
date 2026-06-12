@@ -466,7 +466,7 @@ function RoleEditor({
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {initial.nameEditable ? (
             <div>
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <label className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                 Nombre
               </label>
               <input
@@ -486,7 +486,7 @@ function RoleEditor({
             </div>
           )}
           <div>
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+            <label className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
               Descripción {isCreate && "(opcional)"}
             </label>
             <input
@@ -500,10 +500,10 @@ function RoleEditor({
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <label className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                 Permisos
               </label>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-2xs text-zinc-500">
                 {perms.size} de {allPerms.length}
               </p>
             </div>

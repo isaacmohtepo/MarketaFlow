@@ -56,7 +56,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-[11px] text-white shadow-xl">
+    <div className="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-2xs text-white shadow-xl">
       {label && <p className="mb-0.5 font-semibold text-zinc-300">{label}</p>}
       {payload.map((p) => (
         <p key={p.name} className="flex items-center gap-1.5 tabular-nums">
@@ -169,7 +169,7 @@ export function StatusDonut({ data }: { data: StatusSlice[] }) {
           <span className="text-[22px] font-semibold leading-none tabular-nums text-zinc-900">
             {total}
           </span>
-          <span className="text-[10px] text-zinc-400">posts</span>
+          <span className="text-3xs text-zinc-400">posts</span>
         </div>
       </div>
       <ul className="min-w-0 flex-1 space-y-1.5">

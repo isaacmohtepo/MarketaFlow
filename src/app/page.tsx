@@ -195,7 +195,7 @@ export default async function Home() {
       <section className="border-t divider bg-black">
         <div className="mx-auto w-full max-w-6xl px-6 py-20">
           <div className="text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest brand-gradient-text">
+            <p className="text-2xs font-semibold uppercase tracking-widest brand-gradient-text">
               Cómo funciona
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl">
@@ -253,7 +253,7 @@ export default async function Home() {
       <section id="features" className="border-t divider bg-[#06060a]">
         <div className="mx-auto w-full max-w-6xl px-6 py-20">
           <div className="text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest brand-gradient-text">
+            <p className="text-2xs font-semibold uppercase tracking-widest brand-gradient-text">
               Todo en un solo lugar
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl">
@@ -295,7 +295,7 @@ export default async function Home() {
       <section className="border-t divider bg-black">
         <div className="mx-auto w-full max-w-6xl px-6 py-20">
           <div className="text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest brand-gradient-text">
+            <p className="text-2xs font-semibold uppercase tracking-widest brand-gradient-text">
               Planes
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-5xl">

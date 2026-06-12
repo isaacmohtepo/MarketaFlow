@@ -42,7 +42,7 @@ export default function PricingPage() {
         </div>
         <div className="relative mx-auto w-full max-w-6xl px-6 py-24">
           <div className="text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest brand-gradient-text">
+            <p className="text-2xs font-semibold uppercase tracking-widest brand-gradient-text">
               Precios
             </p>
             <h1 className="mt-2 text-4xl font-bold tracking-tight text-white sm:text-6xl">

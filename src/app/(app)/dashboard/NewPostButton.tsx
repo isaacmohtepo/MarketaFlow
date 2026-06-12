@@ -94,7 +94,7 @@ export default function NewPostButton({
 
       {open && (
         <div className="absolute right-0 top-full z-20 mt-2 w-64 overflow-hidden rounded-xl border bg-white shadow-lg divider">
-          <p className="border-b divider px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="border-b divider px-3 py-2 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
             Crear post para…
           </p>
           <ul className="max-h-72 overflow-auto py-1">
@@ -113,7 +113,7 @@ export default function NewPostButton({
                     className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-zinc-800 hover:bg-zinc-50"
                   >
                     <span
-                      className="grid h-6 w-6 flex-shrink-0 place-items-center overflow-hidden rounded-md text-[11px] font-bold text-white"
+                      className="grid h-6 w-6 flex-shrink-0 place-items-center overflow-hidden rounded-md text-2xs font-bold text-white"
                       style={{ background: bg }}
                     >
                       {b.logoUrl ? (

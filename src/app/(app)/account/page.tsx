@@ -107,7 +107,7 @@ export default async function AccountPage({
                 {full?.name ?? "Sin nombre"}
               </h1>
               <p className="mt-0.5 text-[12.5px] text-zinc-600">{user.email}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs">
                 <RoleBadge role={full?.role ?? "agency"} />
                 {full?.createdAt && (
                   <span className="inline-flex items-center gap-1 text-zinc-500">
@@ -339,7 +339,7 @@ function Stat({
   return (
     <div className="px-4 py-3 text-center">
       <p className="text-[18px] font-bold tabular-nums text-zinc-900">{value}</p>
-      <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-400">
+      <p className="mt-0.5 inline-flex items-center gap-1 text-3xs uppercase tracking-wider text-zinc-400">
         <span className="inline-flex h-3 w-3 items-center justify-center [&>svg]:h-3 [&>svg]:w-3">
           {icon}
         </span>
@@ -367,7 +367,7 @@ function RoleBadge({ role }: { role: string }) {
   const meta = map[role] ?? { label: role, cls: "bg-zinc-100 text-zinc-600 ring-zinc-200" };
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
+      className={`rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${meta.cls}`}
     >
       {meta.label}
     </span>

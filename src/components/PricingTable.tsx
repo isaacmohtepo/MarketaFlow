@@ -81,7 +81,7 @@ function PlanCard({ plan, cycle }: { plan: Plan; cycle: "monthly" | "yearly" }) 
       }`}
     >
       {plan.highlight && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full brand-gradient px-3.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full brand-gradient px-3.5 py-1 text-3xs font-bold uppercase tracking-widest text-white shadow-lg">
           Más popular
         </span>
       )}
@@ -96,7 +96,7 @@ function PlanCard({ plan, cycle }: { plan: Plan; cycle: "monthly" | "yearly" }) 
           {!isFree && <span className="text-sm text-zinc-500">{note}</span>}
         </div>
         {!isFree && (
-          <p className="mt-1 text-[11px] text-zinc-500">
+          <p className="mt-1 text-2xs text-zinc-500">
             ≈ ${plan.priceUsdMonthly} USD/mes
           </p>
         )}

@@ -752,7 +752,7 @@ export default function PostBoard({
         {externalVideoUrl && !videoMedia && (
           <div className={`mb-3 ${compareWith ? "hidden" : ""}`}>
             <VideoEmbed url={externalVideoUrl} />
-            <p className="mt-2 text-[11px] text-zinc-500">
+            <p className="mt-2 text-2xs text-zinc-500">
               Comenta abajo. (Anclar comentarios a un momento del video solo funciona si subes el archivo directo, no con embeds de YouTube/Vimeo/Loom.)
             </p>
           </div>
@@ -771,7 +771,7 @@ export default function PostBoard({
             {pendingVideoTime != null && (
               <div className="mt-2 flex items-center gap-3 rounded-xl bg-gradient-to-r from-fuchsia-100 via-rose-50 to-fuchsia-100 px-4 py-2.5 text-[12.5px] text-fuchsia-900 ring-1 ring-fuchsia-300/60 shadow-sm">
                 <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-fuchsia-500 text-white shadow-md">
-                  <span className="font-mono text-[10px] font-bold">▶</span>
+                  <span className="font-mono text-3xs font-bold">▶</span>
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">
@@ -780,14 +780,14 @@ export default function PostBoard({
                       {formatTime(pendingVideoTime)}
                     </span>
                   </p>
-                  <p className="text-[11px] text-fuchsia-700/80">
+                  <p className="text-2xs text-fuchsia-700/80">
                     Tu próximo comentario va a marcar este segundo del video.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPendingVideoTime(null)}
-                  className="rounded-md px-2 py-1 text-[11px] font-medium text-fuchsia-700 hover:bg-fuchsia-200/60"
+                  className="rounded-md px-2 py-1 text-2xs font-medium text-fuchsia-700 hover:bg-fuchsia-200/60"
                 >
                   cancelar
                 </button>
@@ -848,7 +848,7 @@ export default function PostBoard({
               >
                 ›
               </button>
-              <div className="absolute right-3 top-3 z-30 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
+              <div className="absolute right-3 top-3 z-30 rounded-full bg-black/50 px-2 py-0.5 text-2xs font-semibold text-white backdrop-blur">
                 {slide + 1} / {slides.length}
               </div>
               <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-1.5">
@@ -921,7 +921,7 @@ export default function PostBoard({
                   : { top: `calc(${y * 100}% + 22px)` };
               return (
                 <div
-                  className="pointer-events-none absolute z-20 max-w-[220px] rounded-lg bg-zinc-900/90 px-2.5 py-1.5 text-[11px] text-white shadow-xl backdrop-blur"
+                  className="pointer-events-none absolute z-20 max-w-[220px] rounded-lg bg-zinc-900/90 px-2.5 py-1.5 text-2xs text-white shadow-xl backdrop-blur"
                   style={{ ...horiz, ...vert }}
                 >
                   <p className="font-semibold opacity-80">{hovered.userName}</p>
@@ -1016,13 +1016,13 @@ export default function PostBoard({
         {versions.length > 0 && (
           <div className="card p-3">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                 Versiones anteriores
               </p>
               {compareWith && (
                 <button
                   onClick={() => setCompareWith(null)}
-                  className="text-[11px] font-medium text-fuchsia-700 hover:underline"
+                  className="text-2xs font-medium text-fuchsia-700 hover:underline"
                 >
                   Cerrar comparación
                 </button>
@@ -1054,7 +1054,7 @@ export default function PostBoard({
                             className="h-9 w-9 flex-shrink-0 rounded object-cover"
                           />
                         ) : (
-                          <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded bg-zinc-100 text-[10px] text-zinc-500">
+                          <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded bg-zinc-100 text-3xs text-zinc-500">
                             —
                           </span>
                         )}
@@ -1062,7 +1062,7 @@ export default function PostBoard({
                           <p className="text-[12px] font-semibold text-zinc-900">
                             Versión {v.version}
                           </p>
-                          <p className="truncate text-[10px] text-zinc-500">
+                          <p className="truncate text-3xs text-zinc-500">
                             {new Date(v.createdAt).toLocaleString()}
                           </p>
                         </div>
@@ -1104,7 +1104,7 @@ export default function PostBoard({
                 <p className="text-[13px] font-semibold text-amber-900">
                   Este post está en la papelera
                 </p>
-                <p className="mt-0.5 text-[11px] text-amber-800">
+                <p className="mt-0.5 text-2xs text-amber-800">
                   Restaurarlo lo devuelve al feed con el mismo estado.
                 </p>
               </div>
@@ -1204,7 +1204,7 @@ export default function PostBoard({
             <p className="text-[12px] font-medium text-zinc-600">
               Auto-publicación próximamente
             </p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
+            <p className="mt-0.5 text-2xs text-zinc-500">
               Por ahora, copia el caption y sube el contenido desde Instagram.
             </p>
           </div>
@@ -1323,7 +1323,7 @@ export default function PostBoard({
             {parents.some((p) => p.resolved) && (
               <button
                 onClick={() => setShowResolved((v) => !v)}
-                className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+                className="text-2xs font-medium text-zinc-500 hover:text-zinc-900"
               >
                 {showResolved ? "Ocultar resueltos" : "Mostrar resueltos"}
               </button>
@@ -1378,12 +1378,12 @@ export default function PostBoard({
                         <button
                           type="button"
                           onClick={() => seekToComment(c.id)}
-                          className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-rose-500 px-2.5 py-1 text-[11px] font-mono font-bold text-white shadow-sm ring-1 ring-fuchsia-400/40 transition hover:scale-[1.03] hover:shadow-md"
+                          className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-rose-500 px-2.5 py-1 text-2xs font-mono font-bold text-white shadow-sm ring-1 ring-fuchsia-400/40 transition hover:scale-[1.03] hover:shadow-md"
                           title="Saltar a este momento del video"
                         >
-                          <span className="text-[10px]">▶</span>
+                          <span className="text-3xs">▶</span>
                           {formatTime(c.videoTime)}
-                          <span className="font-sans text-[10px] font-medium opacity-80">
+                          <span className="font-sans text-3xs font-medium opacity-80">
                             en el video
                           </span>
                         </button>
@@ -1482,7 +1482,7 @@ export default function PostBoard({
                           setReplyTo(c.id);
                           setReplyBody("");
                         }}
-                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-fuchsia-700"
+                        className="mt-2 inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-fuchsia-700"
                       >
                         <CornerDownRight className="h-3 w-3" />
                         Responder
@@ -1669,7 +1669,7 @@ function CommentHead({
           </span>
         )}
         {c.resolved && (
-          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-3xs font-semibold text-emerald-700">
             Resuelto
           </span>
         )}
@@ -1678,7 +1678,7 @@ function CommentHead({
         {onResolve && !isReply && (
           <button
             onClick={onResolve}
-            className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
+            className={`rounded-md px-2 py-0.5 text-3xs font-semibold transition ${
               c.resolved
                 ? "text-emerald-700 hover:bg-emerald-50"
                 : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
@@ -1775,7 +1775,7 @@ function WidgetContext({ c }: { c: Comment }) {
       )}
       {c.selector && (
         <span
-          className="truncate font-mono text-[10px] text-violet-700/80"
+          className="truncate font-mono text-3xs text-violet-700/80"
           title={c.selector}
         >
           {c.selector}
@@ -1821,7 +1821,7 @@ function StatusSelector({
     <div ref={ref} className="card relative px-3 py-2">
       <div className="flex items-center gap-2">
         <p
-          className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"
+          className="flex-shrink-0 text-3xs font-semibold uppercase tracking-wider text-zinc-500"
           title="Override manual. El cliente sigue pudiendo aprobar/rechazar normalmente."
         >
           Estado
@@ -1901,14 +1901,14 @@ function EditBox({
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
-          className="rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+          className="rounded-md px-2 py-1 text-2xs font-medium text-zinc-500 hover:text-zinc-900"
         >
           Cancelar
         </button>
         <button
           onClick={onSave}
           disabled={busy || !value.trim()}
-          className="btn-gradient rounded-md px-3 py-1 text-[11px] font-semibold disabled:opacity-60"
+          className="btn-gradient rounded-md px-3 py-1 text-2xs font-semibold disabled:opacity-60"
         >
           Guardar
         </button>

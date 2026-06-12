@@ -186,7 +186,7 @@ export default async function BrandReportPage({
                 )}
               </span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+                <p className="text-2xs font-semibold uppercase tracking-widest text-zinc-500">
                   Reporte mensual
                 </p>
                 <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-zinc-900">
@@ -196,11 +196,11 @@ export default async function BrandReportPage({
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+              <p className="text-3xs font-semibold uppercase tracking-widest text-zinc-400">
                 Por
               </p>
               <p className="mt-0.5 text-[13px] font-semibold text-zinc-900">{brand.agency.name}</p>
-              <p className="text-[10px] text-zinc-500">
+              <p className="text-3xs text-zinc-500">
                 Generado el {new Date().toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" })}
               </p>
             </div>
@@ -269,7 +269,7 @@ export default async function BrandReportPage({
           {/* Publicados — grid de thumbnails */}
           {publishedPosts.length > 0 && (
             <section className="mt-8">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+              <h2 className="text-2xs font-semibold uppercase tracking-widest text-zinc-500">
                 Publicados ({publishedPosts.length})
               </h2>
               <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -298,7 +298,7 @@ export default async function BrandReportPage({
           {/* Programados */}
           {scheduledPosts.length > 0 && (
             <section className="mt-8">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+              <h2 className="text-2xs font-semibold uppercase tracking-widest text-zinc-500">
                 Programados durante el mes ({scheduledPosts.length})
               </h2>
               <ul className="mt-3 divide-y divide-zinc-100/80 rounded-xl ring-1 ring-zinc-200">
@@ -314,7 +314,7 @@ export default async function BrandReportPage({
                       <p className="truncate text-[12px] font-semibold text-zinc-900">
                         {p.caption || "Sin caption"}
                       </p>
-                      <p className="text-[10px] text-zinc-500">
+                      <p className="text-3xs text-zinc-500">
                         {p.scheduledAt ? fmtDate(p.scheduledAt) : ""}
                       </p>
                     </div>
@@ -327,7 +327,7 @@ export default async function BrandReportPage({
           {/* Notas de cambios solicitados */}
           {changesNotes.length > 0 && (
             <section className="mt-8">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+              <h2 className="text-2xs font-semibold uppercase tracking-widest text-zinc-500">
                 Cambios solicitados
               </h2>
               <ul className="mt-3 space-y-2">
@@ -337,7 +337,7 @@ export default async function BrandReportPage({
                     className="rounded-lg bg-rose-50 p-3 text-[12px] text-rose-900 ring-1 ring-rose-100"
                   >
                     <p className="italic">"{a.note}"</p>
-                    <p className="mt-1 text-[10px] text-rose-700/70">
+                    <p className="mt-1 text-3xs text-rose-700/70">
                       — {a.user.name ?? a.user.email} · {fmtDate(a.createdAt)}
                     </p>
                   </li>
@@ -349,10 +349,10 @@ export default async function BrandReportPage({
           {/* En revisión al cierre */}
           {inReviewPosts.length > 0 && (
             <section className="mt-8">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+              <h2 className="text-2xs font-semibold uppercase tracking-widest text-zinc-500">
                 Quedaron en revisión ({inReviewPosts.length})
               </h2>
-              <p className="mt-1 text-[11px] text-zinc-500">
+              <p className="mt-1 text-2xs text-zinc-500">
                 Posts que recibieron movimiento durante el mes y siguen esperando aprobación.
               </p>
             </section>
@@ -369,7 +369,7 @@ export default async function BrandReportPage({
             )}
 
           {/* Footer */}
-          <footer className="mt-10 border-t divider pt-4 text-center text-[10px] text-zinc-400">
+          <footer className="mt-10 border-t divider pt-4 text-center text-3xs text-zinc-400">
             MarketaFlow · {brand.agency.name} · {monthLabel}
           </footer>
         </article>
@@ -409,7 +409,7 @@ function KpiCard({
         <span className={`grid h-5 w-5 place-items-center rounded-md ${TINT_BG[tint]}`}>
           {icon}
         </span>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+        <p className="text-3xs font-semibold uppercase tracking-wider text-zinc-500">
           {label}
         </p>
       </div>

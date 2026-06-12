@@ -109,20 +109,20 @@ export default function InteractiveFeedDemo() {
         <div className="flex items-center justify-between gap-3 px-3 pt-1.5 pb-3">
           <div className="flex items-center gap-2">
             <span className="grid h-7 w-7 place-items-center rounded-lg brand-gradient text-white">
-              <span className="text-[10px] font-bold">MF</span>
+              <span className="text-3xs font-bold">MF</span>
             </span>
             <div>
               <p className="text-[12px] font-semibold leading-tight text-white">
                 @marca.demo
               </p>
-              <p className="text-[10px] leading-tight text-zinc-500">
+              <p className="text-3xs leading-tight text-zinc-500">
                 Feed planeado · Septiembre
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden text-[11px] font-medium text-zinc-400 sm:inline">
+            <span className="hidden text-2xs font-medium text-zinc-400 sm:inline">
               {approved} de {total} aprobados
             </span>
             <div className="hidden h-1.5 w-32 overflow-hidden rounded-full bg-white/5 sm:block">
@@ -246,11 +246,11 @@ export default function InteractiveFeedDemo() {
 
         {/* Footer del mockup */}
         <div className="flex items-center justify-between px-3 pb-1.5 pt-3">
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-2xs text-zinc-500">
             <span className="text-zinc-400">Tip:</span> click para cambiar estado · arrastra para reordenar.
           </p>
           {pct === 100 && (
-            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-3xs font-semibold text-emerald-400">
               ✨ Listo para publicar
             </span>
           )}

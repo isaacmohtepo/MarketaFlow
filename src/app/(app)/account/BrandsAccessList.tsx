@@ -33,7 +33,7 @@ export default function BrandsAccessList({
       <div className="card p-6 text-center">
         <Layers className="mx-auto h-6 w-6 text-zinc-300" />
         <p className="mt-2 text-[13px] font-medium text-zinc-700">Sin acceso a marcas</p>
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-2xs text-zinc-500">
           Cuando te inviten a una marca aparecerá aquí.
         </p>
       </div>
@@ -65,10 +65,10 @@ export default function BrandsAccessList({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold text-zinc-900">{b.name}</p>
-                <p className="truncate text-[11px] text-zinc-500">{b.agencyName}</p>
+                <p className="truncate text-2xs text-zinc-500">{b.agencyName}</p>
               </div>
               <span
-                className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${roleTint}`}
+                className={`flex-shrink-0 rounded-full px-2 py-0.5 text-3xs font-semibold ring-1 ${roleTint}`}
               >
                 {roleLabel}
               </span>

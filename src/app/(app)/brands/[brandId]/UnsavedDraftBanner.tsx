@@ -84,7 +84,7 @@ export default function UnsavedDraftBanner({ brandId }: { brandId: string }) {
       </Link>
       <button
         onClick={discard}
-        className="rounded-md px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+        className="rounded-md px-2.5 py-1 text-2xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
       >
         Descartar
       </button>

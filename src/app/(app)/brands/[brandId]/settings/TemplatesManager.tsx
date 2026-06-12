@@ -174,7 +174,7 @@ export default function TemplatesManager({ brandId }: { brandId: string }) {
         <div className="card p-6 text-center">
           <Layout className="mx-auto h-6 w-6 text-zinc-300" />
           <p className="mt-2 text-[13px] font-medium text-zinc-700">Sin plantillas</p>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-2xs text-zinc-500">
             Crea una para reutilizar caption + plataforma en posts repetitivos.
           </p>
         </div>
@@ -231,11 +231,11 @@ export default function TemplatesManager({ brandId }: { brandId: string }) {
                     <p className="line-clamp-2 text-[11.5px] text-zinc-500">
                       {t.caption || "Sin caption"}
                     </p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">
+                    <p className="mt-1 text-3xs uppercase tracking-wider text-zinc-400">
                       {t.platform} · {t.postType}
                     </p>
                     {!t.isShared && (
-                      <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-600">
+                      <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 text-2xs text-zinc-600">
                         <input
                           type="checkbox"
                           checked={!!t.sharedAgencyWide}

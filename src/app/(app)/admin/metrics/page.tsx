@@ -74,7 +74,7 @@ export default async function AdminMetricsPage() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-zinc-200 text-[10px] uppercase tracking-wider text-zinc-400">
+                <tr className="border-b border-zinc-200 text-3xs uppercase tracking-wider text-zinc-400">
                   <th className="py-2 pr-3 font-semibold">Cohort</th>
                   <th className="py-2 pr-3 text-right font-semibold">Size</th>
                   {Array.from({ length: 6 }, (_, i) => (
@@ -101,7 +101,7 @@ export default async function AdminMetricsPage() {
                       if (v === undefined || v === null) {
                         return (
                           <td key={i} className="py-2 px-2 text-center">
-                            <span className="text-[11px] text-zinc-300">—</span>
+                            <span className="text-2xs text-zinc-300">—</span>
                           </td>
                         );
                       }
@@ -118,7 +118,7 @@ export default async function AdminMetricsPage() {
                       return (
                         <td
                           key={i}
-                          className={`py-2 px-2 text-center text-[11px] tabular-nums ${bgMap[intensity] ?? "bg-fuchsia-500/80 text-white"}`}
+                          className={`py-2 px-2 text-center text-2xs tabular-nums ${bgMap[intensity] ?? "bg-fuchsia-500/80 text-white"}`}
                         >
                           {Math.round(pct * 100)}%
                         </td>
@@ -150,7 +150,7 @@ export default async function AdminMetricsPage() {
                 className="flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-zinc-50"
               >
                 <div className="flex items-center gap-3">
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-600">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-zinc-100 text-3xs font-bold text-zinc-600">
                     {i + 1}
                   </span>
                   <span className="text-[13px] font-medium text-zinc-900">
@@ -188,7 +188,7 @@ function Stat({
 }) {
   return (
     <div className="card p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center gap-1.5 text-3xs font-bold uppercase tracking-wider text-zinc-400">
         <span className="grid h-5 w-5 place-items-center rounded bg-zinc-100 text-zinc-500">
           {icon}
         </span>

@@ -327,7 +327,7 @@ export default function DashboardLayout({ data }: { data: DashboardData }) {
     <div className="mt-8">
       {/* Toolbar de edición */}
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+        <p className="text-2xs font-medium uppercase tracking-wider text-zinc-400">
           {editing
             ? "Arrastra los widgets para moverlos. Tira de la esquina inferior derecha para redimensionar."
             : "Tu dashboard"}
@@ -703,7 +703,7 @@ function BrandsWidget({ data, editing }: { data: DashboardData; editing: boolean
               {kpis && (
                 <div className="mt-2.5 flex items-center justify-between gap-3 border-t divider pt-2">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                    <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
                       Aprob. 7d
                     </p>
                     <p
@@ -713,7 +713,7 @@ function BrandsWidget({ data, editing }: { data: DashboardData; editing: boolean
                     </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                    <p className="text-3xs font-medium uppercase tracking-wider text-zinc-400">
                       Public. 7d · {kpis.publishedTotal}
                     </p>
                     <Sparkline
@@ -745,7 +745,7 @@ function MyTasksWidget({ data, editing }: { data: DashboardData; editing: boolea
         right={
           <div className="flex items-center gap-2">
             {myTasksTotal > 0 && (
-              <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-semibold text-fuchsia-600 tabular-nums">
+              <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-2xs font-semibold text-fuchsia-600 tabular-nums">
                 {myTasksTotal}
               </span>
             )}
@@ -791,7 +791,7 @@ function MyTasksWidget({ data, editing }: { data: DashboardData; editing: boolea
                     <p className="truncate text-[12.5px] font-semibold text-zinc-900">
                       {t.title}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-zinc-500">
+                    <div className="mt-0.5 flex items-center gap-2 text-2xs text-zinc-500">
                       <span>{TASK_STATUS_DASH_LABEL[t.status] ?? t.status}</span>
                       {t.brand && (
                         <>
@@ -809,7 +809,7 @@ function MyTasksWidget({ data, editing }: { data: DashboardData; editing: boolea
                   </div>
                   {t.dueDate && (
                     <span
-                      className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${dueBadgeClass(t.dueDate)}`}
+                      className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold ${dueBadgeClass(t.dueDate)}`}
                     >
                       <CalendarClock className="h-3 w-3" />
                       {formatDueShort(t.dueDate)}
@@ -864,7 +864,7 @@ function ActivityWidget({ data, editing }: { data: DashboardData; editing: boole
                         <span className="text-zinc-500">en</span>{" "}
                         <span className="font-medium text-zinc-700">{a.post.brand.name}</span>
                       </p>
-                      <p className="mt-0.5 text-[11px] text-zinc-400 tabular-nums">
+                      <p className="mt-0.5 text-2xs text-zinc-400 tabular-nums">
                         {formatRelative(a.createdAt)}
                       </p>
                     </div>
@@ -889,7 +889,7 @@ function InboxWidget({ data, editing }: { data: DashboardData; editing: boolean 
         editing={editing}
         right={
           unreadNotifCount > 0 ? (
-            <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-semibold text-fuchsia-600 tabular-nums">
+            <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-2xs font-semibold text-fuchsia-600 tabular-nums">
               {unreadNotifCount} sin leer
             </span>
           ) : null
@@ -931,7 +931,7 @@ function InboxWidget({ data, editing }: { data: DashboardData; editing: boolean 
                       <p className="line-clamp-2 text-[12px] leading-tight text-zinc-700">
                         {n.body}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-zinc-400 tabular-nums">
+                      <p className="mt-0.5 text-2xs text-zinc-400 tabular-nums">
                         {formatRelative(n.createdAt)}
                       </p>
                     </div>
@@ -945,7 +945,7 @@ function InboxWidget({ data, editing }: { data: DashboardData; editing: boolean 
             <li>
               <Link
                 href="/inbox"
-                className="flex items-center justify-center gap-1 px-3 py-2 text-[11px] font-semibold text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                className="flex items-center justify-center gap-1 px-3 py-2 text-2xs font-semibold text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
                 onClick={(e) => {
                   if (editing) e.preventDefault();
                 }}
@@ -971,7 +971,7 @@ function PendingWidget({ data, editing }: { data: DashboardData; editing: boolea
         editing={editing}
         right={
           inReviewCount > 0 ? (
-            <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-600 tabular-nums">
+            <span className="rounded-full bg-rose-50 px-2 py-0.5 text-2xs font-semibold text-rose-600 tabular-nums">
               {inReviewCount}
             </span>
           ) : null
@@ -1001,7 +1001,7 @@ function PendingWidget({ data, editing }: { data: DashboardData; editing: boolea
                       className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
                     />
                   ) : (
-                    <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-[10px] text-zinc-400">
+                    <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-md bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50 text-3xs text-zinc-400">
                       <ImageIcon className="h-3.5 w-3.5" />
                     </span>
                   )}
@@ -1009,12 +1009,12 @@ function PendingWidget({ data, editing }: { data: DashboardData; editing: boolea
                     <p className="truncate text-[12px] font-semibold text-zinc-900">
                       {p.brand.name}
                     </p>
-                    <p className="truncate text-[11px] text-zinc-500">
+                    <p className="truncate text-2xs text-zinc-500">
                       {p.caption || "Sin caption"}
                     </p>
                   </div>
                   <span
-                    className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
+                    className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
                   >
                     {STATUS_LABEL[p.status] ?? p.status}
                   </span>

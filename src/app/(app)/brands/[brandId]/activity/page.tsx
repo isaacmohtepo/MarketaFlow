@@ -286,7 +286,7 @@ export default async function BrandActivityPage({
         <div className="mt-6 space-y-8">
           {days.map((day) => (
             <section key={day.label} className="space-y-3">
-              <h2 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              <h2 className="text-2xs font-bold uppercase tracking-wider text-zinc-400">
                 {day.label}
               </h2>
               <ul className="space-y-2">
@@ -324,7 +324,7 @@ export default async function BrandActivityPage({
                           </span>
                         </Link>
                       </div>
-                      <span className="flex-shrink-0 text-[11px] text-zinc-400 tabular-nums">
+                      <span className="flex-shrink-0 text-2xs text-zinc-400 tabular-nums">
                         {relTime(e.timestamp)}
                       </span>
                     </div>

@@ -163,14 +163,14 @@ export default function Timeline({ events }: { events: TimelineEvent[] }) {
           <h3 className="text-[12px] font-semibold uppercase tracking-wider text-zinc-500">
             Historial
           </h3>
-          <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600 tabular-nums">
+          <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold text-zinc-600 tabular-nums">
             {events.length}
           </span>
         </div>
         {events.length > 6 && (
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+            className="inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-zinc-900"
           >
             {expanded ? "Mostrar menos" : "Ver todos"}
             <ChevronDown
@@ -183,7 +183,7 @@ export default function Timeline({ events }: { events: TimelineEvent[] }) {
       <div className="mt-3 space-y-4">
         {groups.map((g) => (
           <section key={g.key}>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 capitalize">
+            <p className="mb-2 text-3xs font-semibold uppercase tracking-wider text-zinc-400 capitalize">
               {g.label}
             </p>
             <ol className="space-y-2.5">
@@ -213,14 +213,14 @@ export default function Timeline({ events }: { events: TimelineEvent[] }) {
                         <span className="font-semibold">{ev.userName ?? "Sistema"}</span>{" "}
                         <span className="text-zinc-600">{visual.label(ev.meta)}</span>
                         <span
-                          className="ml-1.5 text-[10px] text-zinc-400 tabular-nums"
+                          className="ml-1.5 text-3xs text-zinc-400 tabular-nums"
                           title={formatDate(ev.createdAt)}
                         >
                           · {timeOnly(ev.createdAt)} · hace {timeAgo(ev.createdAt)}
                         </span>
                       </p>
                       {noteOrBody && (
-                        <p className="mt-1 line-clamp-3 rounded-md bg-zinc-50 px-2 py-1 text-[11px] italic text-zinc-700">
+                        <p className="mt-1 line-clamp-3 rounded-md bg-zinc-50 px-2 py-1 text-2xs italic text-zinc-700">
                           “{noteOrBody}”
                         </p>
                       )}

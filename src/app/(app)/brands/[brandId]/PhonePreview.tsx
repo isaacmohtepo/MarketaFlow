@@ -50,7 +50,7 @@ export default function PhonePreview({
             <div className="relative h-7 bg-white">
               <div className="absolute left-1/2 top-1.5 h-6 w-24 -translate-x-1/2 rounded-full bg-black" />
               {/* Status bar */}
-              <div className="absolute left-0 right-0 top-1 flex items-center justify-between px-6 text-[11px] font-semibold text-zinc-900">
+              <div className="absolute left-0 right-0 top-1 flex items-center justify-between px-6 text-2xs font-semibold text-zinc-900">
                 <span>9:41</span>
                 <span className="flex items-center gap-1">
                   <SignalIcon />
@@ -146,11 +146,11 @@ export default function PhonePreview({
                         background: ["#3b5fff", "#8a2be2", "#ff4d8f", "#ff2d55"][i % 4],
                       }}
                     >
-                      <div className="grid h-full w-full place-items-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">
+                      <div className="grid h-full w-full place-items-center rounded-full bg-zinc-100 text-3xs font-semibold text-zinc-700">
                         {h[0]}
                       </div>
                     </div>
-                    <span className="text-[10px] text-zinc-700 max-w-[56px] truncate">{h}</span>
+                    <span className="text-3xs text-zinc-700 max-w-[56px] truncate">{h}</span>
                   </div>
                 ))}
               </div>
@@ -222,7 +222,7 @@ export default function PhonePreview({
         </div>
       </div>
 
-      <p className="mt-4 max-w-md text-center text-[11px] text-zinc-500">
+      <p className="mt-4 max-w-md text-center text-2xs text-zinc-500">
         Esto es solo una previsualización. Los seguidores y bio son ficticios.
         Los posts vienen de tu feed real (incluso borradores y pendientes).
       </p>
@@ -234,7 +234,7 @@ function Stat({ n, label }: { n: number | string; label: string }) {
   return (
     <div>
       <p className="text-[15px] font-bold text-zinc-900 tabular-nums">{n}</p>
-      <p className="text-[11px] text-zinc-700">{label}</p>
+      <p className="text-2xs text-zinc-700">{label}</p>
     </div>
   );
 }

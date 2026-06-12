@@ -98,7 +98,7 @@ export default function AdminNav() {
             <div className="min-w-0">
               <div className="truncate">{item.label}</div>
               <div
-                className={`hidden truncate text-[11px] sm:block ${
+                className={`hidden truncate text-2xs sm:block ${
                   isActive ? "text-white/60" : "text-zinc-500"
                 }`}
               >

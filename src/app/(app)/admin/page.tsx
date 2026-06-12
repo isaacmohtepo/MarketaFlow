@@ -246,7 +246,7 @@ export default async function AdminSummary() {
                 className="flex items-center justify-between gap-3 py-2.5"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-[11px] font-bold text-zinc-600">
+                  <span className="grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-2xs font-bold text-zinc-600">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
@@ -256,7 +256,7 @@ export default async function AdminSummary() {
                     >
                       {a.name}
                     </Link>
-                    <p className="text-[11px] text-zinc-500">
+                    <p className="text-2xs text-zinc-500">
                       {a.invoicesPaid}{" "}
                       {a.invoicesPaid === 1 ? "factura" : "facturas"} ·{" "}
                       {a.plan ?? "free"}
@@ -417,7 +417,7 @@ function Kpi({
         : "";
   return (
     <div className={`card p-4 ${ring}`}>
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center gap-1.5 text-3xs font-bold uppercase tracking-wider text-zinc-400">
         <span className="grid h-5 w-5 place-items-center rounded bg-zinc-100 text-zinc-500">
           {icon}
         </span>
@@ -427,7 +427,7 @@ function Kpi({
         <p className="text-2xl font-bold tabular-nums text-zinc-900">{value}</p>
         {delta !== undefined && Number.isFinite(delta) && delta !== 0 && (
           <span
-            className={`text-[11px] font-semibold tabular-nums ${
+            className={`text-2xs font-semibold tabular-nums ${
               delta > 0 ? "text-emerald-600" : "text-rose-600"
             }`}
           >
@@ -436,7 +436,7 @@ function Kpi({
           </span>
         )}
       </div>
-      {subtitle && <p className="mt-0.5 text-[11px] text-zinc-500">{subtitle}</p>}
+      {subtitle && <p className="mt-0.5 text-2xs text-zinc-500">{subtitle}</p>}
     </div>
   );
 }
@@ -455,7 +455,7 @@ function ChartCard({
       <div>
         <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
         {subtitle && (
-          <p className="mt-0.5 text-[11px] text-zinc-500">{subtitle}</p>
+          <p className="mt-0.5 text-2xs text-zinc-500">{subtitle}</p>
         )}
       </div>
       <div className="mt-4">{children}</div>
@@ -483,7 +483,7 @@ function ChartLegend({
     visible.push({ i: n - 1, label: data[n - 1].label });
   }
   return (
-    <div className="mt-2 flex justify-between text-[10px] text-zinc-400">
+    <div className="mt-2 flex justify-between text-3xs text-zinc-400">
       {visible.map((v) => (
         <span key={v.i}>{v.label}</span>
       ))}
@@ -507,7 +507,7 @@ function SubStat({
       >
         {value.toLocaleString("es")}
       </p>
-      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
+      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
         {label}
       </p>
     </div>

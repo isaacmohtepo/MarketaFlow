@@ -29,7 +29,7 @@ export default function EditInline({
   const inputCls = compact
     ? "w-full resize-none rounded-md border border-zinc-200 bg-white px-2 py-1 text-[12px] focus:border-fuchsia-400 focus:outline-none"
     : "w-full resize-none rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-[12.5px] focus:border-fuchsia-400 focus:outline-none";
-  const btnTextSize = compact ? "text-[10.5px]" : "text-[11px]";
+  const btnTextSize = compact ? "text-[10.5px]" : "text-2xs";
   return (
     <div className={compact ? "mt-1" : "mt-2"}>
       <MentionInput

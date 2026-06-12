@@ -132,7 +132,7 @@ function CoverPreview({ d }: { d: Deliverable }) {
             <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
           </span>
-          <span className="ml-1 truncate font-mono text-[10px] text-zinc-500">
+          <span className="ml-1 truncate font-mono text-3xs text-zinc-500">
             {hostOf(d.sourceUrl)}
           </span>
         </div>
@@ -303,12 +303,12 @@ export default function DeliverablesList({
               <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none backdrop-blur-md ${STATUS_COLOR[d.status] ?? "bg-zinc-200/80"}`}
+                    className={`rounded-full px-2 py-0.5 text-3xs font-semibold leading-none backdrop-blur-md ${STATUS_COLOR[d.status] ?? "bg-zinc-200/80"}`}
                   >
                     {STATUS_LABEL[d.status] ?? d.status}
                   </span>
                   {d.hasNewActivity && (
-                    <span className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                    <span className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-3xs font-bold text-white shadow-sm">
                       <span className="relative inline-flex h-1.5 w-1.5">
                         <span className="absolute inset-0 animate-ping rounded-full bg-white/70" />
                         <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white" />
@@ -334,29 +334,29 @@ export default function DeliverablesList({
               </div>
 
               {d.imageCount > 1 && (
-                <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md">
+                <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-3xs font-semibold text-white backdrop-blur-md">
                   <Layers className="h-2.5 w-2.5" />
                   {d.imageCount}
                 </span>
               )}
 
               {d.unresolvedComments > 0 ? (
-                <span className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(244,63,94,0.55)] ring-2 ring-white">
+                <span className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-2xs font-bold text-white shadow-[0_4px_12px_rgba(244,63,94,0.55)] ring-2 ring-white">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inset-0 animate-ping rounded-full bg-white/80" />
                     <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white" />
                   </span>
                   <MessageSquare className="h-3 w-3" strokeWidth={2.5} />
                   <span className="tabular-nums">{d.unresolvedComments}</span>
-                  <span className="text-[10px] font-semibold opacity-95">
+                  <span className="text-3xs font-semibold opacity-95">
                     pendiente{d.unresolvedComments === 1 ? "" : "s"}
                   </span>
                 </span>
               ) : d.totalComments > 0 ? (
-                <span className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 shadow-[0_2px_6px_rgba(0,0,0,0.10)] ring-1 ring-emerald-200">
+                <span className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-2xs font-bold text-emerald-700 shadow-[0_2px_6px_rgba(0,0,0,0.10)] ring-1 ring-emerald-200">
                   <CheckCircle2 className="h-3 w-3" strokeWidth={2.5} />
                   <span className="tabular-nums">{d.totalComments}</span>
-                  <span className="text-[10px] font-semibold opacity-95">resuelto{d.totalComments === 1 ? "" : "s"}</span>
+                  <span className="text-3xs font-semibold opacity-95">resuelto{d.totalComments === 1 ? "" : "s"}</span>
                 </span>
               ) : null}
             </div>
@@ -384,7 +384,7 @@ export default function DeliverablesList({
             </div>
 
             {!d.imageUrl && d.imageCount === 0 && d.assetType === "web_design" && !d.sourceUrl && (
-              <span className="absolute inset-0 flex items-center justify-center bg-zinc-50/80 text-[11px] text-zinc-500">
+              <span className="absolute inset-0 flex items-center justify-center bg-zinc-50/80 text-2xs text-zinc-500">
                 <ImageOff className="mr-1 h-3 w-3" /> Sin contenido
               </span>
             )}

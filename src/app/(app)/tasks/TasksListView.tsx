@@ -219,7 +219,7 @@ function TaskRow({
               />
             ))}
             {task.tags.length > 3 && (
-              <span className="text-[10px] font-semibold text-zinc-400">
+              <span className="text-3xs font-semibold text-zinc-400">
                 +{task.tags.length - 3}
               </span>
             )}

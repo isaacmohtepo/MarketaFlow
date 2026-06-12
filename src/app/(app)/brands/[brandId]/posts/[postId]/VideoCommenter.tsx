@@ -161,7 +161,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
               {orientationLabel}
             </span>
           </div>
-          <p className="truncate text-[11px] text-zinc-500">
+          <p className="truncate text-2xs text-zinc-500">
             Pausa y haz clic <span className="font-medium text-fuchsia-700">"Comentar este momento"</span> para anclar al segundo exacto.
           </p>
         </div>
@@ -282,14 +282,14 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                     transform: transformX,
                     top: "-8px",
                   }}
-                  className="pointer-events-none absolute z-20 w-[240px] max-w-[260px] rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[11px] text-white shadow-xl ring-1 ring-black/5"
+                  className="pointer-events-none absolute z-20 w-[240px] max-w-[260px] rounded-lg bg-zinc-900 px-2.5 py-1.5 text-2xs text-white shadow-xl ring-1 ring-black/5"
                 >
                   <div className="mb-0.5 flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] font-bold text-fuchsia-300">
+                    <span className="font-mono text-3xs font-bold text-fuchsia-300">
                       {formatTime(m.time)}
                     </span>
                     {m.author && (
-                      <span className="text-[10px] text-zinc-400">{m.author}</span>
+                      <span className="text-3xs text-zinc-400">{m.author}</span>
                     )}
                   </div>
                   {m.body && (
@@ -312,7 +312,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
             {hoverPct !== null && hoverMarkerId === null && (
               <div
                 style={{ left: `${hoverPct}%` }}
-                className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded-md bg-zinc-900 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white shadow"
+                className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded-md bg-zinc-900 px-1.5 py-0.5 font-mono text-3xs font-semibold text-white shadow"
               >
                 {formatTime((hoverPct / 100) * duration)}
               </div>
@@ -337,7 +337,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                       setHoverPct(Math.min(100, (m.time / duration) * 100))
                     }
                     onMouseLeave={() => setHoverPct(null)}
-                    className={`group flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-[11px] transition hover:border-fuchsia-300 hover:bg-fuchsia-50 hover:shadow-sm ${
+                    className={`group flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-left text-2xs transition hover:border-fuchsia-300 hover:bg-fuchsia-50 hover:shadow-sm ${
                       hoverMarkerId === m.id ? "border-fuchsia-400 bg-fuchsia-50 shadow-sm" : ""
                     }`}
                     title={m.body ?? `Comentario ${idx + 1}`}
@@ -346,7 +346,7 @@ const VideoCommenter = forwardRef<VideoCommenterHandle, Props>(function VideoCom
                       {idx + 1}
                     </span>
                     <div className="flex min-w-0 flex-col">
-                      <span className="font-mono text-[10px] font-semibold text-fuchsia-700 tabular-nums">
+                      <span className="font-mono text-3xs font-semibold text-fuchsia-700 tabular-nums">
                         {formatTime(m.time)}
                       </span>
                       {m.body && (

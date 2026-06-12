@@ -72,7 +72,7 @@ export default function ReplyItem({
   return (
     <li className="group/reply relative flex items-start gap-2.5">
       <span
-        className={`relative z-[1] grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold text-white shadow-sm bg-gradient-to-br ${gradientForName(
+        className={`relative z-[1] grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-2xs font-bold text-white shadow-sm bg-gradient-to-br ${gradientForName(
           reply.userName,
         )}`}
       >
@@ -83,7 +83,7 @@ export default function ReplyItem({
           <span className="truncate text-[12px] font-semibold text-zinc-800">
             {reply.userName}
           </span>
-          <span className="text-[10px] text-zinc-400">{relTimeShort(reply.createdAt)}</span>
+          <span className="text-3xs text-zinc-400">{relTimeShort(reply.createdAt)}</span>
           {reply.updatedAt && reply.updatedAt !== reply.createdAt && (
             <span className="text-[9.5px] italic text-zinc-400">editado</span>
           )}

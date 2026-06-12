@@ -52,7 +52,7 @@ export default function PaymentModeSelector({
           </p>
         </div>
         {savedAt && Date.now() - savedAt < 3000 && (
-          <span className="text-[11px] font-medium text-emerald-600">
+          <span className="text-2xs font-medium text-emerald-600">
             ✓ Guardado
           </span>
         )}
@@ -118,12 +118,12 @@ function ModeButton({
         {icon}
         {label}
         {active && (
-          <span className="ml-auto rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+          <span className="ml-auto rounded-full bg-white/70 px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide">
             Activo
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-[11px] opacity-70">{subtitle}</div>
+      <div className="mt-0.5 text-2xs opacity-70">{subtitle}</div>
     </button>
   );
 }

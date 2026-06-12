@@ -131,13 +131,13 @@ export default function SessionsList() {
                   {device}
                   {browser && <span className="font-normal text-zinc-500"> · {browser}</span>}
                   {s.current && (
-                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-3xs font-bold text-emerald-700">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       Actual
                     </span>
                   )}
                 </p>
-                <p className="mt-0.5 text-[11px] text-zinc-500">
+                <p className="mt-0.5 text-2xs text-zinc-500">
                   {s.ip && <span className="font-mono">{s.ip}</span>}
                   {s.ip && " · "}
                   Última actividad {formatRel(s.lastSeenAt)}

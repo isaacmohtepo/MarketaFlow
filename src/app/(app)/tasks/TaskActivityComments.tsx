@@ -429,7 +429,7 @@ function TabBtn({
       {label}
       {count !== undefined && count > 0 && (
         <span
-          className={`rounded-full px-1.5 text-[10px] font-bold tabular-nums ${
+          className={`rounded-full px-1.5 text-3xs font-bold tabular-nums ${
             active ? "bg-white text-zinc-600" : "bg-zinc-100 text-zinc-500"
           }`}
         >
@@ -648,7 +648,7 @@ function AvatarMini({ user }: { user: CommentUser }) {
   ];
   return (
     <span
-      className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-[10px] font-bold text-white ${colors[Math.abs(h) % 6]}`}
+      className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-3xs font-bold text-white ${colors[Math.abs(h) % 6]}`}
     >
       {initials}
     </span>

@@ -119,7 +119,7 @@ export default async function AdminUserDetailPage({
               </h1>
               <RolePill role={user.role} />
               {user.disabledAt && (
-                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
                   Deshabilitado
                 </span>
               )}
@@ -210,13 +210,13 @@ export default async function AdminUserDetailPage({
                       </span>
                     )}
                   </p>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-2xs text-zinc-500">
                     {m.brand
                       ? `Brand-scoped (solo ${m.brand.name})`
                       : "Agency-level (toda la agencia)"}
                   </p>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-zinc-600">
                   {m.role}
                 </span>
               </li>
@@ -324,7 +324,7 @@ export default async function AdminUserDetailPage({
                       {a.ip && (
                         <>
                           {" · "}
-                          <span className="font-mono text-[10px]">{a.ip}</span>
+                          <span className="font-mono text-3xs">{a.ip}</span>
                         </>
                       )}
                     </p>
@@ -343,7 +343,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="px-4 py-3 text-center">
       <p className="text-[18px] font-bold tabular-nums text-zinc-900">{value}</p>
-      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
+      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
         {label}
       </p>
     </div>
@@ -358,7 +358,7 @@ function RolePill({ role }: { role: string }) {
   };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[role] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[role] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {role}
     </span>

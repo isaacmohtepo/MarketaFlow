@@ -176,14 +176,14 @@ export default function WorkspaceSwitcher({
                 setView("list");
                 setError(null);
               }}
-              className="mb-2 flex items-center gap-1 text-[11px] font-medium text-zinc-500 transition hover:text-zinc-800"
+              className="mb-2 flex items-center gap-1 text-2xs font-medium text-zinc-500 transition hover:text-zinc-800"
             >
               <ArrowLeft className="h-3 w-3" /> Volver
             </button>
             <p className="text-[13px] font-semibold text-zinc-900">
               Crear nueva agencia
             </p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
+            <p className="mt-0.5 text-2xs text-zinc-500">
               Tu propio espacio, con su plan aparte. Arranca con 14 días de prueba.
             </p>
             <input

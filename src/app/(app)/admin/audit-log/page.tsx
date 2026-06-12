@@ -92,7 +92,7 @@ export default async function AdminAuditLog({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] font-semibold text-zinc-900">
-                      <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[11px] text-zinc-700">
+                      <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-2xs text-zinc-700">
                         {e.action}
                       </code>{" "}
                       <span className="font-normal text-zinc-600">por</span>{" "}

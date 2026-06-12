@@ -185,7 +185,7 @@ export default function NewVersionModal({
                   <button
                     type="button"
                     onClick={() => removeImage(idx)}
-                    className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-zinc-900/85 text-[11px] font-bold text-white group-hover:flex"
+                    className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-zinc-900/85 text-2xs font-bold text-white group-hover:flex"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -215,7 +215,7 @@ export default function NewVersionModal({
                     setEditCaption(false);
                     setCaption("");
                   }}
-                  className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
+                  className="text-2xs font-medium text-zinc-500 hover:text-zinc-900"
                 >
                   Conservar el actual
                 </button>

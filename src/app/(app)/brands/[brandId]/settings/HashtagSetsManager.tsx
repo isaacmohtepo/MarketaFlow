@@ -113,13 +113,13 @@ export default function HashtagSetsManager({ brandId }: { brandId: string }) {
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setEditId(null)}
-                    className="rounded-md px-2 py-1 text-[11px] font-medium text-zinc-600 hover:text-zinc-900"
+                    className="rounded-md px-2 py-1 text-2xs font-medium text-zinc-600 hover:text-zinc-900"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={() => saveEdit(s.id)}
-                    className="btn-gradient rounded-md px-3 py-1 text-[11px] font-semibold"
+                    className="btn-gradient rounded-md px-3 py-1 text-2xs font-semibold"
                   >
                     Guardar
                   </button>
@@ -137,11 +137,11 @@ export default function HashtagSetsManager({ brandId }: { brandId: string }) {
                 <div className="flex items-center gap-1.5">
                   <Hash className="h-3 w-3 text-zinc-400" />
                   <p className="text-[13px] font-semibold text-zinc-900">{s.name}</p>
-                  <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600 tabular-nums">
+                  <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-medium text-zinc-600 tabular-nums">
                     {tagCount}
                   </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-[11px] text-zinc-500">{s.tags}</p>
+                <p className="mt-1 line-clamp-2 text-2xs text-zinc-500">{s.tags}</p>
               </div>
               <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
                 <button
@@ -184,9 +184,9 @@ export default function HashtagSetsManager({ brandId }: { brandId: string }) {
             placeholder="#fitness #gym #motivation #vidasana"
             className="w-full rounded-md input-soft px-2.5 py-1.5 text-[12px]"
           />
-          {error && <p className="text-[11px] text-rose-600">{error}</p>}
+          {error && <p className="text-2xs text-rose-600">{error}</p>}
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-3xs text-zinc-500">
               Separa con espacios, comas o saltos de línea. El # se agrega solo.
             </p>
             <div className="flex gap-2">
@@ -197,13 +197,13 @@ export default function HashtagSetsManager({ brandId }: { brandId: string }) {
                   setTags("");
                   setError(null);
                 }}
-                className="rounded-md px-2 py-1 text-[11px] font-medium text-zinc-600 hover:text-zinc-900"
+                className="rounded-md px-2 py-1 text-2xs font-medium text-zinc-600 hover:text-zinc-900"
               >
                 <X className="inline h-3 w-3" /> Cancelar
               </button>
               <button
                 onClick={create}
-                className="btn-gradient inline-flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-semibold"
+                className="btn-gradient inline-flex items-center gap-1 rounded-md px-3 py-1 text-2xs font-semibold"
               >
                 <Check className="h-3 w-3" />
                 Guardar

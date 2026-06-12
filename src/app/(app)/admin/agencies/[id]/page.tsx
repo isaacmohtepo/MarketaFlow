@@ -121,7 +121,7 @@ export default async function AdminAgencyDetailPage({
                       {agency.name}
                     </h1>
                     {agency.suspendedAt && (
-                      <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+                      <span className="rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
                         Suspendida
                       </span>
                     )}
@@ -152,7 +152,7 @@ export default async function AdminAgencyDetailPage({
                   Plan
                 </p>
                 <p className="text-2xl font-bold text-zinc-900">{plan.name}</p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   {subscription.billingCycle === "yearly" ? "Anual" : "Mensual"}
                   {" · "}
                   {formatCop(
@@ -234,10 +234,10 @@ export default async function AdminAgencyDetailPage({
                     {b.name}
                   </p>
                   {b.handle && (
-                    <p className="text-[11px] text-zinc-500">{b.handle}</p>
+                    <p className="text-2xs text-zinc-500">{b.handle}</p>
                   )}
                 </div>
-                <span className="text-[11px] tabular-nums text-zinc-500">
+                <span className="text-2xs tabular-nums text-zinc-500">
                   {b._count.posts} posts
                 </span>
               </li>
@@ -267,7 +267,7 @@ export default async function AdminAgencyDetailPage({
                       {m.role}
                     </span>
                   </p>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-2xs text-zinc-500">
                     {m.user.email}
                     {m.brand && (
                       <span className="ml-1 text-zinc-400">
@@ -278,7 +278,7 @@ export default async function AdminAgencyDetailPage({
                 </div>
                 <Link
                   href={`/admin/users/${m.user.id}`}
-                  className="rounded-md px-2 py-1 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-100"
+                  className="rounded-md px-2 py-1 text-2xs font-semibold text-zinc-600 hover:bg-zinc-100"
                 >
                   Ver user
                 </Link>
@@ -334,7 +334,7 @@ export default async function AdminAgencyDetailPage({
             Actividad reciente ({recentAudit.length})
           </h2>
         </div>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
+        <p className="mt-0.5 text-2xs text-zinc-500">
           Eventos del equipo, billing, brands y configuración relacionados
           a esta agencia.
         </p>
@@ -381,7 +381,7 @@ export default async function AdminAgencyDetailPage({
                       {a.ip && (
                         <>
                           {" · "}
-                          <span className="font-mono text-[10px]">{a.ip}</span>
+                          <span className="font-mono text-3xs">{a.ip}</span>
                         </>
                       )}
                     </p>
@@ -410,7 +410,7 @@ function Stat({
       <p className={`${text ? "text-[14px]" : "text-[18px]"} font-bold tabular-nums text-zinc-900`}>
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
+      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
         {label}
       </p>
     </div>

@@ -183,7 +183,7 @@ export default function InboxNotifications({
           {unread > 0 && (
             <button
               onClick={markAll}
-              className="ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+              className="ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-2xs font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
             >
               <CheckCheck className="h-3 w-3" />
               Marcar todas
@@ -258,7 +258,7 @@ export default function InboxNotifications({
                         {meta.label}
                       </span>
                       <span
-                        className="ml-auto flex-shrink-0 text-[10px] text-zinc-400 tabular-nums"
+                        className="ml-auto flex-shrink-0 text-3xs text-zinc-400 tabular-nums"
                         title={formatFull(n.createdAt)}
                       >
                         {formatRelative(n.createdAt)}
@@ -291,7 +291,7 @@ export default function InboxNotifications({
                     {/* Cuerpo del mensaje (preview) */}
                     <MentionText
                       text={n.body}
-                      className="mt-0.5 block truncate text-[11px] leading-relaxed text-zinc-500"
+                      className="mt-0.5 block truncate text-2xs leading-relaxed text-zinc-500"
                     />
                   </div>
 
@@ -344,7 +344,7 @@ function FilterPill({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-2xs font-semibold transition ${
         active ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
       }`}
     >

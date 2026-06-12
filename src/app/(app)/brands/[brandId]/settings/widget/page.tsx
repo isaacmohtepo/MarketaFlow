@@ -35,7 +35,7 @@ export default async function BrandSettingsWidget({
             staging y tú recibes capturas pixel-perfect en este tablero.
           </p>
         </div>
-        <span className="flex-shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-700">
+        <span className="flex-shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-violet-700">
           Web feedback
         </span>
       </div>

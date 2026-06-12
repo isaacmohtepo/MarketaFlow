@@ -50,7 +50,7 @@ export default async function AdminWebhookDetail({
           </Field>
           {w.ip && (
             <Field label="IP origen">
-              <span className="font-mono text-[11px]">{w.ip}</span>
+              <span className="font-mono text-2xs">{w.ip}</span>
             </Field>
           )}
         </dl>
@@ -60,7 +60,7 @@ export default async function AdminWebhookDetail({
             <p className="font-semibold">Error</p>
             <p className="mt-1">{w.errorMessage}</p>
             {w.retryCount > 0 && (
-              <p className="mt-2 text-[11px]">
+              <p className="mt-2 text-2xs">
                 Reintentos: <strong>{w.retryCount}</strong>
                 {w.nextRetryAt && (
                   <>
@@ -91,7 +91,7 @@ export default async function AdminWebhookDetail({
         <p className="mt-0.5 text-[11.5px] text-zinc-500">
           JSON completo recibido del provider.
         </p>
-        <pre className="mt-3 max-h-[600px] overflow-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4 font-mono text-[11px] text-zinc-100">
+        <pre className="mt-3 max-h-[600px] overflow-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4 font-mono text-2xs text-zinc-100">
           {JSON.stringify(w.payload, null, 2)}
         </pre>
       </div>
@@ -108,7 +108,7 @@ function Field({
 }) {
   return (
     <div>
-      <dt className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+      <dt className="text-3xs font-bold uppercase tracking-wider text-zinc-400">
         {label}
       </dt>
       <dd className="mt-0.5 text-zinc-800">{children}</dd>
@@ -125,7 +125,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span
-      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`rounded-full px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {status}
     </span>

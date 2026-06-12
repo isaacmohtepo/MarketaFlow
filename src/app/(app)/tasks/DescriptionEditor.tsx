@@ -158,11 +158,11 @@ export function DescriptionEditor({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+        <label className="text-2xs font-bold uppercase tracking-wider text-zinc-500">
           Descripción
         </label>
         {savedAt && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+          <span className="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-600">
             <CheckCircle2 className="h-3 w-3" />
             Guardado
           </span>

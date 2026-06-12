@@ -181,7 +181,7 @@ export function TaskSpotlight({
             placeholder="Buscar tareas, acciones…"
             className="flex-1 border-0 bg-transparent text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
           />
-          <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-zinc-500">
+          <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-3xs font-semibold text-zinc-500">
             Esc
           </kbd>
         </div>
@@ -197,7 +197,7 @@ export function TaskSpotlight({
           {/* Acciones */}
           {filteredActions.length > 0 && (
             <>
-              <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              <p className="px-4 pb-1 pt-2 text-3xs font-bold uppercase tracking-wider text-zinc-400">
                 Acciones
               </p>
               {filteredActions.map((a, i) => {
@@ -231,7 +231,7 @@ export function TaskSpotlight({
                       {a.label}
                     </span>
                     {a.shortcut && (
-                      <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-zinc-500">
+                      <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-3xs font-semibold text-zinc-500">
                         {a.shortcut}
                       </kbd>
                     )}
@@ -244,7 +244,7 @@ export function TaskSpotlight({
           {/* Tareas */}
           {filteredTasks.length > 0 && (
             <>
-              <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              <p className="px-4 pb-1 pt-2 text-3xs font-bold uppercase tracking-wider text-zinc-400">
                 Tareas {!query && "(recientes)"}
               </p>
               {filteredTasks.map((t, i) => {
@@ -292,7 +292,7 @@ export function TaskSpotlight({
                     {/* Brand chip */}
                     {t.brand && (
                       <span
-                        className="hidden flex-shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold sm:inline-flex"
+                        className="hidden flex-shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-3xs font-semibold sm:inline-flex"
                         style={{
                           background: `${t.brand.color ?? "#a1a1aa"}1f`,
                           color: t.brand.color ?? "#71717a",
@@ -344,7 +344,7 @@ export function TaskSpotlight({
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-zinc-200 bg-white px-1 font-mono text-[10px] font-semibold text-zinc-600 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+    <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-zinc-200 bg-white px-1 font-mono text-3xs font-semibold text-zinc-600 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
       {children}
     </kbd>
   );

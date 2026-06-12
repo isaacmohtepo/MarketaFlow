@@ -76,7 +76,7 @@ export default function PostsFilters() {
             startTransition(() => router.replace("?", { scroll: false }))
           }
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] text-zinc-500 hover:text-zinc-900"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-2xs text-zinc-500 hover:text-zinc-900"
         >
           <X className="h-3 w-3" />
           Limpiar

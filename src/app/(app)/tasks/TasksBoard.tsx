@@ -359,7 +359,7 @@ const AVATAR_SIZES: Record<
   xs: { box: "h-4 w-4", text: "text-[8px]", img: 16 },
   sm: { box: "h-5 w-5", text: "text-[8px]", img: 20 },
   md: { box: "h-6 w-6", text: "text-[9px]", img: 24 },
-  lg: { box: "h-8 w-8", text: "text-[11px]", img: 32 },
+  lg: { box: "h-8 w-8", text: "text-2xs", img: 32 },
 };
 
 function Avatar({
@@ -1486,7 +1486,7 @@ export default function TasksBoard({
             >
               <Search className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="hidden sm:inline">Buscar</span>
-              <kbd className="ml-2 hidden items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none text-zinc-500 shadow-[0_1px_0_rgba(0,0,0,0.04)] sm:inline-flex">
+              <kbd className="ml-2 hidden items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-3xs font-semibold leading-none text-zinc-500 shadow-[0_1px_0_rgba(0,0,0,0.04)] sm:inline-flex">
                 {modKey}
                 <span className="text-zinc-300">+</span>
                 K
@@ -2215,7 +2215,7 @@ function KanbanColumn({
                   setRenaming(false);
                 }}
                 maxLength={30}
-                className="w-32 rounded-md border border-zinc-300 px-2 py-1 text-[11px] font-bold uppercase tracking-wide outline-none focus:border-fuchsia-400"
+                className="w-32 rounded-md border border-zinc-300 px-2 py-1 text-2xs font-bold uppercase tracking-wide outline-none focus:border-fuchsia-400"
               />
             ) : (
               <button
@@ -2228,7 +2228,7 @@ function KanbanColumn({
                   }
                 }}
                 title={canManageColumns ? "Doble click para renombrar" : column.label}
-                className={`inline-flex max-w-[160px] items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm ${meta.pill}`}
+                className={`inline-flex max-w-[160px] items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-bold uppercase tracking-wide text-white shadow-sm ${meta.pill}`}
               >
                 <span className="truncate">{column.label}</span>
                 {column.isDone && (
@@ -2241,7 +2241,7 @@ function KanbanColumn({
             {column.wipLimit ? (
               <span
                 key={tasks.length}
-                className={`animate-task-count-pop flex-shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+                className={`animate-task-count-pop flex-shrink-0 rounded-md px-1.5 py-0.5 text-2xs font-bold tabular-nums ${
                   tasks.length > column.wipLimit
                     ? "bg-rose-100 text-rose-700"
                     : tasks.length === column.wipLimit
@@ -2712,7 +2712,7 @@ function EmptyColumnState({
         <button
           type="button"
           onClick={onAdd}
-          className="btn-secondary mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+          className="btn-secondary mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-2xs font-semibold"
         >
           <Plus className="h-3 w-3" />
           Agregar tarea
@@ -2856,7 +2856,7 @@ function TaskCardItem({
             const fg = isDark ? "#3f3f46" : c;
             return (
               <span
-                className="inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wide"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-bold uppercase tracking-wide"
                 style={{ background: bg, color: fg }}
                 title={`Marca: ${task.brand.name}`}
               >
@@ -2869,7 +2869,7 @@ function TaskCardItem({
             );
           })()
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-zinc-600">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 text-2xs font-bold uppercase tracking-wide text-zinc-600">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-zinc-400" />
             Agencia
           </span>
@@ -2879,7 +2879,7 @@ function TaskCardItem({
         <div className="relative flex h-6 flex-shrink-0 items-center">
           {/* Ref id tipo Linear — se desvanece al hover */}
           <span
-            className={`font-mono text-[10px] font-medium text-zinc-300 transition ${
+            className={`font-mono text-3xs font-medium text-zinc-300 transition ${
               menu ? "opacity-0" : "opacity-100 group-hover:opacity-0"
             }`}
           >
@@ -2968,7 +2968,7 @@ function TaskCardItem({
 
       {/* Linked post */}
       {task.post && (
-        <p className="mt-2 inline-flex max-w-full items-center gap-1 pl-[26px] text-[11px] font-medium text-zinc-500">
+        <p className="mt-2 inline-flex max-w-full items-center gap-1 pl-[26px] text-2xs font-medium text-zinc-500">
           <Link2 className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">
             {task.post.title ?? task.post.caption.slice(0, 36) ?? "Post"}
@@ -2990,7 +2990,7 @@ function TaskCardItem({
             />
           </div>
           <span
-            className={`text-[11px] font-bold tabular-nums ${
+            className={`text-2xs font-bold tabular-nums ${
               subPct === 100 ? "text-emerald-600" : "text-zinc-600"
             }`}
           >
@@ -3002,7 +3002,7 @@ function TaskCardItem({
       {/* Footer SIEMPRE presente (da estructura aunque la tarea sea simple):
           prioridad + fecha/creado a la izq · avatar a la der. */}
       <div className="mt-3.5 flex items-start justify-between gap-2 border-t divider pt-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-2xs">
           {/* Banderita de prioridad como pill con tinte */}
           <span
             className={`inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 font-bold ${
@@ -3088,7 +3088,7 @@ function TaskCardItem({
           />
           {menu === "status" && (
             <div className="absolute right-2 top-9 z-20 w-44 card overflow-hidden py-1 shadow-lg">
-              <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              <p className="px-3 py-1 text-3xs font-bold uppercase tracking-wider text-zinc-400">
                 Mover a
               </p>
               {boardColumns.map((col) => (
@@ -3627,12 +3627,12 @@ function NewTaskModal({
           {/* Checklist — estilo idéntico al drawer */}
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+              <label className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-zinc-500">
                 <ListChecks className="h-3.5 w-3.5" />
                 Checklist
               </label>
               {subtaskInputs.length > 0 && (
-                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-bold tabular-nums text-zinc-600">
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-2xs font-bold tabular-nums text-zinc-600">
                   {completedSubsCount}/{subtaskInputs.length}
                 </span>
               )}
@@ -4254,7 +4254,7 @@ function TaskDrawer({
                     </span>
                     {due && (due.tone === "danger" || due.tone === "warn") && (
                       <span
-                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        className={`rounded-md px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide ${
                           due.tone === "danger"
                             ? "bg-rose-50 text-rose-600"
                             : "bg-amber-50 text-amber-700"
@@ -4320,13 +4320,13 @@ function TaskDrawer({
           {/* Subtasks */}
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+              <label className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-zinc-500">
                 <ListChecks className="h-3.5 w-3.5" />
                 Checklist
               </label>
               {task.subtasks.length > 0 && (
                 <span
-                  className={`rounded-md px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                  className={`rounded-md px-2 py-0.5 text-2xs font-bold tabular-nums ${
                     subProgress === 100
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-zinc-100 text-zinc-600"
@@ -4507,7 +4507,7 @@ function TaskDrawer({
           />
 
           {/* Meta info */}
-          <div className="mt-5 border-t divider pt-3 text-[11px] text-zinc-400">
+          <div className="mt-5 border-t divider pt-3 text-2xs text-zinc-400">
             Creado por <strong className="text-zinc-600">{task.creator?.name ?? task.creator?.email ?? "?"}</strong>{" "}
             el {new Date(task.createdAt).toLocaleDateString("es-CO")}
             {task.completedAt && (
@@ -4802,7 +4802,7 @@ function BrandPopover({
     return (
       <div className="p-3">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+          <p className="text-3xs font-bold uppercase tracking-wider text-zinc-400">
             Nueva marca
           </p>
           <button
@@ -4835,7 +4835,7 @@ function BrandPopover({
           className="input-soft w-full rounded-md px-2.5 py-1.5 text-[13px]"
         />
         <div className="mt-2.5">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wider text-zinc-400">
             Color
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -4884,7 +4884,7 @@ function BrandPopover({
 
   return (
     <div className="max-h-72 overflow-y-auto py-1">
-      <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+      <p className="px-3 py-1 text-3xs font-bold uppercase tracking-wider text-zinc-400">
         Marca
       </p>
       <button
@@ -4939,7 +4939,7 @@ function TagChip({ tag, onRemove }: { tag: TaskTag; onRemove?: () => void }) {
   const isDark = isDarkHex(tag.color);
   return (
     <span
-      className="inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
+      className="inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-semibold"
       style={{
         background: `${tag.color}22`,
         color: isDark ? "#3f3f46" : tag.color,
@@ -5104,7 +5104,7 @@ function TagsPopover({
     return (
       <div className="p-3">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+          <p className="text-3xs font-bold uppercase tracking-wider text-zinc-400">
             Nueva etiqueta
           </p>
           <button
@@ -5136,7 +5136,7 @@ function TagsPopover({
           className="input-soft w-full rounded-md px-2.5 py-1.5 text-[13px]"
         />
         <div className="mt-2.5">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          <p className="mb-1.5 text-3xs font-semibold uppercase tracking-wider text-zinc-400">
             Color
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -5157,7 +5157,7 @@ function TagsPopover({
         {/* Preview */}
         {newName.trim() && (
           <div className="mt-3">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+            <p className="mb-1 text-3xs font-semibold uppercase tracking-wider text-zinc-400">
               Preview
             </p>
             <TagChip tag={{ id: "preview", name: newName.trim(), color: newColor }} />
@@ -5225,7 +5225,7 @@ function TagsPopover({
                 key={t.id}
                 className="border-y divider bg-zinc-50/60 px-3 py-2.5"
               >
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                <p className="mb-2 text-3xs font-bold uppercase tracking-wider text-zinc-500">
                   Editar etiqueta
                 </p>
                 <input
@@ -5393,7 +5393,7 @@ function StatusPopover({
             onClick={() => onSelect(col.id, col.isDone)}
           >
             <span
-              className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white ${m.pill}`}
+              className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide text-white ${m.pill}`}
             >
               {col.label}
             </span>
@@ -5590,7 +5590,7 @@ function ColumnSettingsModal({
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
           {/* Nombre */}
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+            <label className="mb-1.5 block text-2xs font-bold uppercase tracking-wider text-zinc-500">
               Nombre
             </label>
             <input
@@ -5603,7 +5603,7 @@ function ColumnSettingsModal({
 
           {/* Color */}
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+            <label className="mb-1.5 block text-2xs font-bold uppercase tracking-wider text-zinc-500">
               Color
             </label>
             <div className="grid grid-cols-8 gap-1.5">
@@ -5723,7 +5723,7 @@ function ColumnSettingsModal({
                   </select>
                 </div>
                 {ruleOn && !ruleHasCond && (
-                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600">
+                  <p className="flex items-center gap-1.5 text-2xs font-medium text-amber-600">
                     <AlertCircle className="h-3 w-3" />
                     Elige al menos una condición.
                   </p>
@@ -5738,7 +5738,7 @@ function ColumnSettingsModal({
               <p className="text-[12.5px] font-semibold text-zinc-800">
                 Límite de tareas (WIP)
               </p>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-2xs text-zinc-500">
                 Aviso visual al superarlo. 0 = sin límite.
               </p>
             </div>
@@ -5760,7 +5760,7 @@ function ColumnSettingsModal({
                 <p className="text-[12.5px] font-semibold text-zinc-800">
                   Auto-archivar después de
                 </p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   Tareas completadas con más de N días van a la papelera. 0 = off.
                 </p>
               </div>
@@ -5830,7 +5830,7 @@ function ToggleRow({
         >
           {label}
         </p>
-        {help && <p className="mt-0.5 text-[11px] text-zinc-500">{help}</p>}
+        {help && <p className="mt-0.5 text-2xs text-zinc-500">{help}</p>}
       </div>
       <span
         className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition ${
@@ -5930,7 +5930,7 @@ function DueDatePopover({
         {weekdays.map((d, i) => (
           <div
             key={i}
-            className="grid h-7 place-items-center text-[10px] font-bold uppercase tracking-wider text-zinc-400"
+            className="grid h-7 place-items-center text-3xs font-bold uppercase tracking-wider text-zinc-400"
           >
             {d}
           </div>
@@ -5994,7 +5994,7 @@ function QuickDateBtn({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition hover:bg-gradient-to-r hover:from-fuchsia-100 hover:to-violet-100 hover:text-fuchsia-700"
+      className="rounded-full bg-zinc-100 px-2.5 py-1 text-2xs font-semibold text-zinc-700 transition hover:bg-gradient-to-r hover:from-fuchsia-100 hover:to-violet-100 hover:text-fuchsia-700"
     >
       {children}
     </button>

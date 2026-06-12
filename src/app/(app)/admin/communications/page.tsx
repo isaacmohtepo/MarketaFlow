@@ -49,7 +49,7 @@ export default async function AdminCommunicationsPage() {
                   <p className="text-[13px] font-semibold text-zinc-900">
                     {b.subject}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">
+                  <p className="mt-0.5 text-2xs text-zinc-500">
                     Audiencia: <strong className="text-zinc-700">{audienceLabel(b.audience)}</strong>
                     {b.status === "sent" && (
                       <>
@@ -118,7 +118,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {labels[status] ?? status}
     </span>

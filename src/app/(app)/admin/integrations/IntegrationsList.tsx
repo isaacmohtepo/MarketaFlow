@@ -197,7 +197,7 @@ export default function IntegrationsList({ configs }: { configs: ConfigRow[] }) 
                           onClick={() =>
                             setModalOpen({ provider, environment: env, existing: row ?? null })
                           }
-                          className="inline-flex items-center gap-1 rounded-md btn-secondary px-2 py-1 text-[11px] font-semibold"
+                          className="inline-flex items-center gap-1 rounded-md btn-secondary px-2 py-1 text-2xs font-semibold"
                         >
                           {row ? (
                             <>

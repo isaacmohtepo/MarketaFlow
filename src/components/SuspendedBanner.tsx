@@ -25,7 +25,7 @@ export default function SuspendedBanner({
           <p className="text-[12.5px] font-semibold text-rose-900">
             <strong>{agencyName}</strong> está en modo solo-lectura
           </p>
-          <p className="mt-0.5 text-[11px] text-rose-700">
+          <p className="mt-0.5 text-2xs text-rose-700">
             {reason
               ? `Motivo: ${reason}.`
               : "No puedes crear ni editar contenido."}{" "}

@@ -109,7 +109,7 @@ export default async function AdminWebhooksPage({
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="text-[10px] uppercase tracking-wider text-zinc-400">
+              <thead className="text-3xs uppercase tracking-wider text-zinc-400">
                 <tr className="border-b border-zinc-100">
                   <th className="py-2 pr-3 font-semibold">Estado</th>
                   <th className="py-2 pr-3 font-semibold">Provider</th>
@@ -136,7 +136,7 @@ export default async function AdminWebhooksPage({
                         ? w.externalId.slice(0, 30) + "…"
                         : w.externalId}
                     </td>
-                    <td className="py-3 pr-3 text-[11px] text-zinc-500">
+                    <td className="py-3 pr-3 text-2xs text-zinc-500">
                       {w.receivedAt.toLocaleString("es", {
                         day: "numeric",
                         month: "short",
@@ -163,7 +163,7 @@ export default async function AdminWebhooksPage({
 
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-2xs text-zinc-500">
               Mostrando {(page - 1) * PAGE_SIZE + 1}–
               {Math.min(page * PAGE_SIZE, total)} de {total}
             </p>
@@ -202,7 +202,7 @@ function Stat({
   } as const;
   return (
     <div className="card p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+      <div className="flex items-center gap-1.5 text-3xs font-bold uppercase tracking-wider text-zinc-400">
         <span className="grid h-5 w-5 place-items-center rounded bg-zinc-100 text-zinc-500">
           {icon}
         </span>
@@ -259,7 +259,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {labels[status] ?? status}
     </span>

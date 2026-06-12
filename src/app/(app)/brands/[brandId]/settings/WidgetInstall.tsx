@@ -209,7 +209,7 @@ export default function WidgetInstall({
       })()}
 
       <div>
-        <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+        <label className="block text-2xs font-semibold uppercase tracking-wider text-zinc-500">
           Pega esto en el &lt;head&gt; o antes de &lt;/body&gt; del sitio del cliente
         </label>
         <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
@@ -299,7 +299,7 @@ export default function WidgetInstall({
                     <p className="mt-0.5 truncate pl-3 font-mono text-[10.5px] text-zinc-500" title={p.latestUrl}>
                       Última: {p.latestUrl}
                     </p>
-                    <p className="pl-3 text-[10px] text-zinc-400">
+                    <p className="pl-3 text-3xs text-zinc-400">
                       {relativeTime(p.lastSeenAt)} · {p.totalHits} carga
                       {p.totalHits === 1 ? "" : "s"}
                     </p>

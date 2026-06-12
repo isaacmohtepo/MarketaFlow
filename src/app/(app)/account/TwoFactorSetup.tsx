@@ -145,9 +145,9 @@ export default function TwoFactorSetup({
         <div className="flex flex-col items-center gap-3 rounded-md border border-zinc-200 bg-white p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={setup.qrDataUrl} alt="QR" className="h-44 w-44" />
-          <details className="text-[11px] text-zinc-600">
+          <details className="text-2xs text-zinc-600">
             <summary className="cursor-pointer">¿No puedes escanear? Copia el código</summary>
-            <code className="mt-1 block rounded bg-zinc-100 p-2 font-mono text-[11px] break-all">
+            <code className="mt-1 block rounded bg-zinc-100 p-2 font-mono text-2xs break-all">
               {setup.secret}
             </code>
           </details>
@@ -202,7 +202,7 @@ export default function TwoFactorSetup({
             </p>
           </div>
           {enabledAt && (
-            <p className="mt-1 text-[11px] text-emerald-700">
+            <p className="mt-1 text-2xs text-emerald-700">
               Activo desde{" "}
               {enabledAt.toLocaleDateString("es", {
                 day: "numeric",

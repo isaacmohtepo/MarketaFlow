@@ -224,7 +224,7 @@ export default function Addons({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-2xs text-zinc-500">
                 {a.description}{" "}
                 <span className="font-semibold text-zinc-700">
                   {formatCop(a.priceCop)}

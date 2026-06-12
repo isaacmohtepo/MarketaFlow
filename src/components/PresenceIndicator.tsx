@@ -102,7 +102,7 @@ export default function PresenceIndicator(props: Props) {
     if (hideWhenAlone) return null;
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-500 ring-1 ring-zinc-200"
+        className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2 py-1 text-2xs font-medium text-zinc-500 ring-1 ring-zinc-200"
         title={`Estás viendo ${noun} — nadie más ahora mismo`}
       >
         <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
@@ -116,7 +116,7 @@ export default function PresenceIndicator(props: Props) {
 
   return (
     <div
-      className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
+      className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-2xs font-semibold text-emerald-700 ring-1 ring-emerald-200"
       title={`${others.length + 1} viendo ${noun} (incluido tú): ${others
         .map((o) => o.name)
         .join(", ")}`}

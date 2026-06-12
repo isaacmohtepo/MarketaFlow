@@ -190,7 +190,7 @@ export default async function BillingPage() {
             </p>
           </div>
           {hasLockedBrands && (
-            <span className="text-[11px] font-medium text-rose-600">
+            <span className="text-2xs font-medium text-rose-600">
               {lockedBrands.length}{" "}
               {lockedBrands.length === 1 ? "marca bloqueada" : "marcas bloqueadas"}
             </span>
@@ -282,7 +282,7 @@ export default async function BillingPage() {
                     <p className="truncate text-[13px] font-medium text-zinc-900">
                       {inv.invoiceNumber ?? inv.description ?? "Cobro de suscripción"}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-zinc-500">
+                    <p className="mt-0.5 text-2xs text-zinc-500">
                       {(inv.paidAt ?? inv.createdAt).toLocaleDateString("es", {
                         day: "numeric",
                         month: "long",
@@ -340,7 +340,7 @@ function Metric({
 }) {
   return (
     <div className="px-6 py-5">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+      <p className="text-2xs font-medium uppercase tracking-wider text-zinc-400">
         {label}
       </p>
       <p className="mt-2 text-[26px] font-bold leading-none tracking-tight tabular-nums text-zinc-900">
@@ -377,11 +377,11 @@ function UsageRow({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+        <p className="text-2xs font-medium uppercase tracking-wider text-zinc-400">
           {label}
         </p>
         {isUnlimited ? (
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+          <span className="flex items-center gap-1 text-3xs font-semibold text-emerald-600">
             <Sparkles className="h-2.5 w-2.5" />
             ilimitado
           </span>

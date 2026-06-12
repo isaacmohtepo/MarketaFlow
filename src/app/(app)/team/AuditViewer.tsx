@@ -141,7 +141,7 @@ export default function AuditViewer() {
                     </time>
                   </p>
                   {e.metadata && Object.keys(e.metadata).length > 0 && (
-                    <details className="mt-1 text-[11px]">
+                    <details className="mt-1 text-2xs">
                       <summary className="cursor-pointer text-zinc-400 hover:text-zinc-600">
                         Detalles técnicos
                       </summary>

@@ -90,7 +90,7 @@ export default async function AdminUsersPage({
           <>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="text-[10px] uppercase tracking-wider text-zinc-400">
+                <thead className="text-3xs uppercase tracking-wider text-zinc-400">
                   <tr className="border-b border-zinc-100">
                     <th className="py-2 pr-3 font-semibold">Usuario</th>
                     <th className="py-2 pr-3 font-semibold">Rol</th>
@@ -119,7 +119,7 @@ export default async function AdminUsersPage({
                               className="h-8 w-8 rounded-full object-cover"
                             />
                           ) : (
-                            <span className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100 text-[11px] font-bold text-zinc-600">
+                            <span className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100 text-2xs font-bold text-zinc-600">
                               {(u.name ?? u.email).slice(0, 2).toUpperCase()}
                             </span>
                           )}
@@ -138,11 +138,11 @@ export default async function AdminUsersPage({
                       </td>
                       <td className="py-3 pr-3">
                         {u.disabledAt ? (
-                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
                             Deshabilitado
                           </span>
                         ) : (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
                             Activo
                           </span>
                         )}
@@ -174,7 +174,7 @@ export default async function AdminUsersPage({
 
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   Mostrando {(page - 1) * PAGE_SIZE + 1}–
                   {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount}
                 </p>
@@ -214,7 +214,7 @@ function RolePill({ role }: { role: string }) {
   };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[role] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[role] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {role}
     </span>

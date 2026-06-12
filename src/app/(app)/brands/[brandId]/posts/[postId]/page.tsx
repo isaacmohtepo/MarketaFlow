@@ -140,14 +140,14 @@ export default async function PostPage({
                 {STATUS_LABEL[post.status] ?? post.status}
               </span>
               <span
-                className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ${assetTypeTint(post.assetType)}`}
+                className={`inline-block rounded-full px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider ring-1 ${assetTypeTint(post.assetType)}`}
               >
                 {assetTypeLabel(post.assetType)}
               </span>
               {/* Para ads: chip extra con la plataforma (Meta, Google, TikTok…) */}
               {post.assetType === "ad" && getAdPlatformMeta(post.platform) && (
                 <span
-                  className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${
+                  className={`inline-block rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${
                     getAdPlatformMeta(post.platform)!.chipClass
                   }`}
                   title={`Plataforma del anuncio: ${getAdPlatformMeta(post.platform)!.label}`}

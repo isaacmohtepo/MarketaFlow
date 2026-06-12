@@ -370,7 +370,7 @@ export default async function DashboardPage() {
                 <p className="text-[13px] font-semibold tracking-tight text-zinc-900">
                   Pon tu agencia en marcha
                 </p>
-                <p className="text-[11px] text-zinc-500">{onboardingDone} de {onboardingTotal} completados</p>
+                <p className="text-2xs text-zinc-500">{onboardingDone} de {onboardingTotal} completados</p>
               </div>
             </div>
             <div className="h-1.5 w-28 overflow-hidden rounded-full bg-zinc-100">
@@ -433,7 +433,7 @@ export default async function DashboardPage() {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-semibold text-zinc-900">{b.name}</p>
-                        <p className="text-[11px] text-zinc-500">
+                        <p className="text-2xs text-zinc-500">
                           {s.total} {s.total === 1 ? "post" : "posts"}
                           {s.pending > 0 && <span className="text-amber-600"> · {s.pending} pend.</span>}
                         </p>
@@ -476,7 +476,7 @@ export default async function DashboardPage() {
                         <p className="truncate text-[12.5px] font-semibold text-zinc-800">{p.brand.name}</p>
                         <p className="truncate text-[11.5px] text-zinc-500">{p.caption || "Sin caption"}</p>
                       </div>
-                      <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}>
+                      <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-3xs font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}>
                         {STATUS_LABEL[p.status] ?? p.status}
                       </span>
                     </Link>
@@ -503,9 +503,9 @@ export default async function DashboardPage() {
                         <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: PRIORITY_DOT[t.priority] ?? "#a1a1aa" }} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[12.5px] font-medium text-zinc-800">{t.title}</p>
-                          {t.brand && <p className="truncate text-[11px] text-zinc-400">{t.brand.name}</p>}
+                          {t.brand && <p className="truncate text-2xs text-zinc-400">{t.brand.name}</p>}
                         </div>
-                        {due && <span className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${due.tone}`}>{due.text}</span>}
+                        {due && <span className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-3xs font-semibold ${due.tone}`}>{due.text}</span>}
                       </Link>
                     </li>
                   );
@@ -525,7 +525,7 @@ export default async function DashboardPage() {
                     {!n.read && <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full brand-gradient" />}
                     <div className={`min-w-0 flex-1 ${n.read ? "pl-4" : ""}`}>
                       <p className="line-clamp-2 text-[11.5px] leading-snug text-zinc-600">{n.body}</p>
-                      <p className="mt-0.5 text-[10px] text-zinc-400">{relTime(n.createdAt.toISOString())}</p>
+                      <p className="mt-0.5 text-3xs text-zinc-400">{relTime(n.createdAt.toISOString())}</p>
                     </div>
                   </li>
                 ))}
@@ -603,13 +603,13 @@ function Panel({
           </span>
           <h2 className="text-[13px] font-semibold tracking-tight text-zinc-900">{title}</h2>
           {count !== undefined && count > 0 && (
-            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-zinc-600">
+            <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-3xs font-bold tabular-nums text-zinc-600">
               {count}
             </span>
           )}
         </div>
         {href && hrefLabel && (
-          <Link href={href} className="flex items-center gap-0.5 text-[11px] font-medium text-zinc-400 transition hover:text-zinc-700">
+          <Link href={href} className="flex items-center gap-0.5 text-2xs font-medium text-zinc-400 transition hover:text-zinc-700">
             {hrefLabel} <ArrowRight className="h-3 w-3" />
           </Link>
         )}

@@ -76,7 +76,7 @@ export default async function AdminPostsPage({
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="text-[10px] uppercase tracking-wider text-zinc-400">
+              <thead className="text-3xs uppercase tracking-wider text-zinc-400">
                 <tr className="border-b border-zinc-100">
                   <th className="py-2 pr-3 font-semibold">Estado</th>
                   <th className="py-2 pr-3 font-semibold">Caption</th>
@@ -110,7 +110,7 @@ export default async function AdminPostsPage({
                         {p.brand.agency.name}
                       </Link>
                     </td>
-                    <td className="py-3 pr-3 text-[11px] text-zinc-500">
+                    <td className="py-3 pr-3 text-2xs text-zinc-500">
                       {p.createdAt.toLocaleDateString("es", {
                         day: "numeric",
                         month: "short",
@@ -136,7 +136,7 @@ export default async function AdminPostsPage({
 
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-2xs text-zinc-500">
               Mostrando {(page - 1) * PAGE_SIZE + 1}–
               {Math.min(page * PAGE_SIZE, total)} de {total}
             </p>
@@ -165,7 +165,7 @@ function StatusBadge({
 }) {
   if (deleted) {
     return (
-      <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
+      <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-rose-700 ring-1 ring-rose-200">
         Borrado
       </span>
     );
@@ -180,7 +180,7 @@ function StatusBadge({
   };
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status] ?? "bg-zinc-100 text-zinc-600 ring-zinc-200"}`}
     >
       {status}
     </span>

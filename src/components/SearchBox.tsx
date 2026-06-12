@@ -138,7 +138,7 @@ export default function SearchBox() {
         placeholder="Buscar..."
         className="w-48 rounded-md border border-[var(--line)] bg-white py-1.5 pl-8 pr-9 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:border-fuchsia-400 focus:outline-none focus:shadow-[0_0_0_3px_rgba(138,43,226,0.10)] xl:w-64"
       />
-      <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-zinc-200 bg-zinc-50 px-1 text-[10px] font-mono text-zinc-500">
+      <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-zinc-200 bg-zinc-50 px-1 text-3xs font-mono text-zinc-500">
         /
       </kbd>
 
@@ -213,7 +213,7 @@ export default function SearchBox() {
                     subtitle={p.caption || "Sin caption"}
                     badge={
                       <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
+                        className={`rounded-full px-1.5 py-0.5 text-3xs font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
                       >
                         {STATUS_LABEL[p.status] ?? p.status}
                       </span>
@@ -232,7 +232,7 @@ export default function SearchBox() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="border-b divider px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+      <p className="border-b divider px-3 py-1.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
         {title}
       </p>
       <ul>{children}</ul>
@@ -272,7 +272,7 @@ function ResultRow({
         {icon}
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-zinc-900">{title}</p>
-          <p className="truncate text-[11px] text-zinc-500">{subtitle}</p>
+          <p className="truncate text-2xs text-zinc-500">{subtitle}</p>
         </div>
         {badge}
       </Link>

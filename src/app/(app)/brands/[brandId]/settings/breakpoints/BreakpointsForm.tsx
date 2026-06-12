@@ -106,7 +106,7 @@ export default function BreakpointsForm({
                 <p className="text-[13px] font-semibold text-zinc-900">
                   {BREAKPOINT_LABELS[key]}
                 </p>
-                <p className="text-[11px] text-zinc-500">{HELPER_FOR[key]}</p>
+                <p className="text-2xs text-zinc-500">{HELPER_FOR[key]}</p>
               </div>
               <div className="flex flex-shrink-0 items-center gap-1.5">
                 <input
@@ -119,7 +119,7 @@ export default function BreakpointsForm({
                   disabled={busy}
                   className="input-soft w-24 rounded-md px-2 py-1 text-right text-[13px] font-mono tabular-nums"
                 />
-                <span className="text-[11px] font-medium text-zinc-500">px</span>
+                <span className="text-2xs font-medium text-zinc-500">px</span>
               </div>
             </li>
           );

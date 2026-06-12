@@ -138,7 +138,7 @@ export default function CommentComposer({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100"
+              className="rounded-md px-2 py-0.5 text-2xs font-medium text-zinc-500 hover:bg-zinc-100"
             >
               Cancelar
             </button>
@@ -148,7 +148,7 @@ export default function CommentComposer({
               type="button"
               onClick={onSubmitInternal}
               disabled={busy || !canSubmit || internalDisabled}
-              className="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-60"
+              className="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-2xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-60"
               title={
                 internalDisabled
                   ? internalDisabledReason ?? "No disponible"
@@ -162,7 +162,7 @@ export default function CommentComposer({
             type="button"
             onClick={onSubmit}
             disabled={busy || !canSubmit}
-            className="btn-gradient inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-[11px] font-semibold disabled:opacity-60"
+            className="btn-gradient inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-2xs font-semibold disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
             {submitLabel}

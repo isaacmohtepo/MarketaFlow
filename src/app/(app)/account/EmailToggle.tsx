@@ -24,7 +24,7 @@ export default function EmailToggle({ initial }: { initial: boolean }) {
         <p className="text-[13px] font-medium text-zinc-900">
           {enabled ? "Activadas" : "Desactivadas"}
         </p>
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-2xs text-zinc-500">
           {saving ? "Guardando..." : "Cambia en cualquier momento."}
         </p>
       </div>

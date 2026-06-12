@@ -107,7 +107,7 @@ export default function ProfileEditor({
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
             Iniciales
           </p>
           <p className="mt-1 text-[14px] font-semibold text-zinc-700">{initials}</p>
@@ -115,7 +115,7 @@ export default function ProfileEditor({
             <button
               type="button"
               onClick={() => setAvatarUrl(null)}
-              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-rose-600"
+              className="mt-1 inline-flex items-center gap-1 text-2xs font-medium text-zinc-500 hover:text-rose-600"
             >
               <Trash2 className="h-3 w-3" />
               Quitar foto
@@ -139,7 +139,7 @@ export default function ProfileEditor({
 
       <div className="flex items-center justify-end gap-2">
         {savedAt && Date.now() - savedAt < 4000 && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+          <span className="inline-flex items-center gap-1 text-2xs font-medium text-emerald-600">
             <Check className="h-3 w-3" />
             Guardado
           </span>

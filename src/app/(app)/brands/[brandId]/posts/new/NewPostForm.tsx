@@ -528,7 +528,7 @@ export default function NewPostForm({
           <button
             type="button"
             onClick={discardDraft}
-            className="rounded-md px-2 py-1 text-[11px] font-medium text-fuchsia-700 hover:bg-fuchsia-100"
+            className="rounded-md px-2 py-1 text-2xs font-medium text-fuchsia-700 hover:bg-fuchsia-100"
           >
             Descartar
           </button>
@@ -547,7 +547,7 @@ export default function NewPostForm({
       <div>
         <label className="block text-[13px] font-medium text-zinc-700">
           Tipo de entregable
-          <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
+          <span className="ml-1.5 text-2xs font-normal text-zinc-400">
             qué se le va a presentar al cliente
           </span>
         </label>
@@ -609,7 +609,7 @@ export default function NewPostForm({
               Volver a comprobar
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-amber-700">
+          <p className="mt-2 text-2xs text-amber-700">
             Tip: igual puedes escribir la URL abajo y tocar <strong>Comprobar</strong> ahí — eso valida
             la URL específica.
           </p>
@@ -619,7 +619,7 @@ export default function NewPostForm({
       {/* Aviso multi-dominio + sugerencias de orígenes detectados */}
       {assetType === "web_design" && widgetActive && widgetOrigins.length > 0 && (
         <div className="rounded-lg bg-violet-50 px-3 py-2 ring-1 ring-violet-100">
-          <p className="text-[11px] font-semibold text-violet-900">
+          <p className="text-2xs font-semibold text-violet-900">
             Dominios donde detectamos el widget activo:
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -643,11 +643,11 @@ export default function NewPostForm({
           <label className="block text-[13px] font-medium text-zinc-700">
             {assetType === "web_design" ? "URL del sitio" : "URL del video"}
             {assetType === "web_design" && (
-              <span className="ml-1.5 text-[11px] font-normal text-rose-600">
+              <span className="ml-1.5 text-2xs font-normal text-rose-600">
                 requerido
               </span>
             )}
-            <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
+            <span className="ml-1.5 text-2xs font-normal text-zinc-400">
               {assetType === "web_design"
                 ? "el cliente lo verá embebido y podrá comentar sobre él"
                 : "YouTube, Vimeo, Loom o link directo a un mp4"}
@@ -836,7 +836,7 @@ export default function NewPostForm({
                 : assetType === "ad"
                   ? "Creativos del anuncio"
                   : "Archivos"}
-          <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
+          <span className="ml-1.5 text-2xs font-normal text-zinc-400">
             {assetType === "social_post"
               ? "varias para carrusel · acepta reels mp4"
               : assetType === "web_design"
@@ -904,7 +904,7 @@ export default function NewPostForm({
               <p className="text-[13px] font-semibold text-zinc-900">
                 {uploading ? "Subiendo..." : "Click para subir o arrastra aquí"}
               </p>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-2xs text-zinc-500">
                 {assetType === "social_post"
                   ? "PNG, JPG, WEBP — puedes seleccionar varias"
                   : assetType === "ad"
@@ -975,7 +975,7 @@ export default function NewPostForm({
                   <button
                     type="button"
                     onClick={() => removeImage(idx)}
-                    className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-zinc-900/85 text-[11px] font-bold text-white group-hover:flex"
+                    className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-zinc-900/85 text-2xs font-bold text-white group-hover:flex"
                     aria-label="Quitar"
                   >
                     <X className="h-3 w-3" />
@@ -997,7 +997,7 @@ export default function NewPostForm({
                 )}
               </button>
             </div>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-2xs text-zinc-500">
               Arrastra para reordenar · La primera será la portada · {images.length} imagen
               {images.length === 1 ? "" : "es"}
             </p>
@@ -1081,7 +1081,7 @@ export default function NewPostForm({
         <div>
           <label className="block text-[13px] font-medium text-zinc-700">
             Plataforma del anuncio
-            <span className="ml-1.5 text-[11px] font-normal text-zinc-400">
+            <span className="ml-1.5 text-2xs font-normal text-zinc-400">
               dónde se va a pautar
             </span>
           </label>

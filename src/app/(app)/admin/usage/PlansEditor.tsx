@@ -70,7 +70,7 @@ export default function PlansEditor({ initial }: { initial: UsagePlans }) {
             <p className="text-[13px] font-bold text-zinc-900">
               Editar planes y límites
             </p>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-2xs text-zinc-500">
               Cuando upgradees un servicio, actualiza aquí su tier y límite.
             </p>
           </div>
@@ -158,7 +158,7 @@ function FieldText({
 }) {
   return (
     <label className="block">
-      <span className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+      <span className="block text-3xs font-semibold uppercase tracking-wider text-zinc-500">
         {label}
       </span>
       <input
@@ -184,7 +184,7 @@ function FieldNum({
 }) {
   return (
     <label className="block">
-      <span className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+      <span className="block text-3xs font-semibold uppercase tracking-wider text-zinc-500">
         {label}
       </span>
       <input

@@ -401,7 +401,7 @@ export default function CouponsManager() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-[11px] font-bold text-white">
+                  <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-2xs font-bold text-white">
                     {c.code}
                   </code>
                   <span className="text-[12px] font-semibold text-zinc-900">
@@ -415,7 +415,7 @@ export default function CouponsManager() {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   {c.description && <>{c.description} · </>}
                   <span className="inline-flex items-center gap-0.5">
                     <Hash className="h-2.5 w-2.5" />
@@ -477,7 +477,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+      <span className="mb-1 block text-2xs font-semibold uppercase tracking-wide text-zinc-500">
         {label}
       </span>
       {children}

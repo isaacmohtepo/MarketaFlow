@@ -214,7 +214,7 @@ export default function MentionInput({
 
       {open && items.length > 0 && (
         <div className="absolute bottom-full left-0 z-30 mb-1 w-72 max-w-[90vw] overflow-hidden rounded-xl border bg-white shadow-lg divider">
-          <p className="flex items-center gap-1 border-b divider px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="flex items-center gap-1 border-b divider px-3 py-1.5 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
             <AtSign className="h-3 w-3" />
             Mencionar a
           </p>
@@ -232,7 +232,7 @@ export default function MentionInput({
                     i === active ? "bg-fuchsia-50" : "hover:bg-zinc-50"
                   }`}
                 >
-                  <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700">
+                  <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full bg-zinc-100 text-3xs font-bold text-zinc-700">
                     {(it.name[0] ?? "?").toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">

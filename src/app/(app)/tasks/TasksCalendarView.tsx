@@ -211,7 +211,7 @@ export function TasksCalendarView({
       {/* Tareas sin fecha — sección separada abajo */}
       {unscheduled.length > 0 && (
         <div className="card p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+          <div className="mb-2 flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-zinc-500">
             <Inbox className="h-3.5 w-3.5" />
             Sin fecha ({unscheduled.length})
           </div>
@@ -231,7 +231,7 @@ export function TasksCalendarView({
             ))}
           </div>
           {canWrite && (
-            <p className="mt-2 text-[11px] text-zinc-400">
+            <p className="mt-2 text-2xs text-zinc-400">
               Arrastra una tarea a un día del calendario para asignarle fecha.
             </p>
           )}

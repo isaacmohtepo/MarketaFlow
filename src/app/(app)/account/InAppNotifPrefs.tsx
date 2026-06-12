@@ -114,7 +114,7 @@ export default function InAppNotifPrefs() {
             {permission === "granted" && desktopOn && (
               <button
                 onClick={testDesktop}
-                className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50"
+                className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-2xs font-medium text-zinc-700 hover:bg-zinc-50"
               >
                 <Check className="h-3 w-3" />
                 Enviar una de prueba
@@ -129,7 +129,7 @@ export default function InAppNotifPrefs() {
         />
       </div>
 
-      <p className="flex items-start gap-1.5 text-[11px] text-zinc-500">
+      <p className="flex items-start gap-1.5 text-2xs text-zinc-500">
         <Bell className="mt-0.5 h-3 w-3 flex-shrink-0" />
         Estas preferencias se guardan en este navegador. Si usas otro dispositivo, configúralas allí también.
       </p>

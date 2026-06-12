@@ -48,7 +48,7 @@ export default function NewBrandTile() {
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="text-[13.5px] font-semibold text-zinc-900">Nueva marca</h3>
-          <p className="text-[11px] text-zinc-500">Cliente con su propio feed</p>
+          <p className="text-2xs text-zinc-500">Cliente con su propio feed</p>
         </div>
       </button>
     );

@@ -35,7 +35,7 @@ export default async function BrandSettingsSharing({
               <span className="ml-1 font-medium text-fuchsia-700">Sin registro.</span>
             </p>
           </div>
-          <span className="flex-shrink-0 rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">
+          <span className="flex-shrink-0 rounded-full bg-fuchsia-100 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider text-fuchsia-700">
             Recomendado
           </span>
         </div>

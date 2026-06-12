@@ -221,7 +221,7 @@ export default function TeamManager({ canInvite }: { canInvite: boolean }) {
           {/* Scope por brand: solo si el rol no es noScope */}
           {selectedRole && !selectedRole.noScope && brands.length > 0 && (
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                 Acceso a marcas
               </p>
               <div className="mt-2 flex gap-2 text-[12px]">
@@ -256,7 +256,7 @@ export default function TeamManager({ canInvite }: { canInvite: boolean }) {
                           else next.add(b.id);
                           setScopeBrands(next);
                         }}
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                        className={`rounded-full px-2.5 py-1 text-2xs font-medium transition ${
                           on
                             ? "bg-zinc-900 text-white"
                             : "bg-white text-zinc-700 ring-1 ring-zinc-200 hover:bg-zinc-100"
@@ -303,12 +303,12 @@ export default function TeamManager({ canInvite }: { canInvite: boolean }) {
                     <p className="truncate text-[13px] font-semibold text-zinc-900">
                       {m.name ?? m.email}
                       {m.isYou && (
-                        <span className="ml-1.5 text-[11px] font-normal text-zinc-500">
+                        <span className="ml-1.5 text-2xs font-normal text-zinc-500">
                           (tú)
                         </span>
                       )}
                     </p>
-                    <p className="truncate text-[11px] text-zinc-500">
+                    <p className="truncate text-2xs text-zinc-500">
                       {m.email}
                       {m.brandScope.length > 0 && (
                         <span className="ml-1.5 text-zinc-400">
@@ -344,7 +344,7 @@ export default function TeamManager({ canInvite }: { canInvite: boolean }) {
                         canChangeRoles && !m.isYou ? setEditingId(m.id) : null
                       }
                       disabled={!canChangeRoles || m.isYou}
-                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-3xs font-semibold ring-1 ${
                         TONE_CLASSES[tone]
                       } ${
                         canChangeRoles && !m.isYou ? "hover:opacity-80" : ""
@@ -394,19 +394,19 @@ export default function TeamManager({ canInvite }: { canInvite: boolean }) {
                     <p className="truncate text-[13px] font-semibold text-zinc-900">
                       {inv.email}
                     </p>
-                    <p className="truncate text-[11px] text-zinc-500">
+                    <p className="truncate text-2xs text-zinc-500">
                       Esperando aceptación · expira el{" "}
                       {new Date(inv.expiresAt).toLocaleDateString()}
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${TONE_CLASSES[tone]}`}
+                    className={`rounded-full px-2 py-0.5 text-3xs font-semibold ring-1 ${TONE_CLASSES[tone]}`}
                   >
                     {roleLabel(inv.role)}
                   </span>
                   <button
                     onClick={() => copyLink(inv)}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100"
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-2xs font-medium text-zinc-700 hover:bg-zinc-100"
                     title="Copiar link"
                   >
                     {copiedId === inv.id ? (

@@ -19,7 +19,7 @@ export default function AttachmentPreview({
 }) {
   const isImage = attachment.mime.startsWith("image/");
   const thumbSize = size === "sm" ? "h-8 w-8" : "h-10 w-10";
-  const textSize = size === "sm" ? "text-[10.5px]" : "text-[11px]";
+  const textSize = size === "sm" ? "text-[10.5px]" : "text-2xs";
   return (
     <div className="mt-1.5 flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-1.5">
       {isImage ? (

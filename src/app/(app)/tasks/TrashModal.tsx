@@ -253,7 +253,7 @@ export function TrashModal({ open, onClose, onRestored }: Props) {
                     <p className="truncate text-sm font-semibold text-zinc-900">
                       {t.title}
                     </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-zinc-500">
                       <span className="inline-flex items-center gap-1">
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${TASK_PRIORITY_DOT[t.priority]}`}
@@ -292,7 +292,7 @@ export function TrashModal({ open, onClose, onRestored }: Props) {
                       type="button"
                       onClick={() => restore(t.id)}
                       disabled={busyId === t.id}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-2xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
                     >
                       {busyId === t.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />

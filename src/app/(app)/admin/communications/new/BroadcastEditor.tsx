@@ -95,7 +95,7 @@ export default function BroadcastEditor() {
                 </option>
               ))}
             </select>
-            <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-zinc-500">
+            <div className="mt-1 inline-flex items-center gap-1 text-2xs text-zinc-500">
               <Users className="h-3 w-3" />
               {audienceCount === null
                 ? "Calculando…"
@@ -149,7 +149,7 @@ export default function BroadcastEditor() {
                   min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
                   className="input-soft rounded-md px-2 py-1.5 text-[12.5px]"
                 />
-                <span className="text-[11px] text-zinc-500">
+                <span className="text-2xs text-zinc-500">
                   El cron despacha cada 10 min — la hora real puede tener
                   ±10 min de desfase.
                 </span>

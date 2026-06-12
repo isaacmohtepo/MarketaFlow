@@ -108,7 +108,7 @@ function Stat({
       >
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
+      <p className="mt-0.5 text-3xs uppercase tracking-wider text-zinc-400">
         {label}
       </p>
     </div>
@@ -124,7 +124,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span
-      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 ${map[status]}`}
+      className={`rounded-full px-2.5 py-0.5 text-3xs font-bold uppercase tracking-wider ring-1 ${map[status]}`}
     >
       {status}
     </span>

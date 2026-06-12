@@ -129,7 +129,7 @@ export default async function AdminUsagePage() {
         <div className="card p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                 Usado del plan {plans.r2.tier}
               </p>
               <p className="mt-1 text-3xl font-bold text-zinc-900 tabular-nums">
@@ -140,7 +140,7 @@ export default async function AdminUsagePage() {
               </p>
             </div>
             <span
-              className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+              className={`rounded-full px-2.5 py-1 text-2xs font-bold ${
                 r2PctOfFree < 60
                   ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
                   : r2PctOfFree < 85
@@ -169,13 +169,13 @@ export default async function AdminUsagePage() {
                 <Folder className="h-4 w-4 text-blue-600" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                   uploads/
                 </p>
                 <p className="text-[16px] font-bold text-zinc-900 tabular-nums">
                   {fmtBytes(r2Uploads.bytes)}
                 </p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   {fmtN(r2Uploads.count)} archivos · imágenes, videos, PDFs
                 </p>
               </div>
@@ -185,13 +185,13 @@ export default async function AdminUsagePage() {
                 <Camera className="h-4 w-4 text-fuchsia-600" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-500">
                   screenshots/
                 </p>
                 <p className="text-[16px] font-bold text-zinc-900 tabular-nums">
                   {fmtBytes(r2Screenshots.bytes)}
                 </p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-2xs text-zinc-500">
                   {fmtN(r2Screenshots.count)} capturas de sitios cacheadas
                 </p>
               </div>
@@ -324,7 +324,7 @@ function StatCard({
       <p className="mt-1 text-[22px] font-bold text-zinc-900 tabular-nums">
         {value}
       </p>
-      {hint && <p className="mt-0.5 text-[11px] text-zinc-500">{hint}</p>}
+      {hint && <p className="mt-0.5 text-2xs text-zinc-500">{hint}</p>}
     </div>
   );
 }
@@ -354,18 +354,18 @@ function ExternalRow({
       <div className="flex items-center justify-between gap-2">
         <p className="text-[13.5px] font-bold text-zinc-900">{name}</p>
         <div className="flex items-center gap-1.5">
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-zinc-600">
             {tier}
           </span>
           {cost > 0 && (
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-700 ring-1 ring-emerald-200">
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-3xs font-semibold tabular-nums text-emerald-700 ring-1 ring-emerald-200">
               ${cost}/mes
             </span>
           )}
         </div>
       </div>
       <p className="text-[11.5px] font-medium text-zinc-700">{limit}</p>
-      <p className="text-[11px] text-zinc-500">{note}</p>
+      <p className="text-2xs text-zinc-500">{note}</p>
       <span className="mt-1 text-[10.5px] font-semibold text-fuchsia-600 group-hover:underline">
         Ver dashboard →
       </span>

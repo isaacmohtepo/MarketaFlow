@@ -212,7 +212,7 @@ export default function Calendar({
       </div>
 
       <div
-        className={`mt-5 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wider text-zinc-500 ${
+        className={`mt-5 grid grid-cols-7 gap-1 text-center text-2xs font-semibold uppercase tracking-wider text-zinc-500 ${
           view === "week" ? "sm:text-[12px]" : ""
         }`}
       >
@@ -259,7 +259,7 @@ export default function Calendar({
             >
               {cell.date && (
                 <div
-                  className={`mb-1 flex items-center justify-between text-[11px] font-semibold ${
+                  className={`mb-1 flex items-center justify-between text-2xs font-semibold ${
                     cell.isToday ? "brand-gradient-text" : "text-zinc-500"
                   }`}
                 >
@@ -302,7 +302,7 @@ export default function Calendar({
                       )}
                       <div className="min-w-0 flex-1">
                         <span
-                          className={`block truncate rounded px-1 text-[10px] font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
+                          className={`block truncate rounded px-1 text-3xs font-medium ${STATUS_COLOR[p.status] ?? "bg-zinc-200"}`}
                         >
                           {p.scheduledAt
                             ? p.scheduledAt.toLocaleTimeString([], {
@@ -312,7 +312,7 @@ export default function Calendar({
                             : ""}
                         </span>
                         {view === "week" && p.caption && (
-                          <span className="mt-0.5 block truncate text-[10px] text-zinc-500">
+                          <span className="mt-0.5 block truncate text-3xs text-zinc-500">
                             {p.caption}
                           </span>
                         )}
@@ -321,7 +321,7 @@ export default function Calendar({
                   </div>
                 ))}
                 {view === "month" && dayPosts.length > 3 && (
-                  <p className="text-[10px] text-zinc-500">+{dayPosts.length - 3} más</p>
+                  <p className="text-3xs text-zinc-500">+{dayPosts.length - 3} más</p>
                 )}
               </div>
 
@@ -329,7 +329,7 @@ export default function Calendar({
               {cell.date && canEdit && dayPosts.length === 0 && !isPast && (
                 <Link
                   href={`/brands/${brandId}/posts/new?date=${ymdKey(cell.date)}`}
-                  className="absolute inset-x-1.5 bottom-1.5 hidden grid-flow-col place-items-center gap-1 rounded-md border border-dashed border-zinc-300 py-1 text-[10px] font-medium text-zinc-500 transition hover:border-fuchsia-400 hover:text-fuchsia-600 group-hover:grid"
+                  className="absolute inset-x-1.5 bottom-1.5 hidden grid-flow-col place-items-center gap-1 rounded-md border border-dashed border-zinc-300 py-1 text-3xs font-medium text-zinc-500 transition hover:border-fuchsia-400 hover:text-fuchsia-600 group-hover:grid"
                   draggable={false}
                 >
                   <Plus className="h-3 w-3" />
@@ -342,7 +342,7 @@ export default function Calendar({
       </div>
 
       {canEdit && (
-        <p className="mt-3 text-[11px] text-zinc-400">
+        <p className="mt-3 text-2xs text-zinc-400">
           Arrastra un post a otro día para reprogramarlo · pasa el cursor por días vacíos para crear uno nuevo.
         </p>
       )}

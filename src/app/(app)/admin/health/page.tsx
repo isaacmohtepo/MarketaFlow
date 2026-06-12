@@ -91,7 +91,7 @@ export default async function AdminHealthPage() {
                 <p className="text-[13px] font-semibold text-zinc-900">{c.name}</p>
                 {c.latencyMs !== null && (
                   <span
-                    className={`text-[11px] tabular-nums ${
+                    className={`text-2xs tabular-nums ${
                       c.latencyMs > 1000
                         ? "text-amber-600"
                         : c.latencyMs > 3000
