@@ -403,8 +403,15 @@ export async function DELETE(
         brandId: true,
         postId: true,
         priority: true,
+        assigneeId: true,
         _count: {
-          select: { subtasks: true, comments: true, attachments: true, tags: true },
+          select: {
+            subtasks: true,
+            comments: true,
+            attachments: true,
+            tags: true,
+            assignees: true,
+          },
         },
       },
     });
@@ -416,11 +423,13 @@ export async function DELETE(
       !t.recurrence &&
       !t.brandId &&
       !t.postId &&
+      !t.assigneeId &&
       t.priority === "normal" &&
       t._count.subtasks === 0 &&
       t._count.comments === 0 &&
       t._count.attachments === 0 &&
-      t._count.tags === 0;
+      t._count.tags === 0 &&
+      t._count.assignees === 0;
     if (!isEmpty) return NextResponse.json({ deleted: false });
     // Soft delete (no hard) para que el SSE propague el "removed" a los
     // demás boards abiertos; queda en papelera por si acaso.

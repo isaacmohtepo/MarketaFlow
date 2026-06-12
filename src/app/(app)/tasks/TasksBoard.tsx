@@ -1433,7 +1433,8 @@ export default function TasksBoard({
         body: JSON.stringify({
           title: "Nueva tarea",
           status: status ?? columns.find((c) => !c.isDone)?.id ?? "todo",
-          assigneeId: currentUserId,
+          // Sin asignado: la tarea nace 100% vacía y el user decide todo
+          // en el drawer.
         }),
       });
       if (!res.ok) throw new Error();
