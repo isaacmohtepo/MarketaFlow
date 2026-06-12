@@ -1,0 +1,36 @@
+# CI de MarketaFlow: typecheck + build en cada push/PR.
+# Atrapa errores ANTES de llegar a producción (Vercel despliega main).
+#
+# Nota: DATABASE_URL es dummy — el build de Next no se conecta a la DB
+# (todas las páginas son dinámicas), pero el cliente Prisma exige que la
+# variable exista al evaluarse el módulo.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npx next build
