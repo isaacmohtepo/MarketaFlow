@@ -1419,6 +1419,31 @@ export default function TasksBoard({
     }
   }
 
+  /**
+   * "Nueva tarea": crea al instante y abre el DRAWER completo — así la
+   * creación tiene exactamente las mismas opciones que ver una tarea
+   * (enlaces, comentarios, repetir, todo). Reemplaza al modal intermedio.
+   */
+  async function createAndOpen(status?: TaskStatus) {
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Nueva tarea",
+          status: status ?? columns.find((c) => !c.isDone)?.id ?? "todo",
+          assigneeId: currentUserId,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const j = await res.json();
+      setTasks((cur) => [...cur, j.task]);
+      setOpenTaskId(j.task.id);
+    } catch {
+      toast.error("No se pudo crear");
+    }
+  }
+
   /** Bulk: borrar todas las tareas done de la agency. Confirmación obligada. */
   async function clearDone() {
     const doneTasks = tasks.filter((t) => t.status === "done");
@@ -1458,7 +1483,7 @@ export default function TasksBoard({
   const spotlight = useSpotlight();
   const modKey = useModKey();
   useGlobalShortcuts({
-    onCreate: () => canWrite && setCreating("todo"),
+    onCreate: () => canWrite && createAndOpen(),
   });
 
   const openTask = openTaskId
@@ -1527,7 +1552,7 @@ export default function TasksBoard({
             {canWrite && (
               <button
                 type="button"
-                onClick={() => setCreating("todo")}
+                onClick={() => createAndOpen()}
                 className="btn-gradient group inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold sm:px-4 sm:text-sm"
               >
                 <Plus className="h-4 w-4 transition group-hover:rotate-90" />
@@ -1613,7 +1638,7 @@ export default function TasksBoard({
               onToggleCollapse={() => toggleCollapse(col.id)}
               onChangeSort={(m) => setColSort(col.id, m)}
               onClearDone={col.isDone ? clearDone : undefined}
-              onOpenModal={() => setCreating(col.id)}
+              onOpenModal={() => createAndOpen(col.id)}
               onQuickCreate={(title) => quickCreate(col.id, title)}
               onDragOverColumn={(e) => onDragOverColumn(e, col.id)}
               onDragLeaveColumn={() => onDragLeaveColumn(col.id)}
@@ -1739,7 +1764,7 @@ export default function TasksBoard({
                   label: "Crear nueva tarea",
                   shortcut: "C",
                   icon: Plus,
-                  onSelect: () => setCreating("todo"),
+                  onSelect: () => createAndOpen(),
                 },
               ]
             : []
