@@ -194,17 +194,26 @@ export async function notifyTaskStatusChanged(opts: {
   actorName: string;
   actorAvatarUrl?: string | null;
   excludeUserId?: string;
+  /** Matiz del mensaje: movida normal, completada o reabierta. */
+  kind?: "moved" | "completed" | "reopened";
 }): Promise<void> {
   const ids = [
     ...new Set(opts.participantIds.filter(Boolean) as string[]),
   ].filter((id) => id !== opts.excludeUserId);
   if (ids.length === 0) return;
 
+  const body =
+    opts.kind === "completed"
+      ? `✅ ${opts.actorName} completó "${opts.taskTitle}"`
+      : opts.kind === "reopened"
+        ? `${opts.actorName} reabrió "${opts.taskTitle}" (→ ${opts.statusLabel})`
+        : `${opts.actorName} movió "${opts.taskTitle}" a ${opts.statusLabel}`;
+
   await prisma.notification.createMany({
     data: ids.map((userId) => ({
       userId,
       type: "task_status",
-      body: `${opts.actorName} movió "${opts.taskTitle}" a ${opts.statusLabel}`,
+      body,
       taskId: opts.taskId,
       actorName: opts.actorName,
       actorAvatarUrl: opts.actorAvatarUrl ?? null,

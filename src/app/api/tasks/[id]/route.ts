@@ -257,6 +257,12 @@ export async function PATCH(
       actorName: user.name ?? user.email,
       actorAvatarUrl: user.avatarUrl,
       excludeUserId: user.id,
+      kind:
+        nextStatusIsDone && !prevStatusIsDone
+          ? "completed"
+          : prevStatusIsDone && !nextStatusIsDone
+            ? "reopened"
+            : "moved",
     }).catch((err) => console.error("notifyTaskStatusChanged", err));
   }
   if (body.priority !== undefined && body.priority !== prevTask.priority) {

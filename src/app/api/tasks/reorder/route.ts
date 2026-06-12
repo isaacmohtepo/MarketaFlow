@@ -7,8 +7,10 @@ import {
   getUserTaskAgency,
   getAgencyTaskColumns,
   recordTaskActivity,
+  spawnNextRecurrence,
 } from "@/lib/tasks";
 import { computeAutoStatus } from "@/lib/tasks-types";
+import { notifyTaskStatusChanged } from "@/lib/notifications-tasks";
 
 /**
  * POST /api/tasks/reorder
@@ -69,6 +71,9 @@ export async function POST(req: Request) {
       status: true,
       brandId: true,
       priority: true,
+      title: true,
+      creatorId: true,
+      recurrence: true,
       assignees: { select: { id: true } },
       assigneeId: true,
     },
@@ -132,6 +137,40 @@ export async function POST(req: Request) {
         recordTaskActivity(item.id, user.id, "completed", {});
       else if (prevIsDone && !finalIsDone)
         recordTaskActivity(item.id, user.id, "reopened", {});
+
+      // Notificar a participantes (asignados + creador, sin el actor) — el
+      // drag-and-drop es la forma MÁS común de mover/completar tareas y antes
+      // solo notificaba la ruta PATCH.
+      const participantIds = [
+        ...prev.assignees.map((a) => a.id),
+        prev.assigneeId,
+        prev.creatorId,
+      ];
+      const statusLabel =
+        columns.find((c) => c.id === finalStatus)?.label ?? finalStatus;
+      await notifyTaskStatusChanged({
+        taskId: item.id,
+        taskTitle: prev.title,
+        statusLabel,
+        participantIds,
+        actorName: user.name ?? user.email,
+        actorAvatarUrl: user.avatarUrl,
+        excludeUserId: user.id,
+        kind:
+          finalIsDone && !prevIsDone
+            ? "completed"
+            : prevIsDone && !finalIsDone
+              ? "reopened"
+              : "moved",
+      }).catch((err) => console.error("notifyTaskStatusChanged reorder", err));
+
+      // Recurrencia: completar por drag también crea la próxima ocurrencia
+      // (antes solo lo hacía la ruta PATCH).
+      if (finalIsDone && !prevIsDone && prev.recurrence) {
+        await spawnNextRecurrence(item.id).catch((err) =>
+          console.error("spawnNextRecurrence reorder", err),
+        );
+      }
     }
   }
 
