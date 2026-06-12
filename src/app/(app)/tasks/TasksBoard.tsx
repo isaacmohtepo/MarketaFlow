@@ -3278,13 +3278,14 @@ function NewTaskModal({
   // Multi-assignee state — array de userIds. Por defecto el creador.
   const [assigneeIds, setAssigneeIds] = useState<string[]>([currentUserId]);
   const [dueDate, setDueDate] = useState<string>("");
+  const [recurrence, setRecurrence] = useState<string | null>(null);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [subtaskInputs, setSubtaskInputs] = useState<string[]>([]);
   const [newSub, setNewSub] = useState("");
   const [busy, setBusy] = useState(false);
 
   // Popovers state — mismo patrón que el drawer
-  type ModalMenu = null | "assignee" | "priority" | "brand" | "due" | "tags" | "status";
+  type ModalMenu = null | "assignee" | "priority" | "brand" | "due" | "tags" | "status" | "recurrence";
   const [menu, setMenu] = useState<ModalMenu>(null);
   function closeMenu() {
     setMenu(null);
@@ -3329,6 +3330,7 @@ function NewTaskModal({
           // PUT /assignees.
           assigneeId: assigneeIds[0] ?? null,
           dueDate: dueDate || null,
+          recurrence,
           subtasks: subtaskInputs.map((t) => ({ title: t })),
         }),
       });
@@ -3615,6 +3617,61 @@ function NewTaskModal({
                   </span>
                 ) : (
                   <span className="text-[13px] text-zinc-400">Sin fecha</span>
+                )}
+              </PropertyPicker>
+            </PropertyRow>
+
+            {/* Recurrencia — al completar se crea la próxima ocurrencia */}
+            <PropertyRow label="Repetir" icon={Repeat}>
+              <PropertyPicker
+                onClick={() => setMenu(menu === "recurrence" ? null : "recurrence")}
+                open={menu === "recurrence"}
+                onClose={closeMenu}
+                width="w-52"
+                popover={
+                  <div className="p-1">
+                    {(
+                      [
+                        [null, "No se repite"],
+                        ["daily", "Cada día"],
+                        ["weekly", "Cada semana"],
+                        ["biweekly", "Cada 2 semanas"],
+                        ["monthly", "Cada mes"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          setRecurrence(value);
+                          closeMenu();
+                        }}
+                        className={`block w-full rounded-md px-2.5 py-1.5 text-left text-[13px] transition hover:bg-zinc-50 ${
+                          recurrence === value
+                            ? "font-semibold text-zinc-900"
+                            : "text-zinc-600"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                }
+              >
+                {recurrence ? (
+                  <span className="flex items-center gap-2">
+                    <Repeat className="h-3.5 w-3.5 text-violet-500" />
+                    <span className="text-[13px] font-medium text-zinc-800">
+                      {{
+                        daily: "Cada día",
+                        weekly: "Cada semana",
+                        biweekly: "Cada 2 semanas",
+                        monthly: "Cada mes",
+                      }[recurrence] ?? recurrence}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-[13px] text-zinc-400">No se repite</span>
                 )}
               </PropertyPicker>
             </PropertyRow>

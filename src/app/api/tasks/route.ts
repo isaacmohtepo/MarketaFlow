@@ -7,6 +7,7 @@ import {
   getUserTaskAgency,
   getAgencyTaskColumns,
   isTaskPriority,
+  isTaskRecurrence,
   sanitizeTaskTitle,
   recordTaskActivity,
   TASK_STATUSES,
@@ -124,6 +125,7 @@ const createSchema = z.object({
   brandId: z.string().nullable().optional(),
   postId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
+  recurrence: z.string().nullable().optional(),
   subtasks: z
     .array(z.object({ title: z.string().min(1).max(200) }))
     .max(50)
@@ -277,6 +279,7 @@ export async function POST(req: Request) {
         : undefined,
       creatorId: user.id,
       dueDate,
+      recurrence: isTaskRecurrence(body.recurrence) ? body.recurrence : null,
       position,
       subtasks: body.subtasks?.length
         ? {
