@@ -148,6 +148,30 @@ export default async function BrandContent({
     }
   }
 
+  // Tareas con fecha límite para la vista calendario. Son internas del
+  // equipo: si el viewer es cliente NO se cargan (pasa []).
+  const calendarTasks =
+    activeType === "social_post" && view === "calendar" && access.role !== "client"
+      ? (
+          await prisma.task.findMany({
+            where: { brandId, deletedAt: null, dueDate: { not: null } },
+            select: {
+              id: true,
+              title: true,
+              dueDate: true,
+              priority: true,
+              completedAt: true,
+            },
+          })
+        ).map((t) => ({
+          id: t.id,
+          title: t.title,
+          dueDate: t.dueDate,
+          priority: t.priority,
+          done: t.completedAt !== null,
+        }))
+      : [];
+
   return (
     <>
       {access.canApprove && (statusCounts.in_review ?? 0) > 0 && (
@@ -222,6 +246,7 @@ export default async function BrandContent({
       {activeType === "social_post" && view === "calendar" && (
         <div className="mt-5">
           <Calendar
+            tasks={calendarTasks}
             brandId={brandId}
             posts={visiblePosts.map((p) => ({
               id: p.id,

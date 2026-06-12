@@ -168,6 +168,7 @@ model Agency {
   subscription Subscription?
   tasks        Task[]
   taskTags     TaskTag[]
+  taskTemplates TaskTemplate[]
 }
 
 /// Suscripción 1:1 con Agency. Define qué plan tiene activo, su estado de
@@ -977,6 +978,7 @@ model Task {
   tags        TaskTag[] @relation("TaskTagsOnTask")
   comments    TaskComment[]  @relation("TaskComments")
   activities  TaskActivity[] @relation("TaskActivities")
+  attachments TaskAttachment[]
 
   @@index([agencyId, status])
   @@index([assigneeId, status])
@@ -1045,6 +1047,37 @@ model TaskTag {
   /// lowercase antes de validar / crear.
   @@unique([agencyId, name])
   @@index([agencyId])
+}
+
+/// Plantilla de proyecto: set de tareas predefinidas que la agencia aplica a
+/// una marca en 1 clic (ej. "Onboarding cliente nuevo" → 8 tareas con plazos
+/// relativos). `items` es un array JSON:
+///   [{ title, priority?, dueOffsetDays?, subtasks?: string[] }]
+/// dueOffsetDays = días desde el momento de aplicar (null = sin fecha).
+model TaskTemplate {
+  id        String   @id @default(cuid())
+  agencyId  String
+  name      String   @db.VarChar(80)
+  items     Json
+  createdAt DateTime @default(now())
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId])
+}
+
+/// Archivo adjunto de una tarea (brief, diseño de referencia, etc.). El
+/// archivo vive en R2 (subido por /api/upload); acá guardamos la URL.
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String?
+  url       String
+  name      String?
+  mime      String?
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 /// Checklist dentro de una tarea (subtareas tipo Trello). Se marcan

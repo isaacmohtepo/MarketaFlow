@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { STATUS_COLOR } from "@/lib/utils";
 
 type CalPost = {
@@ -13,6 +13,14 @@ type CalPost = {
   status: string;
   scheduledAt: Date | null;
   caption: string;
+};
+
+type CalTask = {
+  id: string;
+  title: string;
+  dueDate: Date | null;
+  priority: string;
+  done: boolean;
 };
 
 const DAY_NAMES_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -78,6 +86,7 @@ function sameDay(a: Date, b: Date) {
 export default function Calendar({
   brandId,
   posts: initialPosts,
+  tasks = [],
   monthParam,
   view: initialView = "month",
   weekParam,
@@ -85,6 +94,7 @@ export default function Calendar({
 }: {
   brandId: string;
   posts: CalPost[];
+  tasks?: CalTask[];
   monthParam?: string;
   view?: "month" | "week";
   weekParam?: string;
@@ -119,6 +129,19 @@ export default function Calendar({
     }
     return m;
   }, [posts]);
+
+  // Group tasks by day key (solo las que tienen dueDate)
+  const tasksByKey = useMemo(() => {
+    const m = new Map<string, CalTask[]>();
+    for (const t of tasks) {
+      if (!t.dueDate) continue;
+      const k = ymdKey(t.dueDate);
+      const arr = m.get(k) ?? [];
+      arr.push(t);
+      m.set(k, arr);
+    }
+    return m;
+  }, [tasks]);
 
   function navigate(direction: -1 | 1) {
     if (view === "month") {
@@ -224,6 +247,7 @@ export default function Calendar({
       <div className="mt-1 grid grid-cols-7 gap-1">
         {cells.map((cell, i) => {
           const dayPosts = cell.date ? byKey.get(ymdKey(cell.date)) ?? [] : [];
+          const dayTasks = cell.date ? tasksByKey.get(ymdKey(cell.date)) ?? [] : [];
           const key = cell.date ? ymdKey(cell.date) : `empty-${i}`;
           const isOver = overKey === key;
           const isPast = cell.date ? cell.date < startOfDay(today) : false;
@@ -322,6 +346,25 @@ export default function Calendar({
                 ))}
                 {view === "month" && dayPosts.length > 3 && (
                   <p className="text-3xs text-zinc-500">+{dayPosts.length - 3} más</p>
+                )}
+                {dayTasks.slice(0, 3).map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => router.push(`/tasks?open=${t.id}`)}
+                    className={`flex w-full items-center gap-1 rounded-md bg-violet-50 px-1 py-0.5 text-left text-3xs font-medium text-violet-700 ring-1 ring-transparent transition hover:ring-violet-400 ${
+                      t.done ? "opacity-60" : ""
+                    }`}
+                    title={t.title}
+                  >
+                    <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                    <span className={`min-w-0 flex-1 truncate ${t.done ? "line-through" : ""}`}>
+                      {t.title}
+                    </span>
+                  </button>
+                ))}
+                {dayTasks.length > 3 && (
+                  <p className="text-3xs text-violet-500">+{dayTasks.length - 3} tareas</p>
                 )}
               </div>
 

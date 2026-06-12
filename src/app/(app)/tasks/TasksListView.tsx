@@ -13,6 +13,7 @@
 import { useState } from "react";
 import {
   ChevronRight,
+  ChevronDown,
   Flag,
   Calendar as CalendarIcon,
   Circle,
@@ -23,6 +24,7 @@ import {
   type TaskStatus,
   type TaskPriority,
 } from "@/lib/tasks-types";
+import { Button, Menu, MenuItem } from "@/components/ui";
 import { getEffectiveAssignees, type TaskItem } from "./types";
 import { useColumnMeta, useColumnsList } from "./TasksBoard";
 
@@ -32,6 +34,13 @@ const PRIORITY_FLAG: Record<TaskPriority, string> = {
   normal: "text-blue-500",
   low: "text-zinc-400",
 };
+
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
+  { value: "low", label: "Baja" },
+  { value: "normal", label: "Normal" },
+  { value: "high", label: "Alta" },
+  { value: "urgent", label: "Urgente" },
+];
 
 export function TasksListView({
   tasks,
@@ -52,6 +61,8 @@ export function TasksListView({
   const { columns } = useColumnsList();
   const metaFallback = COLUMN_META[Object.keys(COLUMN_META)[0]];
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  // Selección para acciones en bulk (solo ids; se limpia al desmontar la vista).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Agrupar por status preservando el orden de las columnas dinámicas.
   const groups: Record<string, TaskItem[]> = {};
@@ -76,6 +87,48 @@ export function TasksListView({
     }));
   }
 
+  // ---- Selección en bulk -------------------------------------------------
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** Marca/desmarca todas las tareas de un grupo. */
+  function toggleGroup(groupTasks: TaskItem[], allSelected: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const t of groupTasks) {
+        if (allSelected) next.delete(t.id);
+        else next.add(t.id);
+      }
+      return next;
+    });
+  }
+
+  function bulkStatus(statusId: string) {
+    const isDone = columns.find((c) => c.id === statusId)?.isDone ?? false;
+    for (const id of selected) {
+      onPatch(id, { status: statusId }, (cur) => ({
+        ...cur,
+        status: statusId as TaskStatus,
+        completedAt: isDone ? new Date().toISOString() : null,
+      }));
+    }
+    setSelected(new Set());
+  }
+
+  function bulkPriority(priority: TaskPriority) {
+    for (const id of selected) {
+      onPatch(id, { priority }, (cur) => ({ ...cur, priority }));
+    }
+    setSelected(new Set());
+  }
+
   return (
     <div className="flex flex-col gap-3 pb-6">
       {columns.map((col) => {
@@ -89,29 +142,50 @@ export function TasksListView({
             className="card overflow-hidden p-0"
           >
             {/* Header del grupo */}
-            <button
-              type="button"
-              onClick={() =>
-                setCollapsed((c) => ({ ...c, [status]: !c[status] }))
-              }
-              className="flex w-full items-center justify-between gap-2 border-b divider px-4 py-2.5 text-left transition hover:bg-zinc-50"
-            >
-              <div className="flex items-center gap-2">
-                <ChevronRight
-                  className={`h-3.5 w-3.5 text-zinc-400 transition ${
-                    isCollapsed ? "" : "rotate-90"
-                  }`}
+            <div className="flex w-full items-center gap-3 border-b divider px-4 py-2.5 transition hover:bg-zinc-50">
+              {canWrite && (
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 flex-shrink-0 rounded"
+                  checked={
+                    groupTasks.length > 0 &&
+                    groupTasks.every((t) => selected.has(t.id))
+                  }
+                  disabled={groupTasks.length === 0}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() =>
+                    toggleGroup(
+                      groupTasks,
+                      groupTasks.every((t) => selected.has(t.id)),
+                    )
+                  }
+                  title="Seleccionar todas las tareas del grupo"
                 />
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-white shadow-sm ${meta.pill}`}
-                >
-                  {col.label}
-                </span>
-                <span className="text-[12px] font-semibold text-zinc-500">
-                  {groupTasks.length}
-                </span>
-              </div>
-            </button>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsed((c) => ({ ...c, [status]: !c[status] }))
+                }
+                className="flex flex-1 items-center justify-between gap-2 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <ChevronRight
+                    className={`h-3.5 w-3.5 text-zinc-400 transition ${
+                      isCollapsed ? "" : "rotate-90"
+                    }`}
+                  />
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-white shadow-sm ${meta.pill}`}
+                  >
+                    {col.label}
+                  </span>
+                  <span className="text-[12px] font-semibold text-zinc-500">
+                    {groupTasks.length}
+                  </span>
+                </div>
+              </button>
+            </div>
 
             {/* Filas */}
             {!isCollapsed && (
@@ -126,6 +200,8 @@ export function TasksListView({
                     key={t.id}
                     task={t}
                     canWrite={canWrite}
+                    selected={selected.has(t.id)}
+                    onToggleSelected={() => toggleSelected(t.id)}
                     onOpen={() => onOpenTask(t.id)}
                     onToggleDone={() => toggleDone(t)}
                   />
@@ -135,6 +211,60 @@ export function TasksListView({
           </div>
         );
       })}
+
+      {/* Barra flotante de acciones en bulk */}
+      {canWrite && selected.size > 0 && (
+        <div className="card fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 px-4 py-2.5 shadow-pop">
+          <span className="text-xs font-semibold text-zinc-700">
+            {selected.size} seleccionada{selected.size === 1 ? "" : "s"}
+          </span>
+          <Menu
+            align="left"
+            className="!top-auto bottom-full !mt-0 mb-1"
+            button={
+              <span className="btn-secondary inline-flex items-center gap-1 rounded-control px-3 py-1.5 text-xs font-semibold">
+                Estado
+                <ChevronDown className="h-3 w-3" />
+              </span>
+            }
+          >
+            {columns.map((c) => (
+              <MenuItem key={c.id} onSelect={() => bulkStatus(c.id)}>
+                {c.label}
+              </MenuItem>
+            ))}
+          </Menu>
+          <Menu
+            align="left"
+            className="!top-auto bottom-full !mt-0 mb-1"
+            button={
+              <span className="btn-secondary inline-flex items-center gap-1 rounded-control px-3 py-1.5 text-xs font-semibold">
+                Prioridad
+                <ChevronDown className="h-3 w-3" />
+              </span>
+            }
+          >
+            {PRIORITY_OPTIONS.map((p) => (
+              <MenuItem key={p.value} onSelect={() => bulkPriority(p.value)}>
+                <span className="inline-flex items-center gap-2">
+                  <Flag
+                    className={`h-3 w-3 ${PRIORITY_FLAG[p.value]}`}
+                    fill="currentColor"
+                  />
+                  {p.label}
+                </span>
+              </MenuItem>
+            ))}
+          </Menu>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelected(new Set())}
+          >
+            Cancelar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -142,11 +272,15 @@ export function TasksListView({
 function TaskRow({
   task,
   canWrite,
+  selected,
+  onToggleSelected,
   onOpen,
   onToggleDone,
 }: {
   task: TaskItem;
   canWrite: boolean;
+  selected: boolean;
+  onToggleSelected: () => void;
   onOpen: () => void;
   onToggleDone: () => void;
 }) {
@@ -173,8 +307,20 @@ function TaskRow({
       }}
       className={`group/row flex cursor-pointer items-center gap-3 px-4 py-2.5 transition hover:bg-zinc-50/60 ${
         isDone ? "opacity-60" : ""
-      }`}
+      } ${selected ? "bg-zinc-50" : ""}`}
     >
+      {/* Checkbox de selección (bulk) */}
+      {canWrite && (
+        <input
+          type="checkbox"
+          className="h-3.5 w-3.5 flex-shrink-0 rounded"
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onChange={onToggleSelected}
+          title="Seleccionar tarea"
+        />
+      )}
+
       {/* Checkbox para completar */}
       <button
         type="button"

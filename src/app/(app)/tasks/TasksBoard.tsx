@@ -89,7 +89,9 @@ import { TasksListView } from "./TasksListView";
 import { TasksCalendarView } from "./TasksCalendarView";
 import { TasksWeekView } from "./TasksWeekView";
 import { TeamWorkload } from "./TeamWorkload";
+import { TaskTemplatesModal } from "./TaskTemplatesModal";
 import { TaskActivityComments } from "./TaskActivityComments";
+import { TaskAttachments } from "./TaskAttachments";
 import { TrashModal } from "./TrashModal";
 import PresenceIndicator from "@/components/PresenceIndicator";
 import {
@@ -1490,6 +1492,11 @@ export default function TasksBoard({
               members={members as unknown as TaskUser[]}
               doneStatusIds={new Set(columns.filter((c) => c.isDone).map((c) => c.id))}
             />
+            {canWrite && (
+              <TaskTemplatesModal
+                brands={brands.map((b) => ({ id: b.id, name: b.name }))}
+              />
+            )}
             <button
               type="button"
               onClick={() => spotlight.setOpen(true)}
@@ -4581,6 +4588,9 @@ function TaskDrawer({
               </div>
             )}
           </div>
+
+          {/* Adjuntos (brief, diseños de referencia…) */}
+          <TaskAttachments taskId={task.id} canWrite={canWrite} />
 
           {/* Comentarios + Activity log */}
           <TaskActivityComments
