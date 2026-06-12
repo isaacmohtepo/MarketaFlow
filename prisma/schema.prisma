@@ -945,6 +945,10 @@ model Task {
   creatorId   String
 
   dueDate     DateTime?
+  /// Recurrencia: al COMPLETAR la tarea se crea automáticamente la próxima
+  /// ocurrencia (clon con dueDate corrido). Valores: "daily" | "weekly" |
+  /// "biweekly" | "monthly". Null = tarea normal sin repetición.
+  recurrence  String?
   /// Orden dentro de su columna. Drag-and-drop reescribe esto en bulk.
   /// Floats permiten insertar entre dos cards sin reescribir todos
   /// (ej. mid = (prev.pos + next.pos) / 2). Pero usamos Int por simpleza

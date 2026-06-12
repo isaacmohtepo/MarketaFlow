@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasAgencyPermission } from "@/lib/permissions";
 import { getUserTaskAgency, recordTaskActivity } from "@/lib/tasks";
-import { notifyTaskMention } from "@/lib/notifications-tasks";
+import { notifyTaskMention, notifyTaskComment } from "@/lib/notifications-tasks";
 
 /**
  * GET  /api/tasks/[id]/comments — lista todos los comentarios de la tarea
@@ -125,20 +125,26 @@ export async function POST(
     preview: body.body.slice(0, 80),
   });
 
-  // @menciones → notificación + email. AWAITeado (no fire-and-forget) para que
-  // la notificación se cree de forma confiable antes de responder. Los emails
-  // adentro siguen siendo best-effort (no bloquean).
+  // Notificaciones — AWAITeadas (no fire-and-forget) para que se creen de
+  // forma confiable antes de responder (serverless). Emails best-effort.
+  //  1. @menciones → in-app + email.
+  //  2. Participantes (asignados + creador) → in-app "comentó en tu tarea"
+  //     (excluye al actor y a los ya mencionados para no duplicar).
   try {
     const mentionedIds = await resolveMentionedUsers(
       ctx.agency.agencyId,
       user.id,
       body.body,
     );
+    const t = await prisma.task.findUnique({
+      where: { id },
+      select: {
+        title: true,
+        creatorId: true,
+        assignees: { select: { id: true } },
+      },
+    });
     if (mentionedIds.length > 0) {
-      const t = await prisma.task.findUnique({
-        where: { id },
-        select: { title: true },
-      });
       await notifyTaskMention({
         taskId: id,
         taskTitle: t?.title ?? "una tarea",
@@ -149,8 +155,20 @@ export async function POST(
         excludeUserId: user.id,
       });
     }
+    if (t) {
+      await notifyTaskComment({
+        taskId: id,
+        taskTitle: t.title,
+        participantIds: [...t.assignees.map((a) => a.id), t.creatorId],
+        mentionedUserIds: mentionedIds,
+        actorName: user.name ?? user.email,
+        actorAvatarUrl: user.avatarUrl,
+        body: body.body,
+        excludeUserId: user.id,
+      });
+    }
   } catch (err) {
-    console.error("task mention notify", err);
+    console.error("task comment notify", err);
   }
 
   return NextResponse.json({ comment });

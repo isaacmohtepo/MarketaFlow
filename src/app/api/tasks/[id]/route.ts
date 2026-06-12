@@ -7,7 +7,9 @@ import {
   getUserTaskAgency,
   getAgencyTaskColumns,
   isTaskPriority,
+  isTaskRecurrence,
   recordTaskActivity,
+  spawnNextRecurrence,
 } from "@/lib/tasks";
 import { computeAutoStatus } from "@/lib/tasks-types";
 
@@ -20,6 +22,7 @@ const updateSchema = z.object({
   brandId: z.string().nullable().optional(),
   postId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
+  recurrence: z.string().nullable().optional(),
   position: z.number().int().optional(),
 });
 
@@ -126,6 +129,11 @@ export async function PATCH(
       data.dueDate = d;
     }
   }
+  if (body.recurrence !== undefined) {
+    if (body.recurrence !== null && !isTaskRecurrence(body.recurrence))
+      return NextResponse.json({ error: "recurrence inválida" }, { status: 400 });
+    data.recurrence = body.recurrence;
+  }
   if (body.position !== undefined) data.position = body.position;
   if (body.brandId !== undefined) {
     if (body.brandId !== null) {
@@ -221,9 +229,35 @@ export async function PATCH(
     });
     if (nextStatusIsDone && !prevStatusIsDone) {
       recordTaskActivity(id, user.id, "completed", {});
+      // Recurrencia: completar una tarea recurrente crea la próxima
+      // ocurrencia automáticamente (best-effort: si falla, no rompe el PATCH).
+      if (updated.recurrence) {
+        await spawnNextRecurrence(id).catch((err) =>
+          console.error("spawnNextRecurrence", err),
+        );
+      }
     } else if (prevStatusIsDone && !nextStatusIsDone) {
       recordTaskActivity(id, user.id, "reopened", {});
     }
+    // Avisar a los participantes (asignados + creador) que la tarea se movió.
+    // Awaited por fiabilidad en serverless (igual que las menciones).
+    const statusLabel =
+      columns.find((c) => c.id === body.status)?.label ?? body.status;
+    const { notifyTaskStatusChanged } = await import(
+      "@/lib/notifications-tasks"
+    );
+    await notifyTaskStatusChanged({
+      taskId: id,
+      taskTitle: updated.title,
+      statusLabel,
+      participantIds: [
+        ...updated.assignees.map((a) => a.id),
+        updated.creatorId,
+      ],
+      actorName: user.name ?? user.email,
+      actorAvatarUrl: user.avatarUrl,
+      excludeUserId: user.id,
+    }).catch((err) => console.error("notifyTaskStatusChanged", err));
   }
   if (body.priority !== undefined && body.priority !== prevTask.priority) {
     recordTaskActivity(id, user.id, "priority_changed", {

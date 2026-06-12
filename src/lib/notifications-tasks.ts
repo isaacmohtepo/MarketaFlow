@@ -180,6 +180,72 @@ export async function runTaskDueReminders(): Promise<{ sent: number; overdue: nu
 
 
 /**
+ * Notifica a los PARTICIPANTES de una tarea (asignados + creador) que alguien
+ * la movió de columna. In-app solamente (sin email — sería spam: el equipo
+ * mueve tareas todo el día). Excluye al actor.
+ */
+export async function notifyTaskStatusChanged(opts: {
+  taskId: string;
+  taskTitle: string;
+  /** Label legible de la columna destino (ej. "Completadas"). */
+  statusLabel: string;
+  /** userIds de asignados + creador (se deduplica acá). */
+  participantIds: (string | null)[];
+  actorName: string;
+  actorAvatarUrl?: string | null;
+  excludeUserId?: string;
+}): Promise<void> {
+  const ids = [
+    ...new Set(opts.participantIds.filter(Boolean) as string[]),
+  ].filter((id) => id !== opts.excludeUserId);
+  if (ids.length === 0) return;
+
+  await prisma.notification.createMany({
+    data: ids.map((userId) => ({
+      userId,
+      type: "task_status",
+      body: `${opts.actorName} movió "${opts.taskTitle}" a ${opts.statusLabel}`,
+      taskId: opts.taskId,
+      actorName: opts.actorName,
+      actorAvatarUrl: opts.actorAvatarUrl ?? null,
+    })),
+  });
+}
+
+/**
+ * Notifica a los PARTICIPANTES (asignados + creador) que hay un comentario
+ * nuevo en la tarea. In-app solamente. Excluye al actor Y a los @mencionados
+ * (esos ya reciben su notificación de mención, con email).
+ */
+export async function notifyTaskComment(opts: {
+  taskId: string;
+  taskTitle: string;
+  participantIds: (string | null)[];
+  mentionedUserIds?: string[];
+  actorName: string;
+  actorAvatarUrl?: string | null;
+  body: string;
+  excludeUserId?: string;
+}): Promise<void> {
+  const mentioned = new Set(opts.mentionedUserIds ?? []);
+  const ids = [
+    ...new Set(opts.participantIds.filter(Boolean) as string[]),
+  ].filter((id) => id !== opts.excludeUserId && !mentioned.has(id));
+  if (ids.length === 0) return;
+
+  await prisma.notification.createMany({
+    data: ids.map((userId) => ({
+      userId,
+      type: "task_comment",
+      body: `${opts.actorName} comentó en "${opts.taskTitle}": "${opts.body.slice(0, 100)}"`,
+      taskId: opts.taskId,
+      actorName: opts.actorName,
+      actorAvatarUrl: opts.actorAvatarUrl ?? null,
+    })),
+  });
+}
+
+/**
  * Notifica a los usuarios @mencionados en un comentario de tarea. Crea la
  * notificación in-app + email (si el user los tiene activados). El link va a
  * /tasks?open=<taskId>.

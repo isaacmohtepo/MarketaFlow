@@ -45,6 +45,7 @@ import {
   Eraser,
   CornerDownLeft,
   CalendarDays,
+  Repeat,
   Tag,
   Tags,
   GripVertical,
@@ -86,6 +87,8 @@ import { DescriptionEditor } from "./DescriptionEditor";
 import { ViewSwitcher, type BoardView } from "./ViewSwitcher";
 import { TasksListView } from "./TasksListView";
 import { TasksCalendarView } from "./TasksCalendarView";
+import { TasksWeekView } from "./TasksWeekView";
+import { TeamWorkload } from "./TeamWorkload";
 import { TaskActivityComments } from "./TaskActivityComments";
 import { TrashModal } from "./TrashModal";
 import PresenceIndicator from "@/components/PresenceIndicator";
@@ -94,7 +97,7 @@ import {
   useSpotlight,
   useGlobalShortcuts,
 } from "./TaskSpotlight";
-import type { TaskItem } from "./types";
+import type { TaskItem, TaskUser } from "./types";
 import { useModKey } from "@/lib/platform";
 import { useConfirm } from "@/components/ConfirmDialog";
 import {
@@ -150,6 +153,7 @@ type Task = {
   assigneeId: string | null;
   creatorId: string;
   dueDate: string | null;
+  recurrence: string | null;
   position: number;
   completedAt: string | null;
   createdAt: string;
@@ -840,7 +844,7 @@ export default function TasksBoard({
   useEffect(() => {
     try {
       const raw = localStorage.getItem("tasks-view");
-      if (raw === "kanban" || raw === "list" || raw === "calendar")
+      if (raw === "kanban" || raw === "list" || raw === "calendar" || raw === "week")
         setView(raw);
     } catch {}
   }, []);
@@ -1478,6 +1482,11 @@ export default function TasksBoard({
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <ViewSwitcher view={view} onChange={setView} />
+            <TeamWorkload
+              tasks={tasks as unknown as TaskItem[]}
+              members={members as unknown as TaskUser[]}
+              doneStatusIds={new Set(columns.filter((c) => c.isDone).map((c) => c.id))}
+            />
             <button
               type="button"
               onClick={() => spotlight.setOpen(true)}
@@ -1647,6 +1656,17 @@ export default function TasksBoard({
           onPatch={(id, data, optimistic) =>
             quickPatch(id, data, optimistic as never)
           }
+        />
+      )}
+
+      {view === "week" && (
+        <TasksWeekView
+          // OJO: usa `tasks` (no filteredTasks) — "Mi semana" es personal,
+          // ignora los filtros del board y filtra por el usuario actual.
+          tasks={tasks as unknown as TaskItem[]}
+          currentUserId={currentUserId}
+          doneStatusIds={new Set(columns.filter((c) => c.isDone).map((c) => c.id))}
+          onOpenTask={(id) => setOpenTaskId(id)}
         />
       )}
 
@@ -3888,7 +3908,7 @@ function TaskDrawer({
     COLUMN_META[task.status] ?? COLUMN_META[Object.keys(COLUMN_META)[0]];
 
   // === Popovers state ===
-  type DrawerMenu = null | "assignee" | "priority" | "brand" | "status" | "due" | "tags";
+  type DrawerMenu = null | "assignee" | "priority" | "brand" | "status" | "due" | "tags" | "recurrence";
   const [drawerMenu, setDrawerMenu] = useState<DrawerMenu>(null);
   function closeDrawerMenu() {
     setDrawerMenu(null);
@@ -4266,6 +4286,66 @@ function TaskDrawer({
                   </span>
                 ) : (
                   <span className="text-[13px] text-zinc-400">Sin fecha</span>
+                )}
+              </PropertyPicker>
+            </PropertyRow>
+
+            {/* Recurrencia — al completar, se crea la próxima ocurrencia */}
+            <PropertyRow label="Repetir" icon={Repeat}>
+              <PropertyPicker
+                onClick={() =>
+                  canWrite &&
+                  setDrawerMenu(drawerMenu === "recurrence" ? null : "recurrence")
+                }
+                disabled={!canWrite}
+                open={drawerMenu === "recurrence"}
+                onClose={closeDrawerMenu}
+                width="w-52"
+                popover={
+                  <div className="p-1">
+                    {(
+                      [
+                        [null, "No se repite"],
+                        ["daily", "Cada día"],
+                        ["weekly", "Cada semana"],
+                        ["biweekly", "Cada 2 semanas"],
+                        ["monthly", "Cada mes"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          onUpdated({ ...task, recurrence: value });
+                          patch({ recurrence: value });
+                          closeDrawerMenu();
+                        }}
+                        className={`block w-full rounded-md px-2.5 py-1.5 text-left text-[13px] transition hover:bg-zinc-50 ${
+                          (task.recurrence ?? null) === value
+                            ? "font-semibold text-zinc-900"
+                            : "text-zinc-600"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                }
+              >
+                {task.recurrence ? (
+                  <span className="flex items-center gap-2">
+                    <Repeat className="h-3.5 w-3.5 text-violet-500" />
+                    <span className="text-[13px] font-medium text-zinc-800">
+                      {{
+                        daily: "Cada día",
+                        weekly: "Cada semana",
+                        biweekly: "Cada 2 semanas",
+                        monthly: "Cada mes",
+                      }[task.recurrence] ?? task.recurrence}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-[13px] text-zinc-400">No se repite</span>
                 )}
               </PropertyPicker>
             </PropertyRow>

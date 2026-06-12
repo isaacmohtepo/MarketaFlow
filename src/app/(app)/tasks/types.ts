@@ -45,6 +45,7 @@ export type TaskItem = {
   assigneeId: string | null;
   creatorId: string;
   dueDate: string | null;
+  recurrence: string | null;
   position: number;
   completedAt: string | null;
   createdAt: string;

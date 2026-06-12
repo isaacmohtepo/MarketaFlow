@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * Toggle de vista del board: Kanban / Lista / Calendario.
- * Estilo "segmented control" tipo iOS — pill con 3 botones, el activo
- * tiene fondo gradient brand. Persistencia la maneja el padre.
+ * Toggle de vista del board: Kanban / Lista / Calendario / Mi semana.
+ * Estilo "segmented control" tipo iOS — pill con botones, el activo
+ * tiene fondo blanco. Persistencia la maneja el padre.
  */
-import { LayoutGrid, List, Calendar as CalendarIcon } from "lucide-react";
+import { LayoutGrid, List, Calendar as CalendarIcon, Sun } from "lucide-react";
 
-export type BoardView = "kanban" | "list" | "calendar";
+export type BoardView = "kanban" | "list" | "calendar" | "week";
 
 const VIEWS: Array<{
   value: BoardView;
@@ -17,6 +17,7 @@ const VIEWS: Array<{
   { value: "kanban", label: "Tablero", icon: LayoutGrid },
   { value: "list", label: "Lista", icon: List },
   { value: "calendar", label: "Calendario", icon: CalendarIcon },
+  { value: "week", label: "Mi semana", icon: Sun },
 ];
 
 export function ViewSwitcher({

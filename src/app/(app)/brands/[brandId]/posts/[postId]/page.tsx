@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ExternalLink, Globe } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess, getPermissionSet } from "@/lib/permissions";
+import { getPostAccess, getPermissionSet, hasAgencyPermission } from "@/lib/permissions";
+import CreateTaskFromPost from "./CreateTaskFromPost";
 import { resolveBrandRef, resolvePostId } from "@/lib/slugs";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
@@ -88,6 +89,12 @@ export default async function PostPage({
   const canApproveInternal = perms.has("posts.approve_internal");
   const canWriteComments = perms.has("comments.write");
   const canResolveComments = perms.has("comments.resolve");
+  // Tareas son agency-globales (cubre miembros brand-scoped, ej. diseñador).
+  const canCreateTask = await hasAgencyPermission(
+    user.id,
+    access.agencyId,
+    "tasks.write",
+  );
 
   const [comments, lastApproval, agencyName, brand] = await Promise.all([
     prisma.comment.findMany({
@@ -167,7 +174,16 @@ export default async function PostPage({
               )}
             </p>
           </div>
-          <PresenceIndicator postId={postId} />
+          <div className="flex items-center gap-2">
+            {canCreateTask && (
+              <CreateTaskFromPost
+                postId={postId}
+                brandId={realBrandId}
+                defaultTitle={`Revisar: ${(post.title ?? post.caption ?? "post").slice(0, 80)}`}
+              />
+            )}
+            <PresenceIndicator postId={postId} />
+          </div>
         </div>
 
         {post.assetType === "web_design" && post.sourceUrl && (

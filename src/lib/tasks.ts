@@ -91,6 +91,79 @@ export async function getUserTaskAgency(
   return { agencyId: active.agencyId, role: active.role };
 }
 
+/** Valores válidos de Task.recurrence. */
+export const TASK_RECURRENCES = ["daily", "weekly", "biweekly", "monthly"] as const;
+export type TaskRecurrence = (typeof TASK_RECURRENCES)[number];
+export function isTaskRecurrence(v: unknown): v is TaskRecurrence {
+  return typeof v === "string" && (TASK_RECURRENCES as readonly string[]).includes(v);
+}
+
+/**
+ * Al COMPLETAR una tarea recurrente, crea la próxima ocurrencia: clon de
+ * título/descripción/marca/post/prioridad/asignados/etiquetas/subtareas (sin
+ * completar) con el dueDate corrido según el intervalo. La nueva nace en la
+ * primera columna no-final. Devuelve el id creado o null si no aplica.
+ */
+export async function spawnNextRecurrence(taskId: string): Promise<string | null> {
+  const t = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: {
+      assignees: { select: { id: true } },
+      tags: { select: { id: true } },
+      subtasks: { orderBy: { position: "asc" } },
+    },
+  });
+  if (!t || !isTaskRecurrence(t.recurrence)) return null;
+
+  const stepMs: Record<TaskRecurrence, number> = {
+    daily: 1 * 24 * 60 * 60 * 1000,
+    weekly: 7 * 24 * 60 * 60 * 1000,
+    biweekly: 14 * 24 * 60 * 60 * 1000,
+    monthly: 0, // se maneja con setMonth (meses de largo variable)
+  };
+  const advance = (d: Date): Date => {
+    const n = new Date(d);
+    if (t.recurrence === "monthly") n.setMonth(n.getMonth() + 1);
+    else n.setTime(n.getTime() + stepMs[t.recurrence as TaskRecurrence]);
+    return n;
+  };
+  // Base: el dueDate original (o hoy si no tenía). Si la tarea se completó
+  // MUY tarde, avanzamos hasta que la próxima quede en el futuro (acotado).
+  let next = advance(t.dueDate ?? new Date());
+  for (let i = 0; i < 60 && next.getTime() < Date.now(); i++) next = advance(next);
+
+  const columns = await getAgencyTaskColumns(t.agencyId);
+  const firstOpen = columns.find((c) => !c.isDone)?.id ?? "todo";
+
+  const created = await prisma.task.create({
+    data: {
+      agencyId: t.agencyId,
+      brandId: t.brandId,
+      postId: t.postId,
+      title: t.title,
+      description: t.description,
+      status: firstOpen,
+      priority: t.priority,
+      assigneeId: t.assigneeId,
+      creatorId: t.creatorId,
+      dueDate: next,
+      recurrence: t.recurrence,
+      position: 0,
+      assignees: { connect: t.assignees.map((a) => ({ id: a.id })) },
+      tags: { connect: t.tags.map((tag) => ({ id: tag.id })) },
+      subtasks: {
+        create: t.subtasks.map((s) => ({ title: s.title, position: s.position })),
+      },
+    },
+    select: { id: true },
+  });
+  await recordTaskActivity(created.id, null, "created", {
+    recurrenceOf: t.id,
+    recurrence: t.recurrence,
+  });
+  return created.id;
+}
+
 /** Sanitiza un título de tarea. Tira Error si inválido. */
 export function sanitizeTaskTitle(raw: unknown): string {
   if (typeof raw !== "string") throw new Error("title requerido");
