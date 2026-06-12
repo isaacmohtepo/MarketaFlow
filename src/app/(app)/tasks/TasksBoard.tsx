@@ -1424,6 +1424,7 @@ export default function TasksBoard({
    * creación tiene exactamente las mismas opciones que ver una tarea
    * (enlaces, comentarios, repetir, todo). Reemplaza al modal intermedio.
    */
+  const draftIdsRef = useRef<Set<string>>(new Set());
   async function createAndOpen(status?: TaskStatus) {
     try {
       const res = await fetch("/api/tasks", {
@@ -1438,10 +1439,30 @@ export default function TasksBoard({
       if (!res.ok) throw new Error();
       const j = await res.json();
       setTasks((cur) => [...cur, j.task]);
+      draftIdsRef.current.add(j.task.id);
       setOpenTaskId(j.task.id);
     } catch {
       toast.error("No se pudo crear");
     }
+  }
+
+  /**
+   * Cierra el drawer. Si la tarea era un borrador recién creado y sigue
+   * VACÍA (el server lo verifica: título sin cambiar, sin descripción,
+   * subtareas, comentarios, enlaces, etiquetas ni fecha), se descarta sola.
+   * Si le agregó cualquier cosa, queda creada normal.
+   */
+  function closeDraftAware() {
+    const id = openTaskId;
+    setOpenTaskId(null);
+    if (!id || !draftIdsRef.current.has(id)) return;
+    draftIdsRef.current.delete(id);
+    fetch(`/api/tasks/${id}?draftOnly=1`, { method: "DELETE" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.deleted) setTasks((cur) => cur.filter((t) => t.id !== id));
+      })
+      .catch(() => {});
   }
 
   /** Bulk: borrar todas las tareas done de la agency. Confirmación obligada. */
@@ -1737,7 +1758,7 @@ export default function TasksBoard({
           canWrite={canWrite}
           canAssign={canAssign}
           currentUserId={currentUserId}
-          onClose={() => setOpenTaskId(null)}
+          onClose={closeDraftAware}
           onUpdated={handleTaskUpdated}
           onDeleted={handleTaskDeleted}
           onBrandCreated={handleBrandCreated}

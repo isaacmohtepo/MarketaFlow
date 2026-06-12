@@ -371,7 +371,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -387,6 +387,49 @@ export async function DELETE(
   );
   if (!canWrite)
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+
+  // ?draftOnly=1 — limpieza de borradores: al cerrar el drawer de una tarea
+  // recién creada SIN haberle agregado nada, se descarta sola. El check de
+  // "vacía" es server-side (cubre también comentarios y enlaces). Si el user
+  // sí la llenó, devolvemos kept y NO se borra.
+  if (new URL(req.url).searchParams.get("draftOnly") === "1") {
+    const t = await prisma.task.findUnique({
+      where: { id },
+      select: {
+        title: true,
+        description: true,
+        dueDate: true,
+        recurrence: true,
+        brandId: true,
+        postId: true,
+        priority: true,
+        _count: {
+          select: { subtasks: true, comments: true, attachments: true, tags: true },
+        },
+      },
+    });
+    const isEmpty =
+      !!t &&
+      t.title === "Nueva tarea" &&
+      !t.description &&
+      !t.dueDate &&
+      !t.recurrence &&
+      !t.brandId &&
+      !t.postId &&
+      t.priority === "normal" &&
+      t._count.subtasks === 0 &&
+      t._count.comments === 0 &&
+      t._count.attachments === 0 &&
+      t._count.tags === 0;
+    if (!isEmpty) return NextResponse.json({ deleted: false });
+    // Soft delete (no hard) para que el SSE propague el "removed" a los
+    // demás boards abiertos; queda en papelera por si acaso.
+    await prisma.task.update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedById: user.id },
+    });
+    return NextResponse.json({ deleted: true });
+  }
 
   // Soft delete: marca deletedAt + quién la borró. Se mueve a la papelera.
   // Para borrar definitivo, usar /api/tasks/[id]/permanent
