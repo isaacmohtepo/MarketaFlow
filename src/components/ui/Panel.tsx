@@ -41,7 +41,7 @@ export default function Panel({
           <span className={`grid h-6 w-6 place-items-center rounded-md ${tint}`}>
             <Icon className="h-3.5 w-3.5" />
           </span>
-          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+          <h2 className="text-[13px] font-semibold tracking-tight text-zinc-900">
             {title}
           </h2>
           {count !== undefined && count > 0 && (
