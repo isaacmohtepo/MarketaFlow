@@ -1480,7 +1480,10 @@ export default function TasksBoard({
                 "Tareas con fecha límite en un calendario mensual."}
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* flex-wrap: en móvil esta fila es más ancha que la pantalla
+              (switcher de 4 vistas + carga + buscar + papelera + nueva) y sin
+              wrap desbordaba la página entera horizontalmente. */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <ViewSwitcher view={view} onChange={setView} />
             <TeamWorkload
               tasks={tasks as unknown as TaskItem[]}

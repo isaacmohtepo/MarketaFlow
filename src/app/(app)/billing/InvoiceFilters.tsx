@@ -39,7 +39,7 @@ export default function InvoiceFilters({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Search */}
-      <div className="relative min-w-[200px] flex-1">
+      <div className="relative min-w-[140px] flex-1 sm:min-w-[200px]">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
         <input
           type="text"
