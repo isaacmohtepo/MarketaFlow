@@ -26,6 +26,7 @@ export function pollingSSE(opts: {
   const stream = new ReadableStream({
     async start(controller) {
       let closed = false;
+      let lastEventAt = Date.now();
 
       const send: SendFn = (event, data) => {
         if (closed) return;
@@ -33,6 +34,7 @@ export function pollingSSE(opts: {
           controller.enqueue(
             encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
           );
+          lastEventAt = Date.now();
         } catch {
           closed = true;
         }
@@ -62,7 +64,12 @@ export function pollingSSE(opts: {
         }
         try {
           await onPoll(send);
-          send("ping", { t: Date.now() });
+          // Keep-alive: solo si llevamos >15s sin emitir nada (antes era un
+          // ping POR TICK — con 100 conexiones eran ~50 eventos/seg inútiles).
+          // El ping mismo actualiza lastEventAt, así que en idle sale ~1 cada 15s.
+          if (Date.now() - lastEventAt > 15_000) {
+            send("ping", { t: Date.now() });
+          }
         } catch (err) {
           console.error("SSE onPoll error", err);
         }

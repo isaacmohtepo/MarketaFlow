@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 import { roleRank } from "./permissions-data";
@@ -97,23 +98,32 @@ async function fallbackAgency(userId: string): Promise<ActiveAgency | null> {
  * Núcleo reusable. `requested` lo pasa el endpoint /api/workspace/switch
  * (el agencyId que el user quiere activar); en lecturas normales se omite y
  * se usa la cookie.
+ *
+ * ESCALABILIDAD: memoizada por request con React cache(). En un render de
+ * página se llama desde el layout + la page + varios helpers (getUserTaskAgency,
+ * getActiveAgencyMembership, getUserAgencyName…) — sin memo eran 2-4 queries
+ * repetidas idénticas por request. Con cache() la primera llamada consulta y
+ * el resto reusa el resultado dentro del MISMO request (en route handlers,
+ * donde no hay render de React, simplemente no memoiza — sin efectos).
  */
-export async function resolveActiveAgency(
-  userId: string,
-  requested?: string | null,
-): Promise<ActiveAgency | null> {
-  let candidate = requested ?? null;
-  if (!candidate) {
-    const jar = await cookies();
-    candidate = jar.get(WORKSPACE_COOKIE)?.value ?? null;
-  }
-  if (candidate) {
-    const role = await userRoleInAgency(userId, candidate);
-    if (role) return { agencyId: candidate, role }; // gate cross-tenant OK
-    // cookie inválida (agencia ajena / dejó la agencia) → fallback
-  }
-  return fallbackAgency(userId);
-}
+export const resolveActiveAgency = cache(
+  async (
+    userId: string,
+    requested?: string | null,
+  ): Promise<ActiveAgency | null> => {
+    let candidate = requested ?? null;
+    if (!candidate) {
+      const jar = await cookies();
+      candidate = jar.get(WORKSPACE_COOKIE)?.value ?? null;
+    }
+    if (candidate) {
+      const role = await userRoleInAgency(userId, candidate);
+      if (role) return { agencyId: candidate, role }; // gate cross-tenant OK
+      // cookie inválida (agencia ajena / dejó la agencia) → fallback
+    }
+    return fallbackAgency(userId);
+  },
+);
 
 /** Solo el id de la agencia activa (o null si el user no tiene ninguna). */
 export async function getActiveAgencyId(userId: string): Promise<string | null> {

@@ -35,6 +35,11 @@ export default async function TasksPage() {
     prisma.task.findMany({
       where: { agencyId: agency.agencyId, deletedAt: null },
       orderBy: [{ position: "asc" }, { createdAt: "desc" }],
+      // Cap defensivo: cada tarea serializa 7 relaciones; sin límite, una
+      // agencia con miles de tareas activas haría payloads de varios MB.
+      // 1000 tareas ACTIVAS es muchísimo (las done se auto-archivan) — si una
+      // agencia llega a esto, el siguiente paso es paginar el board.
+      take: 1000,
       include: {
         assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
         assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },

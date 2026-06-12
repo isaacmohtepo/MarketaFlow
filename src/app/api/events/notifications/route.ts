@@ -5,7 +5,10 @@ import { pollingSSE } from "@/lib/sse";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const POLL_INTERVAL_MS = 2_000;
+// ESCALABILIDAD: 5s en vez de 2s — una notificación no necesita latencia
+// sub-5s y esto baja 2.5× las queries del polling (cada usuario con la app
+// abierta mantiene esta conexión viva todo el tiempo).
+const POLL_INTERVAL_MS = 5_000;
 const MAX_CONNECTION_MS = 50_000;
 
 export async function GET(req: Request) {
@@ -35,6 +38,9 @@ export async function GET(req: Request) {
       const fresh = await prisma.notification.findMany({
         where: { userId: user.id, createdAt: { gt: cursor } },
         orderBy: { createdAt: "asc" },
+        // Cap defensivo: si llegara una avalancha, el resto sale en el
+        // próximo tick (el cursor avanza solo hasta lo emitido).
+        take: 100,
       });
       if (fresh.length === 0) return;
       cursor = fresh[fresh.length - 1].createdAt;

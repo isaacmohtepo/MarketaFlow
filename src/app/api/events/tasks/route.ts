@@ -21,7 +21,10 @@ export const dynamic = "force-dynamic";
  *
  * El cliente (TasksBoard) hace upsert/remove en su estado local.
  */
-const POLL_INTERVAL_MS = 1_500;
+// ESCALABILIDAD: 3s en vez de 1.5s — sigue sintiéndose "en vivo" pero baja
+// 2× las queries del polling. Cada usuario con el tablero abierto mantiene
+// esta conexión activa permanentemente.
+const POLL_INTERVAL_MS = 3_000;
 const MAX_CONNECTION_MS = 50_000;
 
 const TASK_INCLUDE = {
@@ -45,6 +48,7 @@ export async function GET(req: Request) {
   // Empezamos un poco en el pasado para no perder un cambio en vuelo.
   let cursor = new Date(Date.now() - 1_000);
   let lastColumnsKey = "";
+  let tick = 0;
 
   return pollingSSE({
     req,
@@ -71,12 +75,18 @@ export async function GET(req: Request) {
         else send("task", JSON.parse(JSON.stringify(t)));
       }
 
-      // Cambios de columnas (comparando el JSON resuelto).
-      const cols = await getAgencyTaskColumns(agencyId);
-      const key = JSON.stringify(cols);
-      if (key !== lastColumnsKey) {
-        lastColumnsKey = key;
-        send("columns", { columns: cols });
+      // Cambios de columnas (comparando el JSON resuelto). Las columnas
+      // cambian rarísimo → chequear 1 de cada 4 ticks (~12s) en vez de en
+      // cada tick. Antes esto era una query extra a Agency CADA 1.5s por
+      // cada conexión abierta.
+      tick++;
+      if (tick % 4 === 0) {
+        const cols = await getAgencyTaskColumns(agencyId);
+        const key = JSON.stringify(cols);
+        if (key !== lastColumnsKey) {
+          lastColumnsKey = key;
+          send("columns", { columns: cols });
+        }
       }
     },
   });

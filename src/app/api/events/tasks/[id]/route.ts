@@ -21,7 +21,9 @@ export const dynamic = "force-dynamic";
  * El cliente hace upsert por id (dedup). Borrados no se emiten (raros; se ven
  * al recargar) — se puede agregar con tombstones si hace falta.
  */
-const POLL_INTERVAL_MS = 2_000;
+// ESCALABILIDAD: 3s en vez de 2s (2 queries por tick: comments + activity).
+// El drawer sigue sintiéndose en vivo con 1/3 menos carga.
+const POLL_INTERVAL_MS = 3_000;
 const MAX_CONNECTION_MS = 50_000;
 
 const USER_SELECT = {

@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { hasPermission, ALL_PERMISSIONS } from "@/lib/permissions";
+import {
+  hasPermission,
+  ALL_PERMISSIONS,
+  invalidateRolePermsCache,
+} from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { getActiveAgencyMembership } from "@/lib/active-agency";
 
@@ -65,6 +69,7 @@ export async function PATCH(
       permissions: body.permissions ?? undefined,
     },
   });
+  invalidateRolePermsCache(me.agencyId);
 
   audit({
     category: "team",
@@ -122,6 +127,7 @@ export async function DELETE(
   }
 
   await prisma.role.delete({ where: { id } });
+  invalidateRolePermsCache(me.agencyId);
 
   audit({
     category: "team",

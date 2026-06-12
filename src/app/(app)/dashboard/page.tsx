@@ -170,7 +170,8 @@ export default async function DashboardPage() {
     approvalCount,
     myTasks,
     myTasksTotal,
-    seriesPosts,
+    seriesCreated,
+    seriesPublished,
   ] = await Promise.all([
     prisma.post.groupBy({ by: ["status"], where: accessFilter, _count: { _all: true } }),
     brandIds.length > 0
@@ -211,13 +212,35 @@ export default async function DashboardPage() {
         })
       : Promise.resolve([]),
     agencyIds.length > 0 ? prisma.task.count({ where: myTasksWhere }) : Promise.resolve(0),
-    prisma.post.findMany({
-      where: {
-        ...accessFilter,
-        OR: [{ createdAt: { gte: since } }, { publishedAt: { gte: since } }],
-      },
-      select: { createdAt: true, publishedAt: true },
-    }),
+    // ESCALABILIDAD: la serie de 180 días se agrega EN la base (GROUP BY día)
+    // en vez de traer todos los posts y contarlos en JS — antes esto
+    // transfería cada post de los últimos 6 meses (miles de filas con muchas
+    // marcas) solo para armar 180 buckets. Ahora vuelven ≤180 filas por serie.
+    // Nota: date_trunc agrupa en el TZ del server (UTC en prod, igual que el
+    // bucketing JS anterior en Vercel).
+    prisma.$queryRaw<{ day: Date; n: number }[]>`
+      SELECT date_trunc('day', p."createdAt") AS day, count(*)::int AS n
+      FROM "Post" p
+      JOIN "Brand" b ON b."id" = p."brandId"
+      WHERE p."deletedAt" IS NULL
+        AND p."createdAt" >= ${since}
+        AND EXISTS (
+          SELECT 1 FROM "Membership" m
+          WHERE m."agencyId" = b."agencyId" AND m."userId" = ${user.id}
+        )
+      GROUP BY 1`,
+    prisma.$queryRaw<{ day: Date; n: number }[]>`
+      SELECT date_trunc('day', p."publishedAt") AS day, count(*)::int AS n
+      FROM "Post" p
+      JOIN "Brand" b ON b."id" = p."brandId"
+      WHERE p."deletedAt" IS NULL
+        AND p."publishedAt" IS NOT NULL
+        AND p."publishedAt" >= ${since}
+        AND EXISTS (
+          SELECT 1 FROM "Membership" m
+          WHERE m."agencyId" = b."agencyId" AND m."userId" = ${user.id}
+        )
+      GROUP BY 1`,
   ]);
 
   // Stats globales
@@ -264,13 +287,13 @@ export default async function DashboardPage() {
     bucketIdx.set(lkey(d), i);
     buckets.push({ key: lkey(d), date: `${d.getDate()}/${d.getMonth() + 1}`, creados: 0, publicados: 0 });
   }
-  for (const p of seriesPosts) {
-    const ci = bucketIdx.get(lkey(p.createdAt));
-    if (ci !== undefined) buckets[ci].creados++;
-    if (p.publishedAt) {
-      const pi = bucketIdx.get(lkey(p.publishedAt));
-      if (pi !== undefined) buckets[pi].publicados++;
-    }
+  for (const r of seriesCreated) {
+    const ci = bucketIdx.get(lkey(r.day));
+    if (ci !== undefined) buckets[ci].creados = r.n;
+  }
+  for (const r of seriesPublished) {
+    const pi = bucketIdx.get(lkey(r.day));
+    if (pi !== undefined) buckets[pi].publicados = r.n;
   }
   const daily = buckets.map(({ date, creados, publicados }) => ({ date, creados, publicados }));
 

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ExternalLink, Globe } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { getPostAccess, hasPermission } from "@/lib/permissions";
+import { getPostAccess, getPermissionSet } from "@/lib/permissions";
 import { resolveBrandRef, resolvePostId } from "@/lib/slugs";
 import { getUserAgencyName } from "@/lib/agency";
 import { prisma } from "@/lib/db";
@@ -75,29 +75,19 @@ export default async function PostPage({
 
   if (access.role === "client" && post.status === "draft") notFound();
 
-  const [
-    canEditCaption,
-    canUploadMedia,
-    canCreatePost,
-    canDelete,
-    canSchedule,
-    canPublish,
-    canApprovePost,
-    canApproveInternal,
-    canWriteComments,
-    canResolveComments,
-  ] = await Promise.all([
-    hasPermission(user.id, access.agencyId, "posts.edit_caption", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.upload_media", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.create", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.delete", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.schedule", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.publish", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.approve", realBrandId),
-    hasPermission(user.id, access.agencyId, "posts.approve_internal", realBrandId),
-    hasPermission(user.id, access.agencyId, "comments.write", realBrandId),
-    hasPermission(user.id, access.agencyId, "comments.resolve", realBrandId),
-  ]);
+  // Un solo getPermissionSet en vez de 10 hasPermission: antes esto eran 10
+  // queries de memberships (+ roles) en paralelo por CADA apertura de post.
+  const perms = await getPermissionSet(user.id, access.agencyId, realBrandId);
+  const canEditCaption = perms.has("posts.edit_caption");
+  const canUploadMedia = perms.has("posts.upload_media");
+  const canCreatePost = perms.has("posts.create");
+  const canDelete = perms.has("posts.delete");
+  const canSchedule = perms.has("posts.schedule");
+  const canPublish = perms.has("posts.publish");
+  const canApprovePost = perms.has("posts.approve");
+  const canApproveInternal = perms.has("posts.approve_internal");
+  const canWriteComments = perms.has("comments.write");
+  const canResolveComments = perms.has("comments.resolve");
 
   const [comments, lastApproval, agencyName, brand] = await Promise.all([
     prisma.comment.findMany({

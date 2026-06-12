@@ -33,25 +33,28 @@ export async function GET(req: Request) {
     };
   }
 
-  const items = await prisma.notification.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
-  const unreadCount = await prisma.notification.count({
-    where: {
-      userId: user.id,
-      read: false,
-      archivedAt: null,
-      OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }],
-    },
-  });
-  const archivedCount = await prisma.notification.count({
-    where: { userId: user.id, archivedAt: { not: null } },
-  });
-  const snoozedCount = await prisma.notification.count({
-    where: { userId: user.id, snoozedUntil: { gt: now }, archivedAt: null },
-  });
+  // En paralelo: antes eran 4 round-trips secuenciales a la DB por request.
+  const [items, unreadCount, archivedCount, snoozedCount] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.notification.count({
+      where: {
+        userId: user.id,
+        read: false,
+        archivedAt: null,
+        OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }],
+      },
+    }),
+    prisma.notification.count({
+      where: { userId: user.id, archivedAt: { not: null } },
+    }),
+    prisma.notification.count({
+      where: { userId: user.id, snoozedUntil: { gt: now }, archivedAt: null },
+    }),
+  ]);
 
   return NextResponse.json({
     unreadCount,

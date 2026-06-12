@@ -55,19 +55,49 @@ export type { Permission, SystemRoleSlug, SystemRoleDef };
  * Esto permite que la agency edite los permisos de un system role sin
  * perder la posibilidad de "restaurar defaults" (basta con borrar la Role
  * row override).
+ *
+ * ESCALABILIDAD: cachea el resultado en memoria por instancia con TTL corto.
+ * permissionsForRole se llama N veces por request (hasPermission por cada
+ * membership, en cada page/API) — sin caché, cada check de permiso era una
+ * query extra (N+1 en el hot path). Los permisos de un rol cambian rarísimo;
+ * 30s de staleness es aceptable, y las rutas que mutan roles llaman a
+ * invalidateRolePermsCache() para aplicar el cambio al instante.
  */
+const ROLE_PERMS_TTL_MS = 30_000;
+const rolePermsCache = new Map<
+  string,
+  { at: number; perms: readonly string[] }
+>();
+
+/** Invalida el caché de permisos por rol (de una agency, o todo). Llamar
+ *  tras crear/editar/borrar un Role override. */
+export function invalidateRolePermsCache(agencyId?: string): void {
+  if (!agencyId) {
+    rolePermsCache.clear();
+    return;
+  }
+  for (const key of rolePermsCache.keys()) {
+    if (key.startsWith(`${agencyId}:`)) rolePermsCache.delete(key);
+  }
+}
+
 export async function permissionsForRole(
   agencyId: string,
   roleSlug: string,
 ): Promise<readonly string[]> {
+  const key = `${agencyId}:${roleSlug}`;
+  const hit = rolePermsCache.get(key);
+  if (hit && Date.now() - hit.at < ROLE_PERMS_TTL_MS) return hit.perms;
+
   const override = await prisma.role.findUnique({
     where: { agencyId_slug: { agencyId, slug: roleSlug } },
     select: { permissions: true },
   });
-  if (override) return override.permissions;
-  const sys = SYSTEM_ROLES[roleSlug as SystemRoleSlug];
-  if (sys) return sys.permissions;
-  return [];
+  const perms = override
+    ? override.permissions
+    : (SYSTEM_ROLES[roleSlug as SystemRoleSlug]?.permissions ?? []);
+  rolePermsCache.set(key, { at: Date.now(), perms });
+  return perms;
 }
 
 /**
@@ -185,6 +215,36 @@ export async function getUserPermissions(
   return out;
 }
 
+/**
+ * Set completo de permisos del user con scope de marca — mismas reglas que
+ * `hasPermission` (acepta memberships agency-level + brand-scoped de ESA
+ * marca), pero resuelve TODO en 1 query de memberships + roles cacheados.
+ *
+ * Usar cuando una página necesita chequear VARIOS permisos a la vez (ej. la
+ * página de post chequea ~10): un solo getPermissionSet + `.has()` en vez de
+ * N llamadas a hasPermission (que era 1 query de memberships cada una).
+ */
+export async function getPermissionSet(
+  userId: string,
+  agencyId: string,
+  brandId?: string | null,
+): Promise<Set<string>> {
+  const memberships = await prisma.membership.findMany({
+    where: { userId, agencyId },
+    select: { role: true, brandId: true },
+  });
+  const roles = new Set<string>();
+  for (const m of memberships) {
+    if (m.brandId !== null && m.brandId !== brandId) continue;
+    roles.add(m.role);
+  }
+  const out = new Set<string>();
+  for (const slug of roles) {
+    (await permissionsForRole(agencyId, slug)).forEach((p) => out.add(p));
+  }
+  return out;
+}
+
 // ============================================================================
 // Legacy helpers
 // ============================================================================
@@ -253,6 +313,7 @@ export async function listUserBrands(userId: string) {
     logoUrl: string | null;
     color: string | null;
   }[] = [];
+  // 1) Marcas con membership directa (brand-scoped).
   for (const m of memberships) {
     if (m.brand && !brandIds.has(m.brand.id)) {
       brandIds.add(m.brand.id);
@@ -265,24 +326,36 @@ export async function listUserBrands(userId: string) {
         logoUrl: m.brand.logoUrl,
         color: m.brand.color,
       });
-    } else if (!m.brand) {
-      const perms = await permissionsForRole(m.agencyId, m.role);
-      if (!perms.includes("posts.view")) continue;
-      const ab = await prisma.brand.findMany({ where: { agencyId: m.agencyId } });
-      for (const b of ab) {
-        if (!brandIds.has(b.id)) {
-          brandIds.add(b.id);
-          brands.push({
-            id: b.id,
-            slug: b.slug,
-            name: b.name,
-            agencyName: m.agency.name,
-            role: m.role,
-            logoUrl: b.logoUrl,
-            color: b.color,
-          });
-        }
-      }
+    }
+  }
+
+  // 2) Agencias donde el user es agency-level con posts.view → traemos las
+  //    marcas de TODAS esas agencias en UNA sola query (antes era 1 query por
+  //    membership — N+1 con marcas duplicadas si había varias memberships).
+  const agencyMeta = new Map<string, { agencyName: string; role: string }>();
+  for (const m of memberships) {
+    if (m.brand || agencyMeta.has(m.agencyId)) continue;
+    const perms = await permissionsForRole(m.agencyId, m.role); // cacheado
+    if (!perms.includes("posts.view")) continue;
+    agencyMeta.set(m.agencyId, { agencyName: m.agency.name, role: m.role });
+  }
+  if (agencyMeta.size > 0) {
+    const ab = await prisma.brand.findMany({
+      where: { agencyId: { in: Array.from(agencyMeta.keys()) } },
+    });
+    for (const b of ab) {
+      if (brandIds.has(b.id)) continue;
+      const meta = agencyMeta.get(b.agencyId)!;
+      brandIds.add(b.id);
+      brands.push({
+        id: b.id,
+        slug: b.slug,
+        name: b.name,
+        agencyName: meta.agencyName,
+        role: meta.role,
+        logoUrl: b.logoUrl,
+        color: b.color,
+      });
     }
   }
   return brands;

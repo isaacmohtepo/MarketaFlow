@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { prisma, withSerializableRetry } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { notifyBrandClients } from "@/lib/notifications";
@@ -149,37 +149,39 @@ export async function POST(req: Request) {
   // Serializable transaction: re-check del límite + create atómico para cerrar
   // race condition. Si dos requests pasan simultaneo el primer check de arriba,
   // Postgres detecta el conflicto en Serializable y aborta una con error.
-  const txResult = await prisma.$transaction(
-    async (tx) => {
-      if (brandRow) {
-        const check = await canCreatePost(brandRow.agencyId, tx);
-        if (!check.ok) return { ok: false as const, check };
-      }
-      const created = await tx.post.create({
-        data: {
-          brandId: body.brandId,
-          authorId: user.id,
-          caption: body.caption ?? "",
-          imageUrl: cover,
-          platform: body.platform,
-          postType: body.postType,
-          assetType: body.assetType,
-          sourceUrl: body.sourceUrl ?? null,
-          scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
-          status: body.status,
-          images: {
-            create: files.map((f, i) => ({
-              url: f.url,
-              position: i,
-              mime: f.mime ?? null,
-              name: f.name ?? null,
-            })),
+  const txResult = await withSerializableRetry(() =>
+    prisma.$transaction(
+      async (tx) => {
+        if (brandRow) {
+          const check = await canCreatePost(brandRow.agencyId, tx);
+          if (!check.ok) return { ok: false as const, check };
+        }
+        const created = await tx.post.create({
+          data: {
+            brandId: body.brandId,
+            authorId: user.id,
+            caption: body.caption ?? "",
+            imageUrl: cover,
+            platform: body.platform,
+            postType: body.postType,
+            assetType: body.assetType,
+            sourceUrl: body.sourceUrl ?? null,
+            scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
+            status: body.status,
+            images: {
+              create: files.map((f, i) => ({
+                url: f.url,
+                position: i,
+                mime: f.mime ?? null,
+                name: f.name ?? null,
+              })),
+            },
           },
-        },
-      });
-      return { ok: true as const, post: created };
-    },
-    { isolationLevel: "Serializable" },
+        });
+        return { ok: true as const, post: created };
+      },
+      { isolationLevel: "Serializable" },
+    ),
   );
 
   if (!txResult.ok) {

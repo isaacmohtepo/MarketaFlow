@@ -55,6 +55,8 @@ export async function GET(req: Request) {
   const tasks = await prisma.task.findMany({
     where,
     orderBy: [{ position: "asc" }, { createdAt: "desc" }],
+    // Mismo cap defensivo que el SSR del board (ver tasks/page.tsx).
+    take: 1000,
     include: {
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
       assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },

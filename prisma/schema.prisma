@@ -88,6 +88,9 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@index([userId, archivedAt, snoozedUntil])
+  // Dedup batch del cron de reminders (taskId IN (...) + type + createdAt)
+  // y "notificaciones de esta tarea".
+  @@index([taskId, type, createdAt])
 }
 
 model Session {
@@ -618,6 +621,11 @@ model Membership {
   agency   Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   brand    Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
+  // El @@unique de abajo ya cubre queries por (userId) y (userId, agencyId)
+  // como prefijo. Estos dos cubren el reverso: listar miembros de una agencia
+  // (team, notifs) y clients de una marca — Postgres NO indexa FKs solo.
+  @@index([agencyId])
+  @@index([brandId])
   @@unique([userId, agencyId, brandId])
 }
 
@@ -901,6 +909,10 @@ model Approval {
   createdAt DateTime @default(now())
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Última aprobación de un post (findFirst postId orderBy createdAt desc) —
+  // se consulta en cada apertura de post y en reportes.
+  @@index([postId, createdAt])
 }
 
 /// Tareas internas del equipo de la agencia — Kanban-style con drag-and-drop

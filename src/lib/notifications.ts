@@ -219,14 +219,21 @@ export async function notifyAgencyForInternalReview(opts: {
     select: { userId: true, role: true },
   });
 
-  const eligible: string[] = [];
-  for (const m of memberships) {
-    if (opts.excludeUserId && m.userId === opts.excludeUserId) continue;
-    const perms = await permissionsForRole(brand.agencyId, m.role);
-    if (perms.includes("posts.approve_internal")) {
-      eligible.push(m.userId);
-    }
+  // Resolvemos los permisos por ROL DISTINTO (no por miembro): con 50
+  // miembros y 4 roles, son 4 lookups (cacheados) en vez de 50.
+  const distinctRoles = [...new Set(memberships.map((m) => m.role))];
+  const allowedRoles = new Set<string>();
+  for (const slug of distinctRoles) {
+    const perms = await permissionsForRole(brand.agencyId, slug);
+    if (perms.includes("posts.approve_internal")) allowedRoles.add(slug);
   }
+  const eligible = memberships
+    .filter(
+      (m) =>
+        allowedRoles.has(m.role) &&
+        (!opts.excludeUserId || m.userId !== opts.excludeUserId),
+    )
+    .map((m) => m.userId);
   if (eligible.length === 0) return;
 
   const body = "Hay un post listo para tu aprobación interna";

@@ -9,6 +9,7 @@ import {
   isSystemRole,
   SYSTEM_ROLES,
   ASSIGNABLE_SYSTEM_ROLES,
+  invalidateRolePermsCache,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { getActiveAgencyMembership } from "@/lib/active-agency";
@@ -142,6 +143,7 @@ export async function POST(req: Request) {
       permissions: body.permissions,
     },
   });
+  invalidateRolePermsCache(me.agencyId);
 
   audit({
     category: "team",

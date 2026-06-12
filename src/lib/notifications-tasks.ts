@@ -108,67 +108,74 @@ export async function runTaskDueReminders(): Promise<{ sent: number; overdue: nu
     include: { brand: { select: { id: true, name: true } } },
   });
 
-  let sent = 0;
-  for (const t of dueSoon) {
-    if (!t.assigneeId) continue;
-    // Idempotencia: si ya existe una notif task_due_soon de esta tarea en las
-    // últimas 20h, saltearla (1 cron/día). Ahora filtra por taskId (columna).
-    const already = await prisma.notification.findFirst({
-      where: {
-        userId: t.assigneeId,
-        type: "task_due_soon",
-        taskId: t.id,
-        createdAt: { gte: new Date(now.getTime() - 20 * 60 * 60 * 1000) },
-      },
-      select: { id: true },
-    });
-    if (already) continue;
-    const hoursLeft = Math.max(
-      0,
-      Math.round((t.dueDate!.getTime() - now.getTime()) / (60 * 60 * 1000)),
-    );
-    const whenLabel =
-      hoursLeft < 24 ? `en ${hoursLeft}h` : "mañana";
-    await prisma.notification.create({
-      data: {
-        userId: t.assigneeId,
+  // ESCALABILIDAD: idempotencia en BATCH. Antes esto hacía 1 findFirst + 1
+  // create POR TAREA dentro de un loop (2N queries — con 2000 tareas eran
+  // hasta 4000 queries en un solo cron). Ahora: 1 findMany de las notifs
+  // recientes de todas las tareas candidatas + 2 createMany. Total: ~5 queries
+  // sin importar N.
+  const allTaskIds = [...dueSoon, ...overdue]
+    .filter((t) => t.assigneeId)
+    .map((t) => t.id);
+  if (allTaskIds.length === 0) return { sent: 0, overdue: 0 };
+
+  const soonCutoff = new Date(now.getTime() - 20 * 60 * 60 * 1000);
+  const overdueDedupCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const existing = await prisma.notification.findMany({
+    where: {
+      type: { in: ["task_due_soon", "task_due_overdue"] },
+      taskId: { in: allTaskIds },
+      // Ventana más amplia de las dos; el filtrado fino se hace en memoria.
+      createdAt: { gte: overdueDedupCutoff },
+    },
+    select: { userId: true, type: true, taskId: true, createdAt: true },
+  });
+  const seenSoon = new Set(
+    existing
+      .filter((e) => e.type === "task_due_soon" && e.createdAt >= soonCutoff)
+      .map((e) => `${e.userId}:${e.taskId}`),
+  );
+  const seenOverdue = new Set(
+    existing
+      .filter((e) => e.type === "task_due_overdue")
+      .map((e) => `${e.userId}:${e.taskId}`),
+  );
+
+  const soonData = dueSoon
+    .filter((t) => t.assigneeId && !seenSoon.has(`${t.assigneeId}:${t.id}`))
+    .map((t) => {
+      const hoursLeft = Math.max(
+        0,
+        Math.round((t.dueDate!.getTime() - now.getTime()) / (60 * 60 * 1000)),
+      );
+      const whenLabel = hoursLeft < 24 ? `en ${hoursLeft}h` : "mañana";
+      return {
+        userId: t.assigneeId!,
         type: "task_due_soon",
         body: `Vence ${whenLabel}: "${t.title}"`,
         brandId: t.brand?.id ?? null,
         taskId: t.id,
         actorName: null,
-      },
+      };
     });
-    sent++;
+  const overdueData = overdue
+    .filter((t) => t.assigneeId && !seenOverdue.has(`${t.assigneeId}:${t.id}`))
+    .map((t) => ({
+      userId: t.assigneeId!,
+      type: "task_due_overdue",
+      body: `Tarea vencida: "${t.title}"`,
+      brandId: t.brand?.id ?? null,
+      taskId: t.id,
+      actorName: null,
+    }));
+
+  if (soonData.length > 0) {
+    await prisma.notification.createMany({ data: soonData });
+  }
+  if (overdueData.length > 0) {
+    await prisma.notification.createMany({ data: overdueData });
   }
 
-  let overdueSent = 0;
-  for (const t of overdue) {
-    if (!t.assigneeId) continue;
-    const already = await prisma.notification.findFirst({
-      where: {
-        userId: t.assigneeId,
-        type: "task_due_overdue",
-        taskId: t.id,
-        createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
-      },
-      select: { id: true },
-    });
-    if (already) continue;
-    await prisma.notification.create({
-      data: {
-        userId: t.assigneeId,
-        type: "task_due_overdue",
-        body: `Tarea vencida: "${t.title}"`,
-        brandId: t.brand?.id ?? null,
-        taskId: t.id,
-        actorName: null,
-      },
-    });
-    overdueSent++;
-  }
-
-  return { sent, overdue: overdueSent };
+  return { sent: soonData.length, overdue: overdueData.length };
 }
 
 

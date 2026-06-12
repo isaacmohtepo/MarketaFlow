@@ -6,6 +6,7 @@ import {
   hasPermission,
   ALL_PERMISSIONS,
   SYSTEM_ROLES,
+  invalidateRolePermsCache,
   type SystemRoleSlug,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -94,6 +95,7 @@ export async function PUT(
         body.description === undefined ? undefined : body.description ?? sys.description,
     },
   });
+  invalidateRolePermsCache(me.agencyId);
 
   audit({
     category: "team",
@@ -141,6 +143,7 @@ export async function DELETE(
   }
 
   await prisma.role.delete({ where: { id: existing.id } });
+  invalidateRolePermsCache(me.agencyId);
 
   audit({
     category: "team",

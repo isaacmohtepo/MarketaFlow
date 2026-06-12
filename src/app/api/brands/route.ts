@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { prisma, withSerializableRetry } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { canCreateBrand } from "@/lib/billing";
@@ -53,25 +53,27 @@ export async function POST(req: Request) {
   // race condition (TOCTOU). Sin esto, dos POST paralelos pasarían ambos
   // el `count < limit` y crearían ambos. Postgres en Serializable detecta
   // el conflicto y aborta una de las dos con error de serialización.
-  const result = await prisma.$transaction(
-    async (tx) => {
-      const check = await canCreateBrand(owner.agencyId, tx);
-      if (!check.ok) {
-        return { ok: false as const, check };
-      }
-      const brand = await tx.brand.create({
-        data: {
-          name: body.name,
-          slug,
-          handle: body.handle || null,
-          color: body.color || null,
-          agencyId: owner.agencyId,
-        },
-        select: { id: true, slug: true, name: true, color: true, logoUrl: true },
-      });
-      return { ok: true as const, brand };
-    },
-    { isolationLevel: "Serializable" },
+  const result = await withSerializableRetry(() =>
+    prisma.$transaction(
+      async (tx) => {
+        const check = await canCreateBrand(owner.agencyId, tx);
+        if (!check.ok) {
+          return { ok: false as const, check };
+        }
+        const brand = await tx.brand.create({
+          data: {
+            name: body.name,
+            slug,
+            handle: body.handle || null,
+            color: body.color || null,
+            agencyId: owner.agencyId,
+          },
+          select: { id: true, slug: true, name: true, color: true, logoUrl: true },
+        });
+        return { ok: true as const, brand };
+      },
+      { isolationLevel: "Serializable" },
+    ),
   );
 
   if (!result.ok) {
