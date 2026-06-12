@@ -17,6 +17,7 @@
  */
 
 import { useMemo, useState, useEffect, useRef, createContext, useContext } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Plus,
   X,
@@ -895,13 +896,17 @@ export default function TasksBoard({
 
   // Abrir una tarea directo desde la URL (?open=<taskId>). Lo usan las
   // notificaciones (campana, toast, email) para el click-through a la tarea.
-  // Limpiamos el query param después para que un refresh no la re-abra.
+  // OJO: depende de useSearchParams (no de window.location en mount) para
+  // que funcione TAMBIÉN con navegación client-side — antes, si ya estabas
+  // en /tasks y clickeabas una notificación, el efecto no se re-ejecutaba y
+  // la tarea no se abría. Limpiamos el param después para que un refresh no
+  // la re-abra.
+  const searchParams = useSearchParams();
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const openId = params.get("open");
+    const openId = searchParams.get("open");
     if (!openId) return;
     setOpenTaskId(openId);
+    const params = new URLSearchParams(searchParams.toString());
     params.delete("open");
     const qs = params.toString();
     window.history.replaceState(
@@ -909,8 +914,7 @@ export default function TasksBoard({
       "",
       window.location.pathname + (qs ? `?${qs}` : ""),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
