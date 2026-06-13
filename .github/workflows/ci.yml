@@ -34,3 +34,44 @@ jobs:
 
       - name: Build
         run: npx next build
+
+  # Tests E2E (Playwright) contra build de producción. Necesitan una DB real:
+  # agregar el secret DATABASE_URL_E2E en GitHub (Settings → Secrets) — ideal
+  # una BRANCH de Neon dedicada a tests, no la principal. Sin el secret, el
+  # job se salta solo.
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: ${{ secrets.DATABASE_URL_E2E }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Saltar si no hay DATABASE_URL_E2E
+        id: gate
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Sin DATABASE_URL_E2E — e2e omitidos."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar dependencias
+        if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Instalar Chromium
+        if: steps.gate.outputs.run == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests E2E
+        if: steps.gate.outputs.run == 'true'
+        run: npx playwright test
