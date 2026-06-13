@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronsUpDown, Check, Building2, Plus, ArrowLeft, X } from "lucide-react";
 import { PickerPopover, PickerItem, PickerSection, PickerDivider } from "./Picker";
 import { userColor, userInitials } from "@/lib/avatar";
@@ -22,7 +21,6 @@ export default function WorkspaceSwitcher({
   workspaces: Workspace[];
   activeAgencyId: string | null;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   // Vista interna del popover: lista de workspaces o form de "crear agencia".
@@ -84,14 +82,17 @@ export default function WorkspaceSwitcher({
         body: JSON.stringify({ agencyId }),
       });
       if (res.ok) {
-        resetAndClose();
-        router.refresh();
+        // Recarga COMPLETA al dashboard del nuevo workspace: garantiza que el
+        // white-label (colores), las notificaciones y todos los datos reflejen
+        // la agencia nueva. Con router.refresh() el <style> de marca y los
+        // contadores quedaban stale hasta recargar a mano.
+        window.location.assign("/dashboard");
+        return;
       }
     } catch {
       // noop
-    } finally {
-      setPending(false);
     }
+    setPending(false);
   }
 
   async function createAgency() {
@@ -110,16 +111,17 @@ export default function WorkspaceSwitcher({
       });
       const j = await res.json().catch(() => ({}));
       if (res.ok) {
-        resetAndClose();
-        router.refresh();
+        // Recarga completa: la agencia nueva ya es el workspace activo (cookie)
+        // y entra fresca con su branding propio.
+        window.location.assign("/dashboard");
+        return;
       } else {
         setError(j.error ?? "No se pudo crear");
       }
     } catch {
       setError("No se pudo crear");
-    } finally {
-      setPending(false);
     }
+    setPending(false);
   }
 
   return (

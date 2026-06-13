@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   User as UserIcon,
   Settings,
@@ -43,7 +42,6 @@ export default function UserMenu({
   isOwner: boolean;
   isAdmin: boolean;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -71,9 +69,12 @@ export default function UserMenu({
     setLoggingOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/");
-      router.refresh();
-    } finally {
+      // Navegación DURA (no router.push): fuerza una recarga completa para
+      // limpiar el <style> de white-label inyectado en el layout (app) y todo
+      // el estado de sesión. Con soft-nav el branding de la marca quedaba
+      // pegado en la landing/login hasta recargar a mano.
+      window.location.href = "/";
+    } catch {
       setLoggingOut(false);
     }
   }
