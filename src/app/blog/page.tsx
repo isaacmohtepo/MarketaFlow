@@ -45,7 +45,7 @@ export default function BlogIndex() {
       <JsonLd data={listSchema} />
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-16 sm:py-20">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-16 sm:py-20">
         <header className="text-center">
           <p className="text-2xs font-semibold uppercase tracking-widest brand-gradient-text">
             Blog

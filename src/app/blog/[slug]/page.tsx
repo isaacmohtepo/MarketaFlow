@@ -90,7 +90,12 @@ export default async function ArticlePage({
       />
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12 sm:py-16">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 sm:py-16">
+        {/* Columna de lectura alineada a la IZQUIERDA del contenedor (mismo
+            borde que el navbar/landing), no centrada: el título queda a la
+            altura del logo "MarketaFlow". El ancho del frame = max-w-6xl como
+            todo el sitio; la medida de lectura se mantiene cómoda con 3xl. */}
+        <div className="max-w-3xl">
         <Link
           href="/blog"
           className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 transition hover:text-white"
@@ -185,6 +190,7 @@ export default async function ArticlePage({
             </div>
           </section>
         )}
+        </div>
       </main>
 
       <PublicFooter />
