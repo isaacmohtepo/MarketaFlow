@@ -1316,7 +1316,7 @@ export default function PostBoard({
               </p>
             </div>
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex shrink-0 items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900">
               Comentarios{" "}
               <span className="font-normal text-zinc-400">({visibleParents.length})</span>
@@ -1330,13 +1330,20 @@ export default function PostBoard({
               </button>
             )}
           </div>
-          {/* Lista de comentarios con scroll interno. Antes lg:max-h-none
-              dejaba crecer la página al infinito (con 8+ comments la pag
-              quedaba enorme). Ahora limitamos a 70vh tanto en mobile
-              como desktop → scroll dentro del panel. */}
-          <ul className="scroll-visible mt-2 max-h-[70vh] space-y-2 overflow-y-auto pr-1">
+          {/* Lista de comentarios: llena el espacio disponible del panel y hace
+              scroll dentro (el input queda fijo abajo). En mobile, donde el
+              panel no está acotado en alto, cap a 55vh para no crecer infinito. */}
+          <ul className="scroll-visible mt-2 min-h-0 max-h-[55vh] flex-1 space-y-2 overflow-y-auto pr-1 lg:max-h-none">
             {visibleParents.length === 0 && (
-              <li className="text-xs text-zinc-500">Sin comentarios aún.</li>
+              <li className="flex min-h-[140px] flex-col items-center justify-center gap-2 py-6 text-center">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-zinc-100 text-zinc-400">
+                  <MessageSquare className="h-5 w-5" />
+                </span>
+                <p className="text-xs font-medium text-zinc-500">Sin comentarios aún</p>
+                <p className="max-w-[200px] text-2xs text-zinc-400">
+                  Haz clic sobre la imagen para anclar el primer comentario.
+                </p>
+              </li>
             )}
             {visibleParents.map((c) => {
               const idx = pinIndex.get(c.id);
@@ -1495,7 +1502,7 @@ export default function PostBoard({
           </ul>
 
           {canWriteComments && (
-          <form onSubmit={addComment} className="mt-3 space-y-2">
+          <form onSubmit={addComment} className="mt-3 shrink-0 space-y-2 border-t divider pt-3">
             <div className="flex gap-2">
               <MentionInput
                 value={body}
