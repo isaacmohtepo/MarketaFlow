@@ -27,6 +27,14 @@ export default function Particles({ count = 24 }: { count?: number }) {
   const [stars, setStars] = useState<Star[]>([]);
 
   useEffect(() => {
+    // Si el usuario pidió "menos movimiento", no generamos nada (ahorra DOM
+    // y trabajo del hilo principal). El CSS además las oculta por si acaso.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
     setParticles(
       Array.from({ length: count }, (_, i) => {
         const size = Math.random() * 2.5 + 0.5;

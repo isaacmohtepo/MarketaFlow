@@ -9,10 +9,14 @@ import { article as iaParaAgencias2026 } from "./ia-para-agencias-de-marketing-2
 import { article as aprobacionConIa } from "./aprobacion-de-contenido-con-ia";
 import { article as herramientasIa } from "./herramientas-ia-crear-contenido-redes";
 import { article as flujoSinWhatsapp } from "./flujo-trabajo-agencia-sin-whatsapp";
+import { article as herramientasImprescindibles } from "./herramientas-imprescindibles-agencia-marketing";
+import { article as aprobarALaPrimera } from "./aprobar-contenido-a-la-primera";
 
 export const articles: Article[] = [
   iaParaAgencias2026,
   aprobacionConIa,
   herramientasIa,
   flujoSinWhatsapp,
+  herramientasImprescindibles,
+  aprobarALaPrimera,
 ];

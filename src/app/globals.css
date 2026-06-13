@@ -293,6 +293,34 @@ h1, h2, h3, h4 { letter-spacing: -0.022em; }
   animation: star-twinkle 4s ease-in-out infinite;
 }
 
+/*
+ * Accesibilidad + rendimiento: si el usuario pide "menos movimiento" (ajuste
+ * del SO), apagamos las animaciones decorativas e infinitas. Esto baja el
+ * trabajo del hilo principal (mejor INP) y evita la penalización de Lighthouse
+ * por animaciones no compuestas. Las micro-transiciones funcionales (hover,
+ * focus) se acortan en vez de eliminarse para no romper el feedback.
+ */
+@media (prefers-reduced-motion: reduce) {
+  /* Decoración pura: directamente no se pinta. */
+  .particle,
+  .star {
+    display: none !important;
+  }
+  .blob,
+  .brand-gradient-text-animated,
+  .shine-overlay {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Cursor smoke trail */
 @keyframes smoke-fade {
   0%   { opacity: 0; transform: scale(0.4) rotate(0deg); }
