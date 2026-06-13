@@ -158,6 +158,18 @@ export function TaskAttachments({
       </div>
 
       <div className="space-y-2">
+        {/* Rótulo del grupo ORIGEN — solo cuando hay origen Y también hay
+            enlaces manuales, para marcar que son dos categorías distintas.
+            Si solo hay origen, el banner habla por sí solo. */}
+        {hasPost && (items.length > 0 || adding) && (
+          <div className="flex items-center gap-2 pb-0.5">
+            <span className="text-3xs font-bold uppercase tracking-wider text-violet-500">
+              Origen
+            </span>
+            <span className="h-px flex-1 bg-violet-100" />
+          </div>
+        )}
+
         {/* Post de origen — banner destacado con miniatura. */}
         {hasPost && (
           <a
@@ -196,6 +208,18 @@ export function TaskAttachments({
               <ExternalLink className="h-3 w-3" />
             </span>
           </a>
+        )}
+
+        {/* Separador etiquetado: lo de abajo son enlaces que se agregan a
+            mano — categoría distinta al ORIGEN (de dónde nació la tarea).
+            Solo aparece si conviven el origen y al menos un enlace/forma. */}
+        {hasPost && (items.length > 0 || adding) && (
+          <div className="flex items-center gap-2 pb-0.5 pt-2">
+            <span className="text-3xs font-bold uppercase tracking-wider text-zinc-400">
+              Enlaces agregados
+            </span>
+            <span className="h-px flex-1 bg-zinc-100" />
+          </div>
         )}
 
         {/* Formulario de nuevo enlace. */}
