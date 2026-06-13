@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { DraftWatermark } from "@/components/DraftWatermark";
 import {
   CalendarClock,
   CheckCircle2,
@@ -21,7 +20,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { StatusPill } from "@/components/ui";
+import StatusBadge from "@/components/ui/StatusBadge";
 import {
   ASSET_TYPE_LABEL,
   ASSET_TYPE_NEW_CTA,
@@ -125,33 +124,29 @@ function CoverPreview({ d }: { d: Deliverable }) {
   if (d.assetType === "web_design" && d.sourceUrl) {
     const shotUrl = `/api/screenshot?url=${encodeURIComponent(d.sourceUrl)}`;
     return (
-      <div className="flex h-full w-full flex-col bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50">
-        <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-white/80 px-2.5 py-1.5 backdrop-blur">
-          <span className="flex gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-300" />
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+      <div className="relative h-full w-full bg-gradient-to-br from-blue-50 via-fuchsia-50 to-rose-50">
+        {/* Fallback debajo: si la captura aún no se generó (primera carga ~unos
+            segundos) o falla, queda un placeholder lindo con el dominio. */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-400">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/70 shadow-sm ring-1 ring-zinc-200">
+            <Globe className="h-5 w-5 text-zinc-400" />
           </span>
-          <span className="ml-1 truncate font-mono text-3xs text-zinc-500">
+          <span className="max-w-[80%] truncate font-mono text-2xs text-zinc-500">
             {hostOf(d.sourceUrl)}
           </span>
         </div>
-        <div className="relative flex-1 overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Globe className="h-7 w-7 text-zinc-300" />
-          </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={shotUrl}
-            alt=""
-            loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover object-top"
-            draggable={false}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-        </div>
+        {/* La captura, a sangre completa (sin marco de navegador falso). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={shotUrl}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          draggable={false}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
       </div>
     );
   }
@@ -290,7 +285,7 @@ export default function DeliverablesList({
           <div key={d.id} className="relative">
           <Link
             href={`/brands/${brandId}/posts/${d.number ?? d.id}`}
-            className={`card group relative block overflow-hidden p-0 transition hover:shadow-md ${
+            className={`card group relative block overflow-hidden p-0 transition duration-300 hover:-translate-y-0.5 hover:shadow-md ${
               d.unresolvedComments > 0
                 ? "border-rose-300 ring-2 ring-rose-100 hover:ring-rose-200"
                 : "hover:border-zinc-300 hover:shadow-sm"
@@ -298,27 +293,34 @@ export default function DeliverablesList({
           >
             <div className="relative h-44 w-full overflow-hidden bg-zinc-100">
               <CoverPreview d={d} />
-              <DraftWatermark status={d.status} size="sm" />
+              {/* Scrim superior: legibilidad de las etiquetas sobre cualquier
+                  preview (foto clara, screenshot de web, etc.). */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/25 to-transparent opacity-80"
+              />
 
-              <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <StatusPill
-                    status={d.status}
-                    className="px-2 text-3xs leading-none backdrop-blur-md"
-                  />
-                  {d.hasNewActivity && (
-                    <span className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-3xs font-bold text-white shadow-sm">
-                      <span className="relative inline-flex h-1.5 w-1.5">
-                        <span className="absolute inset-0 animate-ping rounded-full bg-white/70" />
-                        <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white" />
-                      </span>
-                      Nuevo
+              {/* Arriba-izquierda: estado + "Nuevo". El menú ⋮ vive arriba a la
+                  derecha (fuera del Link) → pr-9 evita que se encimen. */}
+              <div className="absolute left-2 right-2 top-2 flex flex-wrap items-center gap-1.5 pr-9">
+                <StatusBadge status={d.status} />
+                {d.hasNewActivity && (
+                  <span className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-3xs font-bold text-white shadow-sm">
+                    <span className="relative inline-flex h-1.5 w-1.5">
+                      <span className="absolute inset-0 animate-ping rounded-full bg-white/70" />
+                      <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white" />
                     </span>
-                  )}
-                </div>
+                    Nuevo
+                  </span>
+                )}
+              </div>
+
+              {/* Abajo-izquierda: tipo de pieza / plataforma + carrusel. Movido
+                  aquí para que nunca choque con el botón de menú. */}
+              <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
                 {d.assetType === "ad" && getAdPlatformMeta(d.platform) ? (
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider ring-1 backdrop-blur-md ${
+                    className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider shadow-sm ring-1 backdrop-blur-md ${
                       getAdPlatformMeta(d.platform)!.chipClass
                     }`}
                     title={`Plataforma: ${getAdPlatformMeta(d.platform)!.label}`}
@@ -326,18 +328,17 @@ export default function DeliverablesList({
                     {getAdPlatformMeta(d.platform)!.shortLabel}
                   </span>
                 ) : (
-                  <span className="rounded-full bg-white/85 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 backdrop-blur-md">
+                  <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 shadow-sm ring-1 ring-black/5 backdrop-blur-md">
                     {ASSET_TYPE_LABEL[d.assetType as AssetType] ?? d.assetType}
                   </span>
                 )}
+                {d.imageCount > 1 && (
+                  <span className="flex items-center gap-1 rounded-full bg-black/50 px-1.5 py-0.5 text-3xs font-semibold text-white shadow-sm ring-1 ring-white/15 backdrop-blur-md">
+                    <Layers className="h-2.5 w-2.5" />
+                    {d.imageCount}
+                  </span>
+                )}
               </div>
-
-              {d.imageCount > 1 && (
-                <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-3xs font-semibold text-white backdrop-blur-md">
-                  <Layers className="h-2.5 w-2.5" />
-                  {d.imageCount}
-                </span>
-              )}
 
               {d.unresolvedComments > 0 ? (
                 <span className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-2xs font-bold text-white shadow-[0_4px_12px_rgba(244,63,94,0.55)] ring-2 ring-white">
