@@ -34,7 +34,31 @@ type LinkedPost = {
   assetType: string;
   platform: string;
   postType: string;
+  sourceUrl: string | null;
+  images: { url: string }[];
 };
+
+/** Mejor preview del post: portada → 1ª imagen del carrusel → screenshot del
+ *  sitio (si es diseño web con URL). null si no hay nada que mostrar. */
+function postPreviewSrc(p: LinkedPost): string | null {
+  if (p.imageUrl) return p.imageUrl;
+  if (p.images?.[0]?.url) return p.images[0].url;
+  if (p.assetType === "web_design" && p.sourceUrl) {
+    return `/api/screenshot?url=${encodeURIComponent(p.sourceUrl)}`;
+  }
+  return null;
+}
+
+/** Favicon del dominio de un enlace (servicio de Google). null si la URL no
+ *  parsea. El <img> cae al icono genérico si falla la carga. */
+function faviconOf(url: string): string | null {
+  try {
+    const host = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?sz=64&domain=${host}`;
+  } catch {
+    return null;
+  }
+}
 
 /** Etiqueta amigable según el host del enlace (Drive, WeTransfer, etc.). */
 function providerOf(url: string): string {
@@ -51,6 +75,17 @@ function providerOf(url: string): string {
   } catch {
     return "enlace";
   }
+}
+
+/** Favicon del enlace con fallback al icono genérico si no carga. */
+function LinkFavicon({ url }: { url: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = faviconOf(url);
+  if (!src || failed) return <Link2 className="h-4 w-4 text-zinc-500" />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className="h-5 w-5 rounded-sm" onError={() => setFailed(true)} />
+  );
 }
 
 export function TaskAttachments({
@@ -178,9 +213,16 @@ export function TaskAttachments({
             title="Abrir el post vinculado"
           >
             <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-violet-100 ring-1 ring-violet-200">
-              {post!.imageUrl ? (
+              {postPreviewSrc(post!) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={post!.imageUrl} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={postPreviewSrc(post!)!}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
               ) : (
                 <ImageIcon className="h-5 w-5 text-violet-500" />
               )}
@@ -263,8 +305,8 @@ export function TaskAttachments({
             key={a.id}
             className="group flex items-center gap-3 rounded-xl border divider bg-white p-2.5 pr-3 transition hover:border-zinc-300 hover:shadow-sm"
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200">
-              <Link2 className="h-4 w-4" />
+            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-white text-zinc-500 ring-1 ring-zinc-200">
+              <LinkFavicon url={a.url} />
             </span>
             <a
               href={a.url}

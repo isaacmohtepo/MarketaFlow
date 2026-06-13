@@ -175,6 +175,8 @@ type Task = {
     assetType: string;
     platform: string;
     postType: string;
+    sourceUrl: string | null;
+    images: { url: string }[];
   } | null;
   subtasks: Subtask[];
   tags: TaskTag[];
@@ -2951,10 +2953,10 @@ function TaskCardItem({
             className="mr-auto inline-flex h-6 items-center gap-1 rounded-md bg-violet-50 pl-0.5 pr-1.5 font-semibold text-violet-600 ring-1 ring-violet-200/70"
             title={`Vinculada al post: ${task.post.title?.trim() || task.post.caption?.trim().slice(0, 60) || "post"}`}
           >
-            {task.post.imageUrl ? (
+            {task.post.imageUrl || task.post.images?.[0]?.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={task.post.imageUrl}
+                src={task.post.imageUrl || task.post.images[0].url}
                 alt=""
                 className="h-5 w-5 rounded object-cover"
               />
