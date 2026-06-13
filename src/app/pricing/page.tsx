@@ -1,7 +1,24 @@
+import type { Metadata } from "next";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import PricingTable from "@/components/PricingTable";
 import Particles from "@/components/Particles";
+import JsonLd from "@/components/JsonLd";
+import { SITE_NAME, absoluteUrl } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: "Precios — Empieza gratis, crece sin sorpresas",
+  description:
+    "Planes de MarketaFlow para agencias de todos los tamaños. Empieza gratis, sin tarjeta. Sube de plan cuando lo necesites.",
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    type: "website",
+    title: `Precios · ${SITE_NAME}`,
+    description:
+      "Planes para agencias de todos los tamaños. Empieza gratis, sin tarjeta.",
+    url: absoluteUrl("/pricing"),
+  },
+};
 
 const FAQ = [
   {
@@ -23,8 +40,19 @@ const FAQ = [
 ];
 
 export default function PricingPage() {
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
   return (
     <div className="theme-dark flex min-h-screen flex-col bg-black">
+      <JsonLd data={faqSchema} />
       <PublicHeader />
       <section className="relative overflow-hidden">
         <Particles count={20} />

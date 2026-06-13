@@ -18,6 +18,7 @@ export default function PublicFooter() {
           <ul className="mt-3 space-y-1.5 text-sm text-zinc-300">
             <li><Link href="/#features" className="hover:text-white">Funciones</Link></li>
             <li><Link href="/pricing" className="hover:text-white">Precios</Link></li>
+            <li><Link href="/blog" className="hover:text-white">Blog</Link></li>
             <li><Link href="/login" className="hover:text-white">Iniciar sesión</Link></li>
           </ul>
         </div>

@@ -50,3 +50,37 @@ test("share token falso devuelve 404 @public", async ({ page }) => {
   const res = await page.goto("/share/token-falso-e2e-000");
   expect(res?.status()).toBe(404);
 });
+
+test("blog index lista artículos @public", async ({ page }) => {
+  await page.goto("/blog");
+  await expect(page.getByRole("heading", { name: /IA, agencias y contenido/i })).toBeVisible();
+  // Al menos una card de artículo enlaza a /blog/<slug>.
+  await expect(page.locator('a[href^="/blog/"]').first()).toBeVisible();
+});
+
+test("artículo del blog renderiza con su contenido @public", async ({ page }) => {
+  await page.goto("/blog/ia-para-agencias-de-marketing-2026");
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: /IA para agencias de marketing en 2026/i,
+    }),
+  ).toBeVisible();
+  // El CTA de registro aparece al final del artículo.
+  await expect(page.getByRole("link", { name: /Empezar gratis/i }).first()).toBeVisible();
+});
+
+test("artículo inexistente devuelve 404 @public", async ({ page }) => {
+  const res = await page.goto("/blog/no-existe-este-articulo-e2e");
+  expect(res?.status()).toBe(404);
+});
+
+test("sitemap y robots responden @public", async ({ page }) => {
+  const sitemap = await page.goto("/sitemap.xml");
+  expect(sitemap?.status()).toBe(200);
+  expect(await sitemap?.text()).toContain("/blog/");
+
+  const robots = await page.goto("/robots.txt");
+  expect(robots?.status()).toBe(200);
+  expect(await robots?.text()).toMatch(/sitemap/i);
+});

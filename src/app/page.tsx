@@ -17,6 +17,15 @@ import PublicFooter from "@/components/PublicFooter";
 import PricingTable from "@/components/PricingTable";
 import Particles from "@/components/Particles";
 import InteractiveFeedDemo from "@/components/InteractiveFeedDemo";
+import JsonLd from "@/components/JsonLd";
+import { landingGraph } from "@/lib/structured-data";
+import type { Metadata } from "next";
+
+// La home se queda con el title/description por defecto del layout; solo
+// fijamos su canonical propio (la raíz del sitio).
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const FEATURES = [
   {
@@ -81,6 +90,7 @@ export default async function Home() {
 
   return (
     <div className="theme-dark flex min-h-screen flex-col bg-black">
+      <JsonLd data={landingGraph()} />
       <PublicHeader />
 
       {/* HERO */}

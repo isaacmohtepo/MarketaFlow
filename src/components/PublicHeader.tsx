@@ -16,6 +16,7 @@ export default function PublicHeader() {
         <nav className="hidden items-center gap-7 text-[13px] text-zinc-300 md:flex">
           <Link href="/#features" className="hover:text-white transition">Funciones</Link>
           <Link href="/pricing" className="hover:text-white transition">Precios</Link>
+          <Link href="/blog" className="hover:text-white transition">Blog</Link>
           <Link href="/pricing#faq" className="hover:text-white transition">FAQ</Link>
         </nav>
         <div className="flex items-center gap-2">
