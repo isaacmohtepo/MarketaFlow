@@ -19,9 +19,42 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { STATUS_LABEL } from "@/lib/utils";
-import { StatusPill } from "@/components/ui";
+import { STATUS_LABEL, STATUS_COLOR, cn } from "@/lib/utils";
 import { assetTypeLabel } from "@/lib/asset-types";
+
+/** Color sólido del "dot" de estado, para el badge glass del feed. */
+const STATUS_DOT: Record<string, string> = {
+  draft: "#a1a1aa",
+  internal_review: "#8b5cf6",
+  in_review: "#f59e0b",
+  changes_requested: "#f43f5e",
+  approved: "#10b981",
+  scheduled: "#3b82f6",
+  published: "#d946ef",
+};
+
+/**
+ * Badge de estado del feed: chip "glass" con tinte del estado + punto de
+ * color + etiqueta. Más premium que la pastilla plana, sigue siendo legible
+ * sobre cualquier imagen gracias al backdrop-blur y al ring.
+ */
+function StatusBadge({ status, className }: { status: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-3xs font-bold uppercase tracking-wide shadow-sm ring-1 ring-black/5 backdrop-blur-md",
+        STATUS_COLOR[status] ?? "bg-zinc-200/90 text-zinc-800",
+        className,
+      )}
+    >
+      <span
+        className="h-1.5 w-1.5 rounded-full ring-1 ring-white/50"
+        style={{ background: STATUS_DOT[status] ?? "#a1a1aa" }}
+      />
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+}
 
 type FeedPost = {
   id: string;
@@ -245,7 +278,7 @@ export default function FeedGrid({
                 key={p.id}
                 type="button"
                 onClick={() => toggle(p.id)}
-                className={`group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 text-left transition-all ${
+                className={`group relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 text-left transition-all ${
                   isSelected
                     ? "ring-2 ring-fuchsia-500 ring-offset-2 ring-offset-[var(--bg-app)]"
                     : "ring-1 ring-zinc-200 hover:ring-zinc-300"
@@ -265,10 +298,7 @@ export default function FeedGrid({
                     <Square className="h-4 w-4 text-zinc-400" />
                   )}
                 </span>
-                <StatusPill
-                  status={p.status}
-                  className="absolute right-2 top-2 px-2 text-3xs leading-none backdrop-blur-md"
-                />
+                <StatusBadge status={p.status} className="absolute right-2 top-2" />
                 {isSelected && (
                   <span aria-hidden className="absolute inset-0 bg-fuchsia-500/10" />
                 )}
@@ -287,12 +317,12 @@ export default function FeedGrid({
                 setOverId(null);
               }}
               onDrop={() => onDrop(p.id)}
-              className={`group relative aspect-square overflow-hidden rounded-xl bg-zinc-100 transition-all duration-200 ${
+              className={`group relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 ring-1 ring-black/[0.06] transition-all duration-300 ${
                 dragging ? "opacity-30 scale-95" : ""
               } ${
                 isOver
                   ? "ring-2 ring-fuchsia-500 ring-offset-2 ring-offset-[var(--bg-app)] scale-[1.02]"
-                  : "shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)]"
+                  : "shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-10px_rgba(0,0,0,0.25)]"
               } ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
               <Link
@@ -323,10 +353,7 @@ export default function FeedGrid({
                 <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
                   {/* Izquierda: estado (+ tipo de pieza si no es post social). */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <StatusPill
-                      status={p.status}
-                      className="px-2 text-3xs leading-none shadow-sm ring-1 ring-black/5 backdrop-blur-md"
-                    />
+                    <StatusBadge status={p.status} />
                     {p.assetType && p.assetType !== "social_post" && (
                       <span
                         className="rounded-full bg-white/90 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 shadow-sm ring-1 ring-black/5 backdrop-blur-md"
@@ -352,7 +379,7 @@ export default function FeedGrid({
                     )}
                     {p.imageCount > 1 && (
                       <span
-                        className="flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-3xs font-semibold text-white backdrop-blur-md"
+                        className="flex items-center gap-1 rounded-full bg-black/50 px-1.5 py-0.5 text-3xs font-semibold text-white shadow-sm ring-1 ring-white/15 backdrop-blur-md"
                         title={`${p.imageCount} imágenes`}
                       >
                         <Layers className="h-2.5 w-2.5" />
