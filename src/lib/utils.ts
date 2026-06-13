@@ -24,3 +24,17 @@ export const STATUS_COLOR: Record<string, string> = {
   scheduled: "bg-blue-100/95 text-blue-800",
   published: "bg-fuchsia-100/95 text-fuchsia-800",
 };
+
+/**
+ * Estados de post DESACTIVADOS por ahora: mientras no haya publicación
+ * automática, "Programado" y "Publicado" no se ofrecen en ningún selector ni
+ * filtro. Los posts que ya estuvieran en esos estados se siguen mostrando
+ * bien (labels/colores arriba se conservan). Para reactivar la publicación:
+ * vaciar este array.
+ */
+export const HIDDEN_POST_STATUSES: string[] = ["scheduled", "published"];
+
+/** ¿El usuario puede seleccionar este estado ahora mismo? */
+export function isSelectableStatus(status: string): boolean {
+  return !HIDDEN_POST_STATUSES.includes(status);
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
+import { isSelectableStatus } from "@/lib/utils";
 
 export const STATUS_OPTIONS: { value: string; label: string; dot: string }[] = [
   { value: "draft", label: "Borrador", dot: "#71717a" },
@@ -32,9 +33,14 @@ export default function StatusSelector({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const visibleOptions = hideStatuses
-    ? STATUS_OPTIONS.filter((s) => !hideStatuses.includes(s.value))
-    : STATUS_OPTIONS;
+  // Oculta los estados deshabilitados globalmente (Programado/Publicado sin
+  // publicación automática) + los que pase el caller, pero deja ver el estado
+  // ACTUAL aunque esté deshabilitado (posts viejos).
+  const visibleOptions = STATUS_OPTIONS.filter(
+    (s) =>
+      !hideStatuses?.includes(s.value) &&
+      (isSelectableStatus(s.value) || s.value === current),
+  );
   const cur =
     STATUS_OPTIONS.find((s) => s.value === current) ?? visibleOptions[0];
 
@@ -107,7 +113,7 @@ export default function StatusSelector({
       </button>
       {open && (
         <div className="absolute left-3 right-3 top-full z-30 mt-1 overflow-hidden rounded-lg border divider bg-white shadow-lg">
-          {STATUS_OPTIONS.map((opt) => {
+          {visibleOptions.map((opt) => {
             const active = opt.value === current;
             return (
               <button

@@ -15,6 +15,7 @@ import MentionInput from "@/components/MentionInput";
 import MentionText from "@/components/MentionText";
 import { useMentionedRoles } from "@/lib/useMentionedRoles";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { isSelectableStatus } from "@/lib/utils";
 import { toast } from "sonner";
 import CommentAttachment from "@/components/CommentAttachment";
 import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
@@ -1845,7 +1846,11 @@ function StatusSelector({
       </button>
       {open && (
         <div className="absolute left-3 right-3 top-full z-30 mt-1 overflow-hidden rounded-lg border divider bg-white shadow-lg">
-          {STATUS_OPTIONS.map((opt) => {
+          {/* Oculta Programado/Publicado (sin publicación automática aún),
+              pero deja ver el estado actual si un post viejo ya estaba en uno. */}
+          {STATUS_OPTIONS.filter(
+            (opt) => isSelectableStatus(opt.value) || opt.value === current,
+          ).map((opt) => {
             const active = opt.value === current;
             return (
               <button

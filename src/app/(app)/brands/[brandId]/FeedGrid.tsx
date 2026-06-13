@@ -80,7 +80,9 @@ function formatScheduled(iso: string) {
   return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-const STATUS_OPTIONS = ["draft", "in_review", "approved", "scheduled"] as const;
+// Sin publicación automática aún: el bulk solo ofrece estados del flujo de
+// aprobación (Programado/Publicado quedan fuera).
+const STATUS_OPTIONS = ["draft", "in_review", "approved"] as const;
 
 export default function FeedGrid({
   brandId,
