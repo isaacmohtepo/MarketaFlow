@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
 import MediaThumb from "@/components/MediaThumb";
-import { DraftWatermark } from "@/components/DraftWatermark";
 import {
   CalendarClock,
   CheckCircle2,
@@ -259,7 +258,6 @@ export default function FeedGrid({
                     <ImageOff className="h-5 w-5 text-zinc-400" />
                   </div>
                 )}
-                <DraftWatermark status={p.status} size="sm" />
                 <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-white/95 text-zinc-900 shadow-sm backdrop-blur">
                   {isSelected ? (
                     <CheckSquare className="h-4 w-4 text-fuchsia-600" />
@@ -315,22 +313,31 @@ export default function FeedGrid({
                     <ImageOff className="h-5 w-5 text-zinc-400" />
                   </div>
                 )}
-                <DraftWatermark status={p.status} size="sm" />
+                {/* Scrim superior: degradado sutil para que las etiquetas se
+                    lean bien incluso sobre imágenes claras. */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/30 to-transparent opacity-80"
+                />
 
                 <div className="absolute left-2 right-2 top-2 flex items-start justify-between gap-2">
+                  {/* Izquierda: estado (+ tipo de pieza si no es post social). */}
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusPill
                       status={p.status}
-                      className="px-2 text-3xs leading-none backdrop-blur-md"
+                      className="px-2 text-3xs leading-none shadow-sm ring-1 ring-black/5 backdrop-blur-md"
                     />
                     {p.assetType && p.assetType !== "social_post" && (
                       <span
-                        className="rounded-full bg-white/85 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 backdrop-blur-md"
+                        className="rounded-full bg-white/90 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-zinc-700 shadow-sm ring-1 ring-black/5 backdrop-blur-md"
                         title={assetTypeLabel(p.assetType)}
                       >
                         {assetTypeLabel(p.assetType)}
                       </span>
                     )}
+                  </div>
+                  {/* Derecha: "Nuevo" y carrusel, apilados para no encimarse. */}
+                  <div className="flex flex-col items-end gap-1">
                     {p.hasNewActivity && (
                       <span
                         className="flex items-center gap-1 rounded-full brand-gradient px-1.5 py-0.5 text-3xs font-bold text-white shadow-sm"
@@ -343,13 +350,16 @@ export default function FeedGrid({
                         Nuevo
                       </span>
                     )}
+                    {p.imageCount > 1 && (
+                      <span
+                        className="flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-3xs font-semibold text-white backdrop-blur-md"
+                        title={`${p.imageCount} imágenes`}
+                      >
+                        <Layers className="h-2.5 w-2.5" />
+                        {p.imageCount}
+                      </span>
+                    )}
                   </div>
-                  {p.imageCount > 1 && (
-                    <span className="flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-3xs font-semibold text-white backdrop-blur-md">
-                      <Layers className="h-2.5 w-2.5" />
-                      {p.imageCount}
-                    </span>
-                  )}
                 </div>
 
                 {p.unresolvedComments > 0 ? (
