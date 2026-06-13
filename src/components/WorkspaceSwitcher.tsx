@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsUpDown, Check, Building2, Plus, ArrowLeft } from "lucide-react";
+import { ChevronsUpDown, Check, Building2, Plus, ArrowLeft, X } from "lucide-react";
 import { PickerPopover, PickerItem, PickerSection, PickerDivider } from "./Picker";
 import { userColor, userInitials } from "@/lib/avatar";
 import type { Workspace } from "@/lib/active-agency";
@@ -29,6 +29,28 @@ export default function WorkspaceSwitcher({
   const [view, setView] = useState<"list" | "create">("list");
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Coach mark de una sola vez: si el user tiene MÁS de un espacio (típico de
+  // un invitado), resaltamos el selector y mostramos un aviso que enseña dónde
+  // cambiar de agencia. Se descarta solo (localStorage) al abrirlo o cerrarlo.
+  const [showHint, setShowHint] = useState(false);
+  useEffect(() => {
+    if (workspaces.length <= 1) return;
+    try {
+      if (!localStorage.getItem("mf-ws-hint-seen")) setShowHint(true);
+    } catch {
+      // localStorage no disponible (modo privado raro) → sin hint, sin drama.
+    }
+  }, [workspaces.length]);
+
+  function dismissHint() {
+    setShowHint(false);
+    try {
+      localStorage.setItem("mf-ws-hint-seen", "1");
+    } catch {
+      // noop
+    }
+  }
 
   // Sin agencias (estado transitorio raro) → no mostrar nada.
   if (workspaces.length === 0) return null;
@@ -95,7 +117,7 @@ export default function WorkspaceSwitcher({
   }
 
   return (
-    <div className="px-2 pt-2">
+    <div className="relative px-2 pt-2">
       <PickerPopover
         open={open}
         onOpenChange={(b) => (b ? setOpen(true) : resetAndClose())}
@@ -104,14 +126,25 @@ export default function WorkspaceSwitcher({
         trigger={({ open: isOpen, toggle }) => (
           <button
             type="button"
-            onClick={toggle}
+            onClick={() => {
+              dismissHint();
+              toggle();
+            }}
             disabled={pending}
-            className={`flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition disabled:opacity-60 ${
+            className={`relative flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition disabled:opacity-60 ${
               isOpen
                 ? "border-white/20 bg-white/10"
-                : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"
+                : showHint
+                  ? "border-fuchsia-500/50 bg-white/[0.06] ring-2 ring-fuchsia-500/30"
+                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"
             }`}
           >
+            {showHint && !isOpen && (
+              <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-fuchsia-500 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
+              </span>
+            )}
             <WorkspaceAvatar ws={active} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12.5px] font-semibold text-white">
@@ -209,6 +242,34 @@ export default function WorkspaceSwitcher({
           </div>
         )}
       </PickerPopover>
+
+      {/* Coach mark: aviso una sola vez para quien tiene varios espacios. */}
+      {showHint && !open && (
+        <div className="absolute inset-x-2 top-full z-30 mt-2 rounded-lg border border-fuchsia-500/30 bg-zinc-900/95 p-3 shadow-xl shadow-black/40 backdrop-blur">
+          <button
+            type="button"
+            onClick={dismissHint}
+            aria-label="Cerrar aviso"
+            className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded text-zinc-500 transition hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-3 w-3" />
+          </button>
+          <p className="pr-5 text-[11.5px] font-semibold text-white">
+            Tienes varios espacios de trabajo
+          </p>
+          <p className="mt-0.5 text-[10.5px] leading-snug text-zinc-400">
+            Cambia entre tus agencias desde aquí arriba. Cada una tiene sus
+            propios datos.
+          </p>
+          <button
+            type="button"
+            onClick={dismissHint}
+            className="mt-2 text-[10.5px] font-semibold text-fuchsia-400 transition hover:text-fuchsia-300"
+          >
+            Entendido
+          </button>
+        </div>
+      )}
     </div>
   );
 }
