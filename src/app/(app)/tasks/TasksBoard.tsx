@@ -54,8 +54,6 @@ import {
   Pencil,
   Settings2,
   Zap,
-  Image as ImageIcon,
-  ExternalLink,
 } from "lucide-react";
 import {
   startOfMonth,
@@ -115,7 +113,6 @@ import {
   PickerDivider,
   type PickerOption,
 } from "@/components/Picker";
-import { assetTypeLabel } from "@/lib/asset-types";
 
 type User = {
   id: string;
@@ -3633,55 +3630,16 @@ function TaskDrawer({
             </h2>
           )}
 
-          {/* Banner de ORIGEN — destacado: deja claro de un vistazo que la
-              tarea nació de un post (o pieza). Va arriba, antes de las
-              propiedades, con miniatura + link grande. */}
-          {task.post && task.brandId && (
-            <a
-              href={`/brands/${task.brandId}/posts/${task.post.id}`}
-              className="group mt-4 flex items-center gap-3 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 to-fuchsia-50/50 p-2.5 pr-3 transition hover:border-violet-300 hover:shadow-sm"
-              title="Abrir el post vinculado"
-            >
-              {/* Miniatura del post (o icono si no tiene imagen) */}
-              <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-violet-100 ring-1 ring-violet-200">
-                {task.post.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={task.post.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <ImageIcon className="h-5 w-5 text-violet-500" />
-                )}
-                {/* Badge de "vínculo" sobre la miniatura */}
-                <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-violet-600 ring-2 ring-white">
-                  <Link2 className="h-2.5 w-2.5 text-white" />
-                </span>
-              </span>
-
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-3xs font-bold uppercase tracking-wider text-violet-500">
-                  Vinculada a · {assetTypeLabel(task.post.assetType)}
-                </span>
-                <span className="truncate text-sm font-semibold text-zinc-800 group-hover:text-violet-700">
-                  {task.post.title?.trim() ||
-                    task.post.caption?.trim().slice(0, 70) ||
-                    "Post sin título"}
-                </span>
-                {task.post.assetType === "social_post" && (
-                  <span className="truncate text-2xs text-zinc-400">
-                    {task.post.platform} · {task.post.postType}
-                  </span>
-                )}
-              </span>
-
-              <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white/70 px-2 py-1 text-2xs font-bold text-violet-600 ring-1 ring-violet-200 transition group-hover:bg-violet-600 group-hover:text-white group-hover:ring-violet-600">
-                Ver
-                <ExternalLink className="h-3 w-3" />
-              </span>
-            </a>
-          )}
+          {/* Zona de VÍNCULOS — "de dónde viene / qué está vinculado a esta
+              tarea": el post de origen (banner con miniatura) + los enlaces
+              externos (Drive, Figma, sitio…), todo con el mismo lenguaje
+              visual. Va arriba, antes de las propiedades. */}
+          <TaskAttachments
+            taskId={task.id}
+            canWrite={canWrite}
+            post={task.post}
+            brandId={task.brandId}
+          />
 
           {/* Properties rows — rich pickers (clickeables, no tabla) */}
           <div className="mt-5 space-y-1.5">
@@ -4196,9 +4154,6 @@ function TaskDrawer({
               </div>
             )}
           </div>
-
-          {/* Adjuntos (brief, diseños de referencia…) */}
-          <TaskAttachments taskId={task.id} canWrite={canWrite} />
 
           {/* Comentarios + Activity log */}
           <TaskActivityComments
