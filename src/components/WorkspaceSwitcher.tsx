@@ -82,11 +82,15 @@ export default function WorkspaceSwitcher({
         body: JSON.stringify({ agencyId }),
       });
       if (res.ok) {
-        // Recarga COMPLETA al dashboard del nuevo workspace: garantiza que el
-        // white-label (colores), las notificaciones y todos los datos reflejen
-        // la agencia nueva. Con router.refresh() el <style> de marca y los
-        // contadores quedaban stale hasta recargar a mano.
-        window.location.assign("/dashboard");
+        // Quedarse en la MISMA pestaña, recargando en sitio con los datos del
+        // nuevo workspace (colores, notificaciones, todo fresco al instante).
+        // Recarga DURA (no router.refresh) para que el <style> de white-label
+        // y los contadores no queden stale. Excepción: las páginas de una
+        // marca puntual (/brands/<id>/…) no existen en la otra agencia → caen
+        // a la lista de marcas.
+        const path = window.location.pathname;
+        const dest = /^\/brands\/[^/]+/.test(path) ? "/brands" : path;
+        window.location.assign(dest);
         return;
       }
     } catch {
