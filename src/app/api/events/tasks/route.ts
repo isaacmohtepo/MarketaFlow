@@ -32,7 +32,7 @@ const TASK_INCLUDE = {
   assignees: { select: { id: true, name: true, email: true, avatarUrl: true } },
   creator: { select: { id: true, name: true, email: true, avatarUrl: true } },
   brand: { select: { id: true, name: true, color: true, logoUrl: true } },
-  post: { select: { id: true, title: true, caption: true } },
+  post: { select: { id: true, title: true, caption: true, imageUrl: true, assetType: true, platform: true, postType: true } },
   subtasks: { orderBy: { position: "asc" as const } },
   tags: { select: { id: true, name: true, color: true } },
 } as const;

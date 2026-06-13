@@ -54,6 +54,8 @@ import {
   Pencil,
   Settings2,
   Zap,
+  Image as ImageIcon,
+  ExternalLink,
 } from "lucide-react";
 import {
   startOfMonth,
@@ -113,6 +115,7 @@ import {
   PickerDivider,
   type PickerOption,
 } from "@/components/Picker";
+import { assetTypeLabel } from "@/lib/asset-types";
 
 type User = {
   id: string;
@@ -167,7 +170,15 @@ type Task = {
   assignees: User[];
   creator: User | null;
   brand: Brand | null;
-  post: { id: string; title: string | null; caption: string } | null;
+  post: {
+    id: string;
+    title: string | null;
+    caption: string;
+    imageUrl: string | null;
+    assetType: string;
+    platform: string;
+    postType: string;
+  } | null;
   subtasks: Subtask[];
   tags: TaskTag[];
 };
@@ -2936,13 +2947,24 @@ function TaskCardItem({
           </span>
         )}
 
-        {/* Indicador: tarea vinculada a un post (detalle en el drawer) */}
+        {/* Indicador: tarea vinculada a un post — pastilla con miniatura
+            (si el post tiene imagen) para que se note de un vistazo. */}
         {task.post && (
           <span
-            className="mr-auto inline-flex h-6 items-center rounded-md bg-violet-50 px-1.5 text-violet-500"
+            className="mr-auto inline-flex h-6 items-center gap-1 rounded-md bg-violet-50 pl-0.5 pr-1.5 font-semibold text-violet-600 ring-1 ring-violet-200/70"
             title={`Vinculada al post: ${task.post.title?.trim() || task.post.caption?.trim().slice(0, 60) || "post"}`}
           >
-            <Link2 className="h-3 w-3" />
+            {task.post.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={task.post.imageUrl}
+                alt=""
+                className="h-5 w-5 rounded object-cover"
+              />
+            ) : (
+              <Link2 className="ml-0.5 h-3 w-3" />
+            )}
+            <span className="text-2xs uppercase tracking-wide">Post</span>
           </span>
         )}
 
@@ -3611,6 +3633,56 @@ function TaskDrawer({
             </h2>
           )}
 
+          {/* Banner de ORIGEN — destacado: deja claro de un vistazo que la
+              tarea nació de un post (o pieza). Va arriba, antes de las
+              propiedades, con miniatura + link grande. */}
+          {task.post && task.brandId && (
+            <a
+              href={`/brands/${task.brandId}/posts/${task.post.id}`}
+              className="group mt-4 flex items-center gap-3 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 to-fuchsia-50/50 p-2.5 pr-3 transition hover:border-violet-300 hover:shadow-sm"
+              title="Abrir el post vinculado"
+            >
+              {/* Miniatura del post (o icono si no tiene imagen) */}
+              <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-violet-100 ring-1 ring-violet-200">
+                {task.post.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={task.post.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-violet-500" />
+                )}
+                {/* Badge de "vínculo" sobre la miniatura */}
+                <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-violet-600 ring-2 ring-white">
+                  <Link2 className="h-2.5 w-2.5 text-white" />
+                </span>
+              </span>
+
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-3xs font-bold uppercase tracking-wider text-violet-500">
+                  Vinculada a · {assetTypeLabel(task.post.assetType)}
+                </span>
+                <span className="truncate text-sm font-semibold text-zinc-800 group-hover:text-violet-700">
+                  {task.post.title?.trim() ||
+                    task.post.caption?.trim().slice(0, 70) ||
+                    "Post sin título"}
+                </span>
+                {task.post.assetType === "social_post" && (
+                  <span className="truncate text-2xs text-zinc-400">
+                    {task.post.platform} · {task.post.postType}
+                  </span>
+                )}
+              </span>
+
+              <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white/70 px-2 py-1 text-2xs font-bold text-violet-600 ring-1 ring-violet-200 transition group-hover:bg-violet-600 group-hover:text-white group-hover:ring-violet-600">
+                Ver
+                <ExternalLink className="h-3 w-3" />
+              </span>
+            </a>
+          )}
+
           {/* Properties rows — rich pickers (clickeables, no tabla) */}
           <div className="mt-5 space-y-1.5">
             {/* Asignado */}
@@ -3736,24 +3808,8 @@ function TaskDrawer({
               </PropertyPicker>
             </PropertyRow>
 
-            {/* Post de origen: la tarea nació desde un post (Task.postId) —
-                link directo para volver al contexto (imagen, comentarios). */}
-            {task.post && task.brandId && (
-              <PropertyRow label="Post" icon={Link2}>
-                <a
-                  href={`/brands/${task.brandId}/posts/${task.post.id}`}
-                  className="group flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 -mx-2 hover:bg-violet-50"
-                  title="Abrir el post vinculado"
-                >
-                  <span className="truncate text-[13px] font-medium text-violet-700 group-hover:underline">
-                    {task.post.title?.trim() ||
-                      task.post.caption?.trim().slice(0, 60) ||
-                      "Ver post vinculado"}
-                  </span>
-                  <MoveRight className="h-3.5 w-3.5 shrink-0 text-violet-400" />
-                </a>
-              </PropertyRow>
-            )}
+            {/* (El vínculo al post se muestra como banner destacado arriba,
+                no como una fila más entre las propiedades.) */}
 
             {/* Etiquetas */}
             <PropertyRow label="Etiquetas" icon={Tags}>
