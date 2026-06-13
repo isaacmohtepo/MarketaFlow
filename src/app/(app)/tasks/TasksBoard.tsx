@@ -2286,7 +2286,7 @@ function KanbanColumn({
                   setRenaming(false);
                 }}
                 maxLength={30}
-                className="w-32 rounded-md border border-zinc-300 px-2 py-1 text-2xs font-bold uppercase tracking-wide outline-none focus:border-fuchsia-400"
+                className="w-28 rounded border border-zinc-300 px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide outline-none focus:border-fuchsia-400"
               />
             ) : (
               <button
@@ -2299,11 +2299,11 @@ function KanbanColumn({
                   }
                 }}
                 title={canManageColumns ? "Doble click para renombrar" : column.label}
-                className={`inline-flex max-w-[160px] items-center gap-1.5 rounded-md px-2 py-1 text-2xs font-bold uppercase tracking-wide text-white shadow-sm ${meta.pill}`}
+                className={`inline-flex max-w-[150px] items-center gap-1 rounded px-1.5 py-0.5 text-3xs font-bold uppercase tracking-wide text-white shadow-sm ${meta.pill}`}
               >
                 <span className="truncate">{column.label}</span>
                 {column.isDone && (
-                  <CheckCircle2 className="h-3 w-3 flex-shrink-0 opacity-90" />
+                  <CheckCircle2 className="h-2.5 w-2.5 flex-shrink-0 opacity-90" />
                 )}
               </button>
             )}
