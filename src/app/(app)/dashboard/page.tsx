@@ -216,11 +216,13 @@ export default async function DashboardPage() {
       include: { user: true, post: { include: { brand: true } } },
     }),
     prisma.notification.findMany({
-      where: { userId: user.id, archivedAt: null },
+      where: { userId: user.id, agencyId: activeAgencyId, archivedAt: null },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    prisma.notification.count({ where: { userId: user.id, read: false, archivedAt: null } }),
+    prisma.notification.count({
+      where: { userId: user.id, agencyId: activeAgencyId, read: false, archivedAt: null },
+    }),
     isAgencySide && agencyIds.length > 0
       ? prisma.membership.count({ where: { role: "client", agencyId: { in: agencyIds } } })
       : Promise.resolve(0),

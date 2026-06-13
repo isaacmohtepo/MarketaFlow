@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Clock, AlertCircle, CheckCircle2, CalendarClock, Inbox as InboxIcon } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
+import { getActiveAgencyId } from "@/lib/active-agency";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma";
 import InboxNotifications from "./InboxNotifications";
@@ -25,19 +26,27 @@ export default async function InboxPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const agencyName = await getUserAgencyName(user.id);
+  // Workspace activo: el inbox muestra solo los posts de la agencia activa.
+  const activeAgencyId = await getActiveAgencyId(user.id);
 
-  // ¿Es agencia (owner/editor) o cliente?
+  // ¿Es agencia (owner/editor) o cliente? (en el workspace activo)
   const agencyMembership = await prisma.membership.findFirst({
-    where: { userId: user.id, role: { in: ["owner", "editor"] }, brandId: null },
+    where: {
+      userId: user.id,
+      role: { in: ["owner", "editor"] },
+      brandId: null,
+      ...(activeAgencyId ? { agencyId: activeAgencyId } : {}),
+    },
   });
   const isAgency = !!agencyMembership;
 
-  // Scoping correcto: agency-level (brandId: null) ve toda la agencia, pero
-  // un client brand-scoped solo debe ver SU brand. Sin esto, un client de
-  // brand X de la agency A veía el inbox de TODAS las brands de A.
+  // Scoping correcto: solo la agencia ACTIVA, y dentro de ella agency-level
+  // (brandId: null) ve toda la agencia mientras un client brand-scoped solo ve
+  // SU brand.
   const accessFilter: Prisma.PostWhereInput = {
     deletedAt: null,
     brand: {
+      agencyId: activeAgencyId ?? "__no_agency__",
       OR: [
         { agency: { members: { some: { userId: user.id, brandId: null } } } },
         { memberships: { some: { userId: user.id } } },

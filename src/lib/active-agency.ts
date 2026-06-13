@@ -165,6 +165,9 @@ export type Workspace = {
   logoUrl: string | null;
   isOwner: boolean;
   suspended: boolean;
+  /** Notificaciones sin leer del user EN esa agencia — para que el switcher
+   *  avise "otro workspace tiene actividad". */
+  unread: number;
 };
 
 /**
@@ -174,16 +177,36 @@ export type Workspace = {
  * rango). Orden: owner primero, luego alfabético.
  */
 export async function listUserWorkspaces(userId: string): Promise<Workspace[]> {
-  const memberships = await prisma.membership.findMany({
-    where: { userId },
-    select: {
-      role: true,
-      brandId: true,
-      agency: {
-        select: { id: true, name: true, suspendedAt: true, wlLogoUrl: true },
+  const now = new Date();
+  const [memberships, unreadRows] = await Promise.all([
+    prisma.membership.findMany({
+      where: { userId },
+      select: {
+        role: true,
+        brandId: true,
+        agency: {
+          select: { id: true, name: true, suspendedAt: true, wlLogoUrl: true },
+        },
       },
-    },
-  });
+    }),
+    // No-leídas por agencia (excluye archivadas y snoozed vigentes) — alimenta
+    // el indicador "tienes notifs en otro espacio".
+    prisma.notification.groupBy({
+      by: ["agencyId"],
+      where: {
+        userId,
+        read: false,
+        archivedAt: null,
+        OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }],
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const unreadByAgency = new Map<string, number>();
+  for (const r of unreadRows) {
+    if (r.agencyId) unreadByAgency.set(r.agencyId, r._count._all);
+  }
 
   const byAgency = new Map<string, Workspace>();
   for (const m of memberships) {
@@ -198,6 +221,7 @@ export async function listUserWorkspaces(userId: string): Promise<Workspace[]> {
         logoUrl: a.wlLogoUrl ?? null,
         isOwner: isOwnerHere,
         suspended: a.suspendedAt !== null,
+        unread: unreadByAgency.get(a.id) ?? 0,
       });
     } else {
       // Quedarse con el rol de mayor rango y marcar owner si aplica.

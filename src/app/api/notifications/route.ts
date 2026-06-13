@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyId } from "@/lib/active-agency";
 import type { Prisma } from "@/generated/prisma";
 
 /**
@@ -19,15 +20,20 @@ export async function GET(req: Request) {
   const filter = url.searchParams.get("filter") ?? "inbox";
   const now = new Date();
 
-  let where: Prisma.NotificationWhereInput = { userId: user.id };
+  // Scope al workspace ACTIVO: cada espacio de trabajo tiene su propio inbox.
+  // (activeAgencyId puede ser null → matchea las notifs sin agencia.)
+  const activeAgencyId = await getActiveAgencyId(user.id);
+  const base = { userId: user.id, agencyId: activeAgencyId };
+
+  let where: Prisma.NotificationWhereInput = { ...base };
   if (filter === "archived") {
-    where = { ...where, archivedAt: { not: null } };
+    where = { ...base, archivedAt: { not: null } };
   } else if (filter === "snoozed") {
-    where = { ...where, snoozedUntil: { gt: now }, archivedAt: null };
+    where = { ...base, snoozedUntil: { gt: now }, archivedAt: null };
   } else {
     // inbox: no archivada y (no snoozed o snooze ya venció)
     where = {
-      ...where,
+      ...base,
       archivedAt: null,
       OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }],
     };
@@ -42,17 +48,17 @@ export async function GET(req: Request) {
     }),
     prisma.notification.count({
       where: {
-        userId: user.id,
+        ...base,
         read: false,
         archivedAt: null,
         OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }],
       },
     }),
     prisma.notification.count({
-      where: { userId: user.id, archivedAt: { not: null } },
+      where: { ...base, archivedAt: { not: null } },
     }),
     prisma.notification.count({
-      where: { userId: user.id, snoozedUntil: { gt: now }, archivedAt: null },
+      where: { ...base, snoozedUntil: { gt: now }, archivedAt: null },
     }),
   ]);
 

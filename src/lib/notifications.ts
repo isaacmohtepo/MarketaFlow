@@ -9,6 +9,15 @@ import {
   tplCommentMention,
 } from "./email-templates";
 
+/** Agencia (workspace) de una brand — para denormalizar agencyId en la notif. */
+async function agencyIdForBrand(brandId: string): Promise<string | null> {
+  const b = await prisma.brand.findUnique({
+    where: { id: brandId },
+    select: { agencyId: true },
+  });
+  return b?.agencyId ?? null;
+}
+
 type NotifType =
   | "post_in_review"
   | "post_approved"
@@ -145,11 +154,13 @@ export async function notifyBrandClients(opts: {
     .map((c) => c.userId)
     .filter((id) => id !== opts.excludeUserId);
   if (userIds.length === 0) return;
+  const agencyId = await agencyIdForBrand(opts.brandId);
   await prisma.notification.createMany({
     data: userIds.map((userId) => ({
       userId,
       type: opts.type,
       body: opts.body,
+      agencyId,
       brandId: opts.brandId,
       postId: opts.postId,
       actorName: opts.actorName,
@@ -175,11 +186,13 @@ export async function notifyMentionedUsers(opts: {
 }) {
   const userIds = opts.userIds.filter((id) => id !== opts.excludeUserId);
   if (userIds.length === 0) return;
+  const agencyId = await agencyIdForBrand(opts.brandId);
   await prisma.notification.createMany({
     data: userIds.map((userId) => ({
       userId,
       type: "comment_mention",
       body: `${opts.actorName} te mencionó: "${opts.body.slice(0, 120)}"`,
+      agencyId,
       brandId: opts.brandId,
       postId: opts.postId,
       actorName: opts.actorName,
@@ -242,6 +255,7 @@ export async function notifyAgencyForInternalReview(opts: {
       userId,
       type: "post_internal_review",
       body,
+      agencyId: brand.agencyId,
       brandId: opts.brandId,
       postId: opts.postId,
       actorName: opts.actorName,
@@ -292,6 +306,7 @@ export async function notifyBrandAgency(opts: {
       userId,
       type: opts.type,
       body: opts.body,
+      agencyId: brand.agencyId,
       brandId: opts.brandId,
       postId: opts.postId || null,
       actorName: opts.actorName,

@@ -58,6 +58,12 @@ export default function WorkspaceSwitcher({
   const active =
     workspaces.find((w) => w.agencyId === activeAgencyId) ?? workspaces[0];
 
+  // No-leídas en OTROS espacios de trabajo (no el activo) → avisa que hay
+  // actividad en otra agencia aunque el selector esté colapsado.
+  const otherUnread = workspaces
+    .filter((w) => w.agencyId !== active.agencyId)
+    .reduce((sum, w) => sum + w.unread, 0);
+
   function resetAndClose() {
     setOpen(false);
     setView("list");
@@ -139,12 +145,19 @@ export default function WorkspaceSwitcher({
                   : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"
             }`}
           >
-            {showHint && !isOpen && (
+            {showHint && !isOpen ? (
               <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-fuchsia-500 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
               </span>
-            )}
+            ) : otherUnread > 0 && !isOpen ? (
+              <span
+                className="absolute -right-1.5 -top-1.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-zinc-900"
+                title={`${otherUnread} sin leer en otro espacio de trabajo`}
+              >
+                {otherUnread > 9 ? "9+" : otherUnread}
+              </span>
+            ) : null}
             <WorkspaceAvatar ws={active} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12.5px] font-semibold text-white">
@@ -180,9 +193,16 @@ export default function WorkspaceSwitcher({
                       {w.suspended ? " · Suspendida" : ""}
                     </span>
                   </span>
-                  {w.agencyId === active.agencyId && (
+                  {w.agencyId === active.agencyId ? (
                     <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                  )}
+                  ) : w.unread > 0 ? (
+                    <span
+                      className="grid h-4 min-w-[16px] flex-shrink-0 place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold tabular-nums text-white"
+                      title={`${w.unread} sin leer`}
+                    >
+                      {w.unread > 9 ? "9+" : w.unread}
+                    </span>
+                  ) : null}
                 </PickerItem>
               ))}
             </div>

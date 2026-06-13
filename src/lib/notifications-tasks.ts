@@ -13,6 +13,16 @@ import { sendEmail, appUrl } from "./email";
 import { escapeHtml } from "./sanitize-html";
 import { TASK_PRIORITY_LABEL, type TaskPriority } from "./tasks";
 
+/** Agencia (workspace) de una tarea — para denormalizar agencyId en la notif
+ *  y así separar el inbox/campana entre espacios de trabajo. */
+async function agencyIdForTask(taskId: string): Promise<string | null> {
+  const t = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { agencyId: true },
+  });
+  return t?.agencyId ?? null;
+}
+
 type TaskWithBasics = {
   id: string;
   title: string;
@@ -44,6 +54,7 @@ export async function notifyTaskAssigned(opts: {
       userId: recipient.id,
       type: "task_assigned",
       body,
+      agencyId: await agencyIdForTask(opts.task.id),
       brandId: opts.task.brand?.id ?? null,
       postId: null,
       taskId: opts.task.id,
@@ -152,6 +163,7 @@ export async function runTaskDueReminders(): Promise<{ sent: number; overdue: nu
         userId: t.assigneeId!,
         type: "task_due_soon",
         body: `Vence ${whenLabel}: "${t.title}"`,
+        agencyId: t.agencyId,
         brandId: t.brand?.id ?? null,
         taskId: t.id,
         actorName: null,
@@ -163,6 +175,7 @@ export async function runTaskDueReminders(): Promise<{ sent: number; overdue: nu
       userId: t.assigneeId!,
       type: "task_due_overdue",
       body: `Tarea vencida: "${t.title}"`,
+      agencyId: t.agencyId,
       brandId: t.brand?.id ?? null,
       taskId: t.id,
       actorName: null,
@@ -209,11 +222,13 @@ export async function notifyTaskStatusChanged(opts: {
         ? `${opts.actorName} reabrió "${opts.taskTitle}" (→ ${opts.statusLabel})`
         : `${opts.actorName} movió "${opts.taskTitle}" a ${opts.statusLabel}`;
 
+  const agencyId = await agencyIdForTask(opts.taskId);
   await prisma.notification.createMany({
     data: ids.map((userId) => ({
       userId,
       type: "task_status",
       body,
+      agencyId,
       taskId: opts.taskId,
       actorName: opts.actorName,
       actorAvatarUrl: opts.actorAvatarUrl ?? null,
@@ -242,11 +257,13 @@ export async function notifyTaskComment(opts: {
   ].filter((id) => id !== opts.excludeUserId && !mentioned.has(id));
   if (ids.length === 0) return;
 
+  const agencyId = await agencyIdForTask(opts.taskId);
   await prisma.notification.createMany({
     data: ids.map((userId) => ({
       userId,
       type: "task_comment",
       body: `${opts.actorName} comentó en "${opts.taskTitle}": "${opts.body.slice(0, 100)}"`,
+      agencyId,
       taskId: opts.taskId,
       actorName: opts.actorName,
       actorAvatarUrl: opts.actorAvatarUrl ?? null,
@@ -277,11 +294,13 @@ export async function notifyTaskMention(opts: {
   });
   if (recipients.length === 0) return;
 
+  const agencyId = await agencyIdForTask(opts.taskId);
   await prisma.notification.createMany({
     data: recipients.map((r) => ({
       userId: r.id,
       type: "task_mention",
       body: `${opts.actorName} te mencionó en "${opts.taskTitle}": "${opts.body.slice(0, 100)}"`,
+      agencyId,
       taskId: opts.taskId,
       actorName: opts.actorName,
       actorAvatarUrl: opts.actorAvatarUrl ?? null,

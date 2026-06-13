@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getActiveAgencyId } from "@/lib/active-agency";
 import { pollingSSE } from "@/lib/sse";
 
 export const runtime = "nodejs";
@@ -17,6 +18,9 @@ export async function GET(req: Request) {
 
   let cursor = new Date();
   const knownIds = new Set<string>();
+  // Scope al workspace activo (resuelto al conectar; cambiar de agencia hace
+  // router.refresh() → reconecta con la cookie nueva).
+  const activeAgencyId = await getActiveAgencyId(user.id);
 
   return pollingSSE({
     req,
@@ -26,7 +30,7 @@ export async function GET(req: Request) {
       // Snapshot inicial: capturamos los IDs conocidos para no re-emitirlos.
       try {
         const recent = await prisma.notification.findMany({
-          where: { userId: user.id },
+          where: { userId: user.id, agencyId: activeAgencyId },
           orderBy: { createdAt: "desc" },
           take: 50,
           select: { id: true },
@@ -36,7 +40,7 @@ export async function GET(req: Request) {
     },
     onPoll: async (send) => {
       const fresh = await prisma.notification.findMany({
-        where: { userId: user.id, createdAt: { gt: cursor } },
+        where: { userId: user.id, agencyId: activeAgencyId, createdAt: { gt: cursor } },
         orderBy: { createdAt: "asc" },
         // Cap defensivo: si llegara una avalancha, el resto sale en el
         // próximo tick (el cursor avanza solo hasta lo emitido).

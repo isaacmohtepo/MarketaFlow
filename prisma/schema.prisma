@@ -64,6 +64,11 @@ model Notification {
   userId    String
   type      String
   body      String
+  /// Agencia (workspace) a la que pertenece la notificación. Denormalizado al
+  /// crearla (desde la brand o la tarea de origen) — igual que actorName. Es
+  /// lo que separa el inbox/campana entre espacios de trabajo. NULL = global
+  /// (sin contexto de agencia; se muestra en cualquier workspace).
+  agencyId  String?
   brandId   String?
   postId    String?
   /// Tarea relacionada (notifs task_assigned / task_mention / task_due_*).
@@ -88,6 +93,8 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@index([userId, archivedAt, snoozedUntil])
+  // Inbox/campana scopeado por workspace + badge de no-leídas por agencia.
+  @@index([userId, agencyId, read])
   // Dedup batch del cron de reminders (taskId IN (...) + type + createdAt)
   // y "notificaciones de esta tarea".
   @@index([taskId, type, createdAt])
