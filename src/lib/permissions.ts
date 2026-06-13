@@ -298,9 +298,15 @@ export async function getPostAccess(userId: string, postId: string) {
   return { post, access };
 }
 
-export async function listUserBrands(userId: string) {
+/**
+ * Marcas visibles para el user. Si se pasa `agencyId`, se limita a ESA agencia
+ * (el workspace activo) — es lo que separa los datos entre espacios de trabajo.
+ * Sin `agencyId` devuelve las de todas sus agencias (uso legacy / contextos
+ * sin workspace).
+ */
+export async function listUserBrands(userId: string, agencyId?: string) {
   const memberships = await prisma.membership.findMany({
-    where: { userId },
+    where: { userId, ...(agencyId ? { agencyId } : {}) },
     include: { brand: true, agency: true },
   });
   const brandIds = new Set<string>();

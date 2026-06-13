@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Layers, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserAgencyName } from "@/lib/agency";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { listUserBrands, hasPermission, hasAgencyPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { syncBrandLocks } from "@/lib/brand-lock";
@@ -15,13 +16,13 @@ export default async function BrandsIndexPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [brands, agencyName, agencyM] = await Promise.all([
-    listUserBrands(user.id),
+  // Agencia ACTIVA (workspace elegido en el switcher) — todo se scopea a ella
+  // para que cada espacio de trabajo muestre SOLO sus propios datos.
+  const active = await getActiveAgencyMembership(user.id);
+  const agencyM = active ? { agencyId: active.agencyId } : null;
+  const [brands, agencyName] = await Promise.all([
+    listUserBrands(user.id, active?.agencyId),
     getUserAgencyName(user.id),
-    prisma.membership.findFirst({
-      where: { userId: user.id, brandId: null },
-      select: { agencyId: true },
-    }),
   ]);
   const canCreate = agencyM
     ? await hasPermission(user.id, agencyM.agencyId, "brands.create")

@@ -34,7 +34,9 @@ export default async function BrandOverviewLayout({
   const [brand, kpis, allBrands, trashCount, typeCountsRows] = await Promise.all([
     prisma.brand.findUnique({ where: { id: access.brandId } }),
     getBrandKpis(access.brandId),
-    access.canEdit ? listUserBrands(user.id) : Promise.resolve([]),
+    // Switcher de marcas: solo las de la agencia de ESTA marca (no las de
+    // otros workspaces del user).
+    access.canEdit ? listUserBrands(user.id, access.agencyId) : Promise.resolve([]),
     access.canEdit
       ? prisma.post.count({ where: { brandId: access.brandId, deletedAt: { not: null } } })
       : Promise.resolve(0),

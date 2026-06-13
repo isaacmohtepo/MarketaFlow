@@ -18,6 +18,7 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { listUserBrands } from "@/lib/permissions";
 import { getUserAgencyName } from "@/lib/agency";
+import { getActiveAgencyMembership } from "@/lib/active-agency";
 import { prisma } from "@/lib/db";
 import NewBrandTile from "./NewBrandTile";
 import NewPostButton from "./NewPostButton";
@@ -72,24 +73,40 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [brands, agencyName, ownerMembership, agencyMemberships, userRow] = await Promise.all([
-    listUserBrands(user.id),
+  // Agencia ACTIVA (workspace del switcher). TODO el dashboard se scopea a
+  // ella: cada espacio de trabajo muestra SOLO sus propios datos (antes
+  // agregaba marcas/tareas de TODAS las agencias del user → fuga entre
+  // workspaces).
+  const active = await getActiveAgencyMembership(user.id);
+  const activeAgencyId = active?.agencyId ?? null;
+
+  const [brands, agencyName, ownerMembership, activeAgencySide, userRow] = await Promise.all([
+    listUserBrands(user.id, activeAgencyId ?? undefined),
     getUserAgencyName(user.id),
-    prisma.membership.findFirst({
-      where: { userId: user.id, role: "owner" },
-      include: { agency: true },
-    }),
-    prisma.membership.findMany({
-      where: { userId: user.id, role: { in: ["owner", "editor"] }, brandId: null },
-      select: { agencyId: true },
-    }),
+    activeAgencyId
+      ? prisma.membership.findFirst({
+          where: { userId: user.id, role: "owner", agencyId: activeAgencyId },
+          include: { agency: true },
+        })
+      : Promise.resolve(null),
+    activeAgencyId
+      ? prisma.membership.findFirst({
+          where: {
+            userId: user.id,
+            role: { in: ["owner", "editor"] },
+            brandId: null,
+            agencyId: activeAgencyId,
+          },
+          select: { agencyId: true },
+        })
+      : Promise.resolve(null),
     prisma.user.findUnique({
       where: { id: user.id },
       select: { role: true },
     }),
   ]);
-  const isAgencySide = agencyMemberships.length > 0;
-  const agencyIds = agencyMemberships.map((m) => m.agencyId);
+  const isAgencySide = activeAgencySide !== null;
+  const agencyIds = activeAgencyId ? [activeAgencyId] : [];
   const isAdmin = userRow?.role === "admin";
 
   // Empty state — sin marcas todavía
@@ -140,9 +157,14 @@ export default async function DashboardPage() {
     );
   }
 
+  // Scope a la agencia ACTIVA. (Antes: `brand.agency.members.some(userId)`
+  // matcheaba posts de CUALQUIER agencia del user → fuga entre workspaces.)
+  // En este punto activeAgencyId es no-nulo: si fuera null, brands estaría
+  // vacío y ya habríamos retornado el empty-state arriba.
+  const scopedAgencyId = activeAgencyId ?? "__no_agency__";
   const accessFilter = {
     deletedAt: null,
-    brand: { agency: { members: { some: { userId: user.id } } } },
+    brand: { agencyId: scopedAgencyId },
   } as const;
 
   const brandIds = brands.map((b) => b.id);
@@ -224,10 +246,7 @@ export default async function DashboardPage() {
       JOIN "Brand" b ON b."id" = p."brandId"
       WHERE p."deletedAt" IS NULL
         AND p."createdAt" >= ${since}
-        AND EXISTS (
-          SELECT 1 FROM "Membership" m
-          WHERE m."agencyId" = b."agencyId" AND m."userId" = ${user.id}
-        )
+        AND b."agencyId" = ${scopedAgencyId}
       GROUP BY 1`,
     prisma.$queryRaw<{ day: Date; n: number }[]>`
       SELECT date_trunc('day', p."publishedAt") AS day, count(*)::int AS n
@@ -236,10 +255,7 @@ export default async function DashboardPage() {
       WHERE p."deletedAt" IS NULL
         AND p."publishedAt" IS NOT NULL
         AND p."publishedAt" >= ${since}
-        AND EXISTS (
-          SELECT 1 FROM "Membership" m
-          WHERE m."agencyId" = b."agencyId" AND m."userId" = ${user.id}
-        )
+        AND b."agencyId" = ${scopedAgencyId}
       GROUP BY 1`,
   ]);
 
