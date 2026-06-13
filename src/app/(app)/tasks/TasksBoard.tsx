@@ -905,9 +905,14 @@ export default function TasksBoard({
   useEffect(() => {
     const openId = searchParams.get("open");
     if (!openId) return;
+    // &draft=1: la tarea se creó en otra pantalla (ej. "Crear tarea" desde
+    // un post) y todavía está vacía — entra al mismo flujo de borrador que
+    // createAndOpen: si se cierra sin llenar nada, se descarta sola.
+    if (searchParams.get("draft") === "1") draftIdsRef.current.add(openId);
     setOpenTaskId(openId);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("open");
+    params.delete("draft");
     const qs = params.toString();
     window.history.replaceState(
       null,
@@ -2956,6 +2961,16 @@ function TaskCardItem({
           </span>
         )}
 
+        {/* Indicador: tarea vinculada a un post (detalle en el drawer) */}
+        {task.post && (
+          <span
+            className="mr-auto inline-flex h-6 items-center rounded-md bg-violet-50 px-1.5 text-violet-500"
+            title={`Vinculada al post: ${task.post.title?.trim() || task.post.caption?.trim().slice(0, 60) || "post"}`}
+          >
+            <Link2 className="h-3 w-3" />
+          </span>
+        )}
+
         {/* Cluster derecho: ref id (default) ↔ toolbar (hover) */}
         <div className="relative flex h-6 flex-shrink-0 items-center">
           {/* Ref id tipo Linear — se desvanece al hover */}
@@ -4310,6 +4325,25 @@ function TaskDrawer({
                 )}
               </PropertyPicker>
             </PropertyRow>
+
+            {/* Post de origen: la tarea nació desde un post (Task.postId) —
+                link directo para volver al contexto (imagen, comentarios). */}
+            {task.post && task.brandId && (
+              <PropertyRow label="Post" icon={Link2}>
+                <a
+                  href={`/brands/${task.brandId}/posts/${task.post.id}`}
+                  className="group flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 -mx-2 hover:bg-violet-50"
+                  title="Abrir el post vinculado"
+                >
+                  <span className="truncate text-[13px] font-medium text-violet-700 group-hover:underline">
+                    {task.post.title?.trim() ||
+                      task.post.caption?.trim().slice(0, 60) ||
+                      "Ver post vinculado"}
+                  </span>
+                  <MoveRight className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+                </a>
+              </PropertyRow>
+            )}
 
             {/* Etiquetas */}
             <PropertyRow label="Etiquetas" icon={Tags}>

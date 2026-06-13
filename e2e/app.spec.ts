@@ -74,4 +74,44 @@ test.describe("flujo autenticado @app", () => {
     }, testTitle);
     expect(taskId).not.toBeNull();
   });
+
+  // Cubre el flujo "Crear tarea desde un post": el botón crea un borrador y
+  // navega a /tasks?open=<id>&draft=1 — el board debe abrir el drawer y, si
+  // se cierra sin llenar nada, descartar el borrador solo.
+  test("deep-link draft=1 → drawer abre → cerrar vacía la descarta", async ({ page }) => {
+    await login(page);
+
+    // Crear el borrador vía API con la sesión del browser (mismo POST que
+    // hace CreateTaskFromPost, sin necesitar un post existente).
+    await page.goto("/tasks");
+    const draftId = await page.evaluate(async () => {
+      const r = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Nueva tarea" }),
+      });
+      const j = await r.json();
+      return (j.task?.id ?? null) as string | null;
+    });
+    expect(draftId).not.toBeNull();
+
+    // Deep-link con draft=1: el drawer debe abrir con el título editable.
+    await page.goto(`/tasks?open=${draftId}&draft=1`);
+    const titleInput = page.locator('input[value="Nueva tarea"]').first();
+    await expect(titleInput).toBeVisible({ timeout: 15_000 });
+
+    // Cerrar SIN tocar nada → el borrador vacío se descarta server-side.
+    await page.keyboard.press("Escape");
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(async (id) => {
+            const r = await fetch("/api/tasks");
+            const j = await r.json();
+            return (j.tasks ?? []).some((t: { id: string }) => t.id === id);
+          }, draftId!),
+        { timeout: 10_000 },
+      )
+      .toBe(false);
+  });
 });

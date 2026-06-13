@@ -421,8 +421,9 @@ export async function DELETE(
       !t.description &&
       !t.dueDate &&
       !t.recurrence &&
-      !t.brandId &&
-      !t.postId &&
+      // Si la tarea nació desde un post, brandId/postId son contexto de
+      // creación (no algo que el user "llenó") — no impiden el descarte.
+      (t.postId ? true : !t.brandId) &&
       !t.assigneeId &&
       t.priority === "normal" &&
       t._count.subtasks === 0 &&

@@ -6,6 +6,7 @@ import { getPostAccess, getPermissionSet, hasAgencyPermission } from "@/lib/perm
 import CreateTaskFromPost from "./CreateTaskFromPost";
 import { resolveBrandRef, resolvePostId } from "@/lib/slugs";
 import { getUserAgencyName } from "@/lib/agency";
+import { getAgencyTaskColumns } from "@/lib/tasks";
 import { prisma } from "@/lib/db";
 import PresenceIndicator from "@/components/PresenceIndicator";
 import { StatusPill } from "@/components/ui";
@@ -96,6 +97,30 @@ export default async function PostPage({
     "tasks.write",
   );
 
+  // Tareas vinculadas a este post (Task.postId): visibles solo para el
+  // equipo de la agencia — el cliente no ve la operación interna.
+  const linkedTasks = canCreateTask
+    ? await (async () => {
+        const [rows, columns] = await Promise.all([
+          prisma.task.findMany({
+            where: { postId, deletedAt: null },
+            orderBy: { createdAt: "desc" },
+            select: { id: true, title: true, status: true },
+          }),
+          getAgencyTaskColumns(access.agencyId),
+        ]);
+        return rows.map((t) => {
+          const col = columns.find((c) => c.id === t.status);
+          return {
+            id: t.id,
+            title: t.title,
+            statusLabel: col?.label ?? t.status,
+            isDone: col?.isDone ?? t.status === "done",
+          };
+        });
+      })()
+    : [];
+
   const [comments, lastApproval, agencyName, brand] = await Promise.all([
     prisma.comment.findMany({
       where: {
@@ -179,7 +204,7 @@ export default async function PostPage({
               <CreateTaskFromPost
                 postId={postId}
                 brandId={realBrandId}
-                defaultTitle={`Revisar: ${(post.title ?? post.caption ?? "post").slice(0, 80)}`}
+                linkedTasks={linkedTasks}
               />
             )}
             <PresenceIndicator postId={postId} />
