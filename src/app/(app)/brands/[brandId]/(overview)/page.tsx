@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { FeedGridSkeleton, Skeleton } from "@/components/Skeleton";
-import { resolveBrandRef } from "@/lib/slugs";
 import BrandContent from "./BrandContent";
 
 const ALL_TYPES = ["social_post", "web_design", "video", "branding", "graphic", "ad", "other"] as const;
@@ -30,18 +28,6 @@ export default async function BrandPage({
 }) {
   const { brandId } = await params;
   const sp = await searchParams;
-
-  // Si se entró por la URL vieja con cuid, redirigir al slug (preservando los
-  // query params) para que toda la navegación interna quede legible.
-  const brand = await resolveBrandRef(brandId);
-  if (brand?.slug && brandId !== brand.slug) {
-    const qs = new URLSearchParams(
-      Object.entries(sp).filter(
-        (e): e is [string, string] => typeof e[1] === "string",
-      ),
-    ).toString();
-    redirect(`/brands/${brand.slug}${qs ? `?${qs}` : ""}`);
-  }
 
   const activeType: AT = (ALL_TYPES as readonly string[]).includes(sp.type ?? "")
     ? (sp.type as AT)

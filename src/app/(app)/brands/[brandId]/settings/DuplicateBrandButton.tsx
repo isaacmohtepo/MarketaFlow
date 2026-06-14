@@ -43,7 +43,7 @@ export default function DuplicateBrandButton({
       toast.success("Marca duplicada", {
         description: "Te llevamos a la nueva marca para que ajustes lo que necesites.",
       });
-      router.push(`/brands/${j.slug ?? j.id}/settings`);
+      router.push(`/brands/${j.id}/settings`);
       router.refresh();
     } catch {
       toast.error("Error de red");

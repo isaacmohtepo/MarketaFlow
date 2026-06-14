@@ -186,12 +186,12 @@ export default async function InboxPage() {
         kind: "post",
         title: (p.caption?.trim() || "Post sin texto").slice(0, 70),
         context: p.brand?.name ?? null,
-        href: `/brands/${p.brand?.slug ?? p.brandId}/posts/${p.number ?? p.id}`,
+        href: `/brands/${p.brandId}/posts/${p.number ?? p.id}`,
       };
     }
     if (n.brandId && brandMap.has(n.brandId)) {
       const b = brandMap.get(n.brandId)!;
-      return { kind: "brand", title: b.name, context: null, href: `/brands/${b.slug ?? n.brandId}` };
+      return { kind: "brand", title: b.name, context: null, href: `/brands/${n.brandId}` };
     }
     return null;
   }
@@ -257,7 +257,7 @@ export default async function InboxPage() {
               {pendingApproval.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
+                  href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}
@@ -282,7 +282,7 @@ export default async function InboxPage() {
                 return (
                   <Row
                     key={p.id}
-                    href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
+                    href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`}
                     imageUrl={p.imageUrl}
                     brandName={p.brand.name}
                     caption={
@@ -310,7 +310,7 @@ export default async function InboxPage() {
               {readyToPublish.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
+                  href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}
@@ -338,7 +338,7 @@ export default async function InboxPage() {
               {upcoming.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
+                  href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}
@@ -361,7 +361,7 @@ export default async function InboxPage() {
               {recentlyPublished.map((p) => (
                 <Row
                   key={p.id}
-                  href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`}
+                  href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`}
                   imageUrl={p.imageUrl}
                   brandName={p.brand.name}
                   caption={p.caption}

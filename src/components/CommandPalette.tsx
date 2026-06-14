@@ -163,14 +163,14 @@ export default function CommandPalette() {
     if (!r) return;
     setOpen(false);
     if (r.kind === "nav") router.push(r.href);
-    else if (r.kind === "brand") router.push(`/brands/${r.data.slug ?? r.data.id}`);
+    else if (r.kind === "brand") router.push(`/brands/${r.data.id}`);
     else if (r.kind === "post")
       router.push(
-        `/brands/${r.data.brandSlug ?? r.data.brandId}/posts/${r.data.number ?? r.data.id}`,
+        `/brands/${r.data.brandId}/posts/${r.data.number ?? r.data.id}`,
       );
     else
       router.push(
-        `/brands/${r.data.brandSlug ?? r.data.brandId}/posts/${r.data.postNumber ?? r.data.postId}`,
+        `/brands/${r.data.brandId}/posts/${r.data.postNumber ?? r.data.postId}`,
       );
   }
 

@@ -30,7 +30,7 @@ export default function NewBrandTile() {
       return;
     }
     const j = await res.json();
-    const ref = j.brand?.slug ?? j.brand?.id ?? j.id;
+    const ref = j.brand?.id ?? j.id;
     // Navegación DURA (no router.push): entra fresco a la marca recién creada.
     // Con soft-nav, si el primer render daba 404 (carrera read-after-write),
     // el router cache de Next cacheaba ese 404 y la marca quedaba "inabrible"

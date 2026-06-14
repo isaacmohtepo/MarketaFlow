@@ -24,14 +24,14 @@ export default async function InvitePage({
       where: { userId: user.id, brandId: brand.id },
     });
     if (existing) {
-      redirect(`/brands/${brand.slug ?? brand.id}`);
+      redirect(`/brands/${brand.id}`);
     }
     // Es miembro de la agency (owner/editor) → ya tiene acceso, no sumamos
     const agencyMember = await prisma.membership.findFirst({
       where: { userId: user.id, agencyId: brand.agencyId, brandId: null },
     });
     if (agencyMember) {
-      redirect(`/brands/${brand.slug ?? brand.id}`);
+      redirect(`/brands/${brand.id}`);
     }
     // Crear como client respetando plan limits
     const check = await canInviteClient(brand.id);

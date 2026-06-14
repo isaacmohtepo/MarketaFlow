@@ -83,13 +83,13 @@ export default function SearchBox() {
     ...brands.map((b) => ({
       kind: "brand" as const,
       key: `b-${b.id}`,
-      href: `/brands/${b.slug ?? b.id}`,
+      href: `/brands/${b.id}`,
       data: b,
     })),
     ...posts.map((p) => ({
       kind: "post" as const,
       key: `p-${p.id}`,
-      href: `/brands/${p.brandSlug ?? p.brandId}/posts/${p.number ?? p.id}`,
+      href: `/brands/${p.brandId}/posts/${p.number ?? p.id}`,
       data: p,
     })),
   ];
@@ -162,7 +162,7 @@ export default function SearchBox() {
                 return (
                   <ResultRow
                     key={`b-${b.id}`}
-                    href={`/brands/${b.slug ?? b.id}`}
+                    href={`/brands/${b.id}`}
                     active={idx === active}
                     onMouseEnter={() => setActive(idx)}
                     onClick={() => {
@@ -188,7 +188,7 @@ export default function SearchBox() {
                 return (
                   <ResultRow
                     key={`p-${p.id}`}
-                    href={`/brands/${p.brandSlug ?? p.brandId}/posts/${p.number ?? p.id}`}
+                    href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`}
                     active={idx === active}
                     onMouseEnter={() => setActive(idx)}
                     onClick={() => {

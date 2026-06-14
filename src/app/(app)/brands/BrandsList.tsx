@@ -170,7 +170,7 @@ function BrandCard({
   canViewTasks: boolean;
 }) {
   const bg = b.color ?? colorFallback;
-  const ref = b.slug ?? b.id; // URL legible (slug) con fallback al id
+  const ref = b.id; // URL por id (rutas estables, sin slug)
   const tone = approvalRateTone(b.kpis.approvalRate);
   const { has } = usePermissions();
   const canEditBrand = has("brands.edit", b.id);

@@ -38,9 +38,9 @@ export default async function PostPage({
   const postId = post.id; // ref → id real (para queries/APIs downstream)
   const realBrandId = post.brandId;
 
-  // Si se entró por la URL vieja con cuid, redirigir a la versión legible
-  // (slug de marca + número de post) para que la barra quede bonita.
-  const canonicalBrand = urlBrand.slug ?? urlBrand.id;
+  // La marca siempre va por id (sin slug). El post mantiene su número
+  // legible por marca cuando lo tiene, con fallback al id.
+  const canonicalBrand = urlBrand.id;
   const canonicalPost = post.number != null ? String(post.number) : post.id;
   if (brandId !== canonicalBrand || postRef !== canonicalPost) {
     redirect(`/brands/${canonicalBrand}/posts/${canonicalPost}`);

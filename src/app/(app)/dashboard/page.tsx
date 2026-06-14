@@ -273,8 +273,8 @@ export default async function DashboardPage() {
   const onboardingSteps = isAgencySide
     ? [
         { done: brands.length > 0, label: "Crear tu primera marca", href: "#brands", icon: Sparkles },
-        { done: clientCount > 0, label: "Invitar a tu cliente", href: brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/settings` : "/dashboard", icon: UserPlus },
-        { done: totalPosts > 0, label: "Crear tu primer post", href: brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/posts/new` : "/dashboard", icon: Plus },
+        { done: clientCount > 0, label: "Invitar a tu cliente", href: brands[0] ? `/brands/${brands[0].id}/settings` : "/dashboard", icon: UserPlus },
+        { done: totalPosts > 0, label: "Crear tu primer post", href: brands[0] ? `/brands/${brands[0].id}/posts/new` : "/dashboard", icon: Plus },
         { done: approvalCount > 0, label: "Recibir tu primera aprobación", href: "/inbox", icon: CheckCircle2 },
       ]
     : [];
@@ -437,7 +437,7 @@ export default async function DashboardPage() {
                 return (
                   <Link
                     key={b.id}
-                    href={`/brands/${b.slug ?? b.id}`}
+                    href={`/brands/${b.id}`}
                     className="group rounded-xl border border-zinc-200/70 bg-white p-3 transition hover:border-zinc-300 hover:shadow-sm"
                   >
                     <div className="flex items-center gap-2.5">
@@ -486,7 +486,7 @@ export default async function DashboardPage() {
               <ul className="divide-y divide-zinc-100/80">
                 {pendingPosts.map((p) => (
                   <li key={p.id}>
-                    <Link href={`/brands/${p.brand.slug ?? p.brandId}/posts/${p.number ?? p.id}`} className="flex items-center gap-3 px-3.5 py-2.5 transition hover:bg-zinc-50">
+                    <Link href={`/brands/${p.brandId}/posts/${p.number ?? p.id}`} className="flex items-center gap-3 px-3.5 py-2.5 transition hover:bg-zinc-50">
                       <span className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-md bg-zinc-100">
                         {p.imageUrl ? <MediaThumb url={p.imageUrl} className="h-full w-full object-cover" showPlayIcon={false} /> : <span className="grid h-full w-full place-items-center text-zinc-300"><ImageIcon className="h-4 w-4" /></span>}
                       </span>
@@ -550,7 +550,7 @@ export default async function DashboardPage() {
           </Panel>
 
           {/* Actividad reciente */}
-          <Panel title="Actividad" icon={ActivityIcon} href={brands[0] ? `/brands/${brands[0].slug ?? brands[0].id}/activity` : undefined} hrefLabel="Ver más" tint="text-zinc-600 bg-zinc-100">
+          <Panel title="Actividad" icon={ActivityIcon} href={brands[0] ? `/brands/${brands[0].id}/activity` : undefined} hrefLabel="Ver más" tint="text-zinc-600 bg-zinc-100">
             {recentActivities.length === 0 ? (
               <PanelEmpty text="Sin actividad reciente." />
             ) : (

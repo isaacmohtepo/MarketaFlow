@@ -72,7 +72,7 @@ export default function OnboardingWizard({
         toast.error(j.error ?? "No se pudo crear la marca");
         return;
       }
-      setCreatedBrandId(j.brand?.slug ?? j.brand?.id ?? j.id);
+      setCreatedBrandId(j.brand?.id ?? j.id);
       toast.success(`Marca "${brand.name}" creada`);
       setStep(2);
     } catch {

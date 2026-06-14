@@ -49,7 +49,7 @@ export default function BrandsAccessList({
         return (
           <li key={b.id}>
             <Link
-              href={`/brands/${b.slug ?? b.id}`}
+              href={`/brands/${b.id}`}
               className="group flex items-center gap-3 p-3 transition hover:bg-zinc-50"
             >
               <span
