@@ -57,7 +57,7 @@ export default async function InvitePage({
         role: "client",
       },
     });
-    redirect(`/brands/${brand.slug ?? brand.id}`);
+    redirect(`/brands/${brand.id}`);
   }
 
   return (

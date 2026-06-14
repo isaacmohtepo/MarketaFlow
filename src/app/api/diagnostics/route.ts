@@ -31,15 +31,23 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const brandId = url.searchParams.get("brandId");
 
-  // Resolver agencyId. Si pasaron brandId lo usamos, sino buscamos la primera
-  // agency-membership del user.
+  // Resolver agencyId. Si pasaron brandId lo usamos, PERO solo si el user es
+  // miembro de esa agencia — sino un user logueado podría enumerar el
+  // plan/uso de cualquier agencia pasando un brandId ajeno (cross-tenant
+  // IDOR). Sin membership válida, caemos a la agencia activa del propio user.
   let agencyId: string | null = null;
   if (brandId) {
     const brand = await prisma.brand.findUnique({
       where: { id: brandId },
       select: { agencyId: true },
     });
-    if (brand) agencyId = brand.agencyId;
+    if (brand) {
+      const member = await prisma.membership.findFirst({
+        where: { userId: user.id, agencyId: brand.agencyId },
+        select: { id: true },
+      });
+      if (member) agencyId = brand.agencyId;
+    }
   }
   if (!agencyId) {
     const m = await getActiveAgencyMembership(user.id);

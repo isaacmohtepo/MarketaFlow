@@ -261,13 +261,10 @@ export async function getBrandAccess(
   userId: string,
   brandId: string,
 ): Promise<BrandAccess | null> {
-  // `brandId` puede ser un slug O un cuid (URLs legibles + back-compat).
+  // `brandId` puede ser un cuid (rutas actuales) O un slug (back-compat de
+  // links viejos) — resolveBrandRef acepta ambos.
   const brand = await resolveBrandRef(brandId);
-  if (!brand) {
-    // DIAGNÓSTICO (temporal): por qué la página de marca da 404.
-    console.warn(`[getBrandAccess] sin marca para ref="${brandId}" (user ${userId})`);
-    return null;
-  }
+  if (!brand) return null;
 
   const memberships = await prisma.membership.findMany({
     where: {
@@ -276,12 +273,7 @@ export async function getBrandAccess(
       OR: [{ brandId: null }, { brandId: brand.id }],
     },
   });
-  if (memberships.length === 0) {
-    console.warn(
-      `[getBrandAccess] sin membership: user ${userId} en agency ${brand.agencyId} (brand ${brand.id} slug="${brand.slug}")`,
-    );
-    return null;
-  }
+  if (memberships.length === 0) return null;
 
   const sorted = [...memberships].sort(
     (a, b) => roleRank(b.role) - roleRank(a.role),

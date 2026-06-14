@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { canInviteTeamMember } from "@/lib/billing";
+import { canInviteTeamMember, canInviteClient } from "@/lib/billing";
 import {
   WORKSPACE_COOKIE,
   WORKSPACE_COOKIE_MAX_AGE,
@@ -50,6 +50,13 @@ export async function POST(
             where: { userId: user.id, agencyId: inv.agencyId, brandId: b.id },
           });
           if (!existing) {
+            // Respetar el límite de clientes por marca del plan (mismo check
+            // que invite/[code], share/access y register). Dentro de la tx
+            // Serializable para cerrar la TOCTOU.
+            if (inv.role === "client") {
+              const check = await canInviteClient(b.id, tx);
+              if (!check.ok) return { ok: false as const };
+            }
             await tx.membership.create({
               data: {
                 userId: user.id,
