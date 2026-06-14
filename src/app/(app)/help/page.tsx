@@ -216,7 +216,8 @@ const SECTIONS: {
             siempre.
           </li>
           <li>
-            <strong>Pro</strong>: 5 marcas, posts ilimitados, AI Captions.
+            <strong>Pro</strong>: 5 marcas, posts y clientes ilimitados, equipo
+            con roles.
           </li>
           <li>
             <strong>Agency</strong>: marcas ilimitadas, white label, equipo

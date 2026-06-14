@@ -17,6 +17,7 @@ import { PLANS, type PlanId } from "@/lib/plans";
 import { permissionsForRole } from "@/lib/permissions";
 import { PermissionsProvider } from "@/components/PermissionsProvider";
 import { getFeatureFlags } from "@/lib/feature-flags";
+import { hasFeature } from "@/lib/features";
 import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
 import { getWhiteLabel, whiteLabelCssOverride } from "@/lib/white-label";
 
@@ -177,6 +178,10 @@ export default async function AppLayout({
   }
 
   const featureFlags = getFeatureFlags();
+  // Flag per-agencia: generación de captions con IA (apagada por defecto).
+  const aiCaptionsEnabled = activeAgencyId
+    ? await hasFeature(activeAgencyId, "ai_captions")
+    : false;
 
   // Resolver white-label de la agencia ACTIVA. Si está activo, inyectamos las
   // variables CSS y pasamos el logo/brandName al AppShell. Al cambiar de
@@ -186,7 +191,7 @@ export default async function AppLayout({
   const wlCss = wl ? whiteLabelCssOverride(wl) : "";
 
   return (
-    <FeatureFlagsProvider flags={featureFlags}>
+    <FeatureFlagsProvider flags={{ ...featureFlags, aiCaptionsEnabled }}>
     <PermissionsProvider
       agencyPermissions={[...agencyPerms]}
       brandPermissions={brandPerms}

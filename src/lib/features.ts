@@ -28,7 +28,10 @@ export const KNOWN_FLAGS = ["ai_captions"] as const;
 export type FeatureFlag = (typeof KNOWN_FLAGS)[number];
 
 const DEFAULTS: Record<FeatureFlag, boolean> = {
-  ai_captions: true,
+  // Apagado por defecto: por ahora NO ofrecemos generación con IA. El código
+  // queda (route + UI gateada por este flag); un admin puede reactivarlo por
+  // agencia desde el panel, o se vuelve a poner true cuando se ofrezca.
+  ai_captions: false,
 };
 
 const FLAG_DESCRIPTIONS: Record<FeatureFlag, string> = {

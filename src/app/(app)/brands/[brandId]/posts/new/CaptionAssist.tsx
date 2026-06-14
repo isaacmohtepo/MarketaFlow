@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 
 type Variant = { tone: string; text: string };
 
@@ -29,10 +30,14 @@ export default function CaptionAssist({
   platform: string;
   onPick: (text: string) => void;
 }) {
+  const { aiCaptionsEnabled } = useFeatureFlags();
   const [open, setOpen] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Por ahora no ofrecemos IA: si el flag está apagado, no renderizamos nada.
+  if (!aiCaptionsEnabled) return null;
 
   async function generate() {
     if (images.length === 0) {

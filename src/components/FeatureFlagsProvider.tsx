@@ -14,10 +14,13 @@ import { createContext, useContext, type ReactNode } from "react";
 type Flags = {
   /** ¿Conectar Instagram via OAuth está habilitado? Requiere META_APP_ID. */
   metaOAuthEnabled: boolean;
+  /** ¿Generación de captions con IA habilitada para la agencia activa? */
+  aiCaptionsEnabled: boolean;
 };
 
 const DEFAULT_FLAGS: Flags = {
   metaOAuthEnabled: false,
+  aiCaptionsEnabled: false,
 };
 
 const Ctx = createContext<Flags>(DEFAULT_FLAGS);
