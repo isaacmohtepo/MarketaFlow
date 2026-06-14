@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useApiFetch } from "@/lib/api-client";
 
 export default function NewBrandTile() {
-  const router = useRouter();
   const apiFetch = useApiFetch();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,8 +31,11 @@ export default function NewBrandTile() {
     }
     const j = await res.json();
     const ref = j.brand?.slug ?? j.brand?.id ?? j.id;
-    router.push(`/brands/${ref}`);
-    router.refresh();
+    // Navegación DURA (no router.push): entra fresco a la marca recién creada.
+    // Con soft-nav, si el primer render daba 404 (carrera read-after-write),
+    // el router cache de Next cacheaba ese 404 y la marca quedaba "inabrible"
+    // hasta recargar a mano. Una recarga completa lo evita siempre.
+    window.location.assign(`/brands/${ref}`);
   }
 
   if (!open) {

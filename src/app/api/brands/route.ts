@@ -70,6 +70,28 @@ export async function POST(req: Request) {
           },
           select: { id: true, slug: true, name: true, color: true, logoUrl: true },
         });
+
+        // Garantizar que el CREADOR pueda abrir la marca que acaba de crear.
+        // Si tiene membership agency-level (brandId null) ya cubre cualquier
+        // marca de la agencia. Pero si es un miembro scoped-a-marcas (con
+        // permiso brands.create), no tendría membership en la marca nueva y
+        // getBrandAccess devolvería 404. En ese caso le creamos una membership
+        // brand-scoped con su mismo rol.
+        const agencyLevel = await tx.membership.findFirst({
+          where: { userId: user.id, agencyId: owner.agencyId, brandId: null },
+          select: { id: true },
+        });
+        if (!agencyLevel) {
+          await tx.membership.create({
+            data: {
+              userId: user.id,
+              agencyId: owner.agencyId,
+              brandId: brand.id,
+              role: owner.role,
+            },
+          });
+        }
+
         return { ok: true as const, brand };
       },
       { isolationLevel: "Serializable" },
