@@ -80,11 +80,16 @@ export default async function AdminWebhookDetail({
           </div>
         )}
 
-        {w.status === "ok" && w.provider === "wompi" && (
-          <div className="mt-4 flex justify-end">
-            <RetryButton webhookId={w.id} />
-          </div>
-        )}
+        {/* Reprocesar: disponible para eventos que pasaron la firma (ok o
+            error). NO para signature_invalid — su payload no es de fiar y el
+            replay no re-valida la firma. El caso de uso real es justamente
+            reprocesar los que quedaron en "error". */}
+        {(w.status === "ok" || w.status === "error") &&
+          w.provider === "wompi" && (
+            <div className="mt-4 flex justify-end">
+              <RetryButton webhookId={w.id} />
+            </div>
+          )}
       </div>
 
       <div className="card p-6">

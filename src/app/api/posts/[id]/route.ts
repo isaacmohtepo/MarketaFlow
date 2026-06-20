@@ -28,6 +28,53 @@ const schema = z.object({
     .optional(),
 });
 
+/**
+ * Máquina de estados de aprobación: (estado actual → estado destino) legales
+ * y el permiso requerido para cada transición. Cierra:
+ *  - saltos/retrocesos arbitrarios de etapa,
+ *  - la elusión del gate de aprobación interna (draft→in_review exige
+ *    posts.approve_internal, no solo posts.schedule),
+ *  - alcanzar estados ocultos (scheduled/published) por PATCH — la publicación
+ *    va por /publish y hoy esos estados están deshabilitados.
+ * Si una (origen, destino) no está acá, la transición se rechaza (422).
+ */
+const TRANSITIONS: Record<string, Partial<Record<string, string>>> = {
+  draft: {
+    internal_review: "posts.schedule", // enviar a revisión interna
+    in_review: "posts.approve_internal", // saltar interna = aprobación interna
+  },
+  internal_review: {
+    in_review: "posts.approve_internal", // aprobar interna
+    changes_requested: "posts.approve_internal", // rechazo interno
+    draft: "posts.schedule", // devolver a borrador
+  },
+  in_review: {
+    approved: "posts.approve",
+    changes_requested: "posts.approve",
+    internal_review: "posts.approve_internal", // devolver a interna
+    draft: "posts.schedule",
+  },
+  changes_requested: {
+    in_review: "posts.schedule", // reenviar al cliente
+    internal_review: "posts.schedule", // reenviar a interna
+    draft: "posts.schedule",
+  },
+  approved: {
+    in_review: "posts.approve", // reabrir
+    changes_requested: "posts.approve", // reabrir con cambios
+    draft: "posts.schedule",
+  },
+  // scheduled/published son estados de la fase de publicación (hoy ocultos);
+  // se permite revertir a un estado de revisión, no avanzar por PATCH.
+  scheduled: {
+    approved: "posts.approve",
+    draft: "posts.schedule",
+  },
+  published: {
+    approved: "posts.approve",
+  },
+};
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -59,18 +106,16 @@ export async function PATCH(
   if (body.assetType !== undefined) required.add("posts.edit_caption");
   if (body.scheduledAt !== undefined) required.add("posts.schedule");
   if (body.status !== undefined && body.status !== ctx.post.status) {
-    if (body.status === "approved" || body.status === "changes_requested") {
-      required.add("posts.approve");
-    } else if (body.status === "published") {
-      required.add("posts.publish");
-    } else if (
-      body.status === "in_review" &&
-      ctx.post.status === "internal_review"
-    ) {
-      required.add("posts.approve_internal");
-    } else {
-      required.add("posts.schedule");
+    const allowedPerm = TRANSITIONS[ctx.post.status]?.[body.status];
+    if (!allowedPerm) {
+      return NextResponse.json(
+        {
+          error: `No puedes cambiar el estado de "${ctx.post.status}" a "${body.status}".`,
+        },
+        { status: 422 },
+      );
     }
+    required.add(allowedPerm);
   }
   for (const perm of required) {
     const ok = await hasPermission(
@@ -83,6 +128,29 @@ export async function PATCH(
       return NextResponse.json(
         { error: `Sin permiso: ${perm}` },
         { status: 403 },
+      );
+    }
+  }
+
+  // Mismo bloqueo que el endpoint /approve: no se puede marcar "approved"
+  // por NINGUNA vía (incluido el selector de estado) si quedan comentarios
+  // públicos sin resolver. Cierra el bypass donde se aprobaba vía PATCH
+  // saltándose este check.
+  if (body.status === "approved" && ctx.post.status !== "approved") {
+    const unresolvedCount = await prisma.comment.count({
+      where: { postId: id, resolved: false, internal: false, parentId: null },
+    });
+    if (unresolvedCount > 0) {
+      return NextResponse.json(
+        {
+          error: `No se puede aprobar: hay ${unresolvedCount} ${
+            unresolvedCount === 1
+              ? "comentario pendiente"
+              : "comentarios pendientes"
+          } sin resolver. Resuélvelos antes de aprobar.`,
+          unresolvedCount,
+        },
+        { status: 422 },
       );
     }
   }

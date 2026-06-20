@@ -58,7 +58,7 @@ export async function POST(
         {
           error: `No se puede aprobar: hay ${unresolvedCount} ${
             unresolvedCount === 1 ? "comentario pendiente" : "comentarios pendientes"
-          } sin resolver. Resolvelós antes de aprobar.`,
+          } sin resolver. Resuélvelos antes de aprobar.`,
           unresolvedCount,
         },
         { status: 422 },

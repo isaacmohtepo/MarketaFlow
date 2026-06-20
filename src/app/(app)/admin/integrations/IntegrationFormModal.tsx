@@ -208,10 +208,9 @@ export default function IntegrationFormModal({
         <div className="space-y-3 p-5">
           {isEdit && (
             <div className="rounded-lg bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800 ring-1 ring-amber-200">
-              ⚠ Editas la configuración existente. Por seguridad las llaves no se
-              pre-llenan — tienes que pegarlas de nuevo. Si dejas un campo en
-              blanco, se conserva el valor anterior solo si lo dejas VACÍO; si
-              pones cualquier cosa, se sobrescribe.
+              ⚠ Editas la configuración existente. Por seguridad las llaves no
+              se pre-llenan — tienes que pegarlas TODAS de nuevo para guardar
+              (al guardar se reemplaza la configuración completa).
             </div>
           )}
           {schema.fields.map((f) => {
