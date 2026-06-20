@@ -11,8 +11,14 @@ import { article as herramientasIa } from "./herramientas-ia-crear-contenido-red
 import { article as flujoSinWhatsapp } from "./flujo-trabajo-agencia-sin-whatsapp";
 import { article as herramientasImprescindibles } from "./herramientas-imprescindibles-agencia-marketing";
 import { article as aprobarALaPrimera } from "./aprobar-contenido-a-la-primera";
+import { article as planificadorTareas } from "./planificador-tareas-agencia-marketing";
+import { article as tableroKanban } from "./tablero-kanban-agencia-contenido";
+import { article as planificarMesContenido } from "./planificar-mes-contenido-varias-marcas";
 
 export const articles: Article[] = [
+  planificadorTareas,
+  tableroKanban,
+  planificarMesContenido,
   iaParaAgencias2026,
   aprobacionConIa,
   herramientasIa,
