@@ -111,10 +111,16 @@ export async function POST(req: Request) {
 
   // URL firmada con TTL corto (5 min) — el upload tiene que arrancar en
   // ese tiempo. Una vez que arrancó, R2 acepta hasta que termine.
+  // ContentLength va FIRMADO: ata la URL al tamaño declarado. Sin esto, el
+  // `size` solo se validaba en el JSON y la URL firmada aceptaba un PUT de
+  // cualquier tamaño (un user podía declarar size:1 y subir 10 GB → abuso de
+  // storage). El browser manda Content-Length automático con el File; si no
+  // coincide con el firmado, R2 rechaza el PUT.
   const command = new PutObjectCommand({
     Bucket: R2_BUCKET,
     Key: key,
     ContentType: mime,
+    ContentLength: body.size,
     CacheControl: "public, max-age=31536000, immutable",
   });
 

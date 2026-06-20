@@ -42,6 +42,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No se encontraron posts" }, { status: 404 });
   }
 
+  // El permiso requerido depende de la acción (y, en set_status, del estado
+  // destino) — igual que las rutas de un solo post. Sin esto, un rol con solo
+  // `posts.schedule` podría borrar/aprobar/publicar en masa saltándose el gate
+  // más estricto de la ruta individual (escalada vertical de privilegios).
+  const requiredPerm = ((): string => {
+    if (body.action === "delete" || body.action === "restore") return "posts.delete";
+    if (body.action === "duplicate") return "posts.create";
+    if (body.action === "set_status") {
+      if (body.status === "approved" || body.status === "changes_requested")
+        return "posts.approve";
+      if (body.status === "published") return "posts.publish";
+      return "posts.schedule";
+    }
+    return "posts.schedule"; // set_schedule
+  })();
+
   const brandIds = Array.from(new Set(posts.map((p) => p.brandId)));
   // Invalida cache de KPIs de cada marca afectada al final de la request
   const invalidate = () => brandIds.forEach((bid) => invalidateBrandKpis(bid));
@@ -51,9 +67,9 @@ export async function POST(req: Request) {
     if (!a) {
       return NextResponse.json({ error: "Sin permiso en una de las marcas" }, { status: 403 });
     }
-    const ok = await hasPermission(user.id, a.agencyId, "posts.schedule", brandIds[i]);
+    const ok = await hasPermission(user.id, a.agencyId, requiredPerm, brandIds[i]);
     if (!ok) {
-      return NextResponse.json({ error: "Sin permiso: posts.schedule" }, { status: 403 });
+      return NextResponse.json({ error: `Sin permiso: ${requiredPerm}` }, { status: 403 });
     }
   }
 

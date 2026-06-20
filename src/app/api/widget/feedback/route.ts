@@ -7,7 +7,7 @@ import { hashPassword } from "@/lib/auth";
 import { recordActivity } from "@/lib/activity";
 import { notifyBrandAgency } from "@/lib/notifications";
 import { getEffectiveLimits } from "@/lib/billing";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitAsync } from "@/lib/rate-limit";
 import { widgetCors as corsHeaders } from "@/lib/cors";
 
 export const runtime = "nodejs";
@@ -55,7 +55,7 @@ function jsonCors(req: Request, data: unknown, status = 200) {
 export async function POST(req: Request) {
   // Rate limit: 30 comments/hora por widgetToken+IP. Suficiente para un cliente
   // real revisando un sitio, frena spam masivo.
-  const rl = rateLimit(req, {
+  const rl = await rateLimitAsync(req, {
     key: "widget-feedback",
     limit: 30,
     windowMs: 60 * 60_000,
