@@ -36,6 +36,7 @@ import {
   ListTodo,
   Tag,
   HardDrive,
+  Wrench,
 } from "lucide-react";
 
 type NavItem = {
@@ -208,6 +209,7 @@ function buildSections({
             { label: "Uso e infra", href: "/admin/usage", icon: HardDrive, match: (p) => p.startsWith("/admin/usage") },
             { label: "Configuración", href: "/admin/settings", icon: Settings, match: (p) => p.startsWith("/admin/settings") },
             { label: "Setup", href: "/admin/setup", icon: KeyRound, match: (p) => p.startsWith("/admin/setup") },
+            { label: "Mantenimiento", href: "/admin/maintenance", icon: Wrench, match: (p) => p.startsWith("/admin/maintenance") },
             { label: "Audit log", href: "/admin/audit-log", icon: ScrollText, match: (p) => p.startsWith("/admin/audit-log") },
           ],
         },

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2, Webhook, HeartPulse, Send, FileText, Sliders, Tag, HardDrive } from "lucide-react";
+import { CreditCard, BarChart3, LayoutGrid, KeyRound, ScrollText, UserCog, Building2, Webhook, HeartPulse, Send, FileText, Sliders, Tag, HardDrive, Wrench } from "lucide-react";
 
 const NAV = [
   { slug: "", label: "Resumen", icon: LayoutGrid, desc: "Stats globales" },
@@ -62,6 +62,12 @@ const NAV = [
     label: "Setup",
     icon: KeyRound,
     desc: "Master key de encriptación",
+  },
+  {
+    slug: "maintenance",
+    label: "Mantenimiento",
+    icon: Wrench,
+    desc: "Backfills y migraciones one-shot",
   },
   {
     slug: "audit-log",
