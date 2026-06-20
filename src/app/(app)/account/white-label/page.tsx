@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getEffectiveLimits } from "@/lib/billing";
 import WhiteLabelEditor from "./WhiteLabelEditor";
+import WhiteLabelCta from "./WhiteLabelCta";
 
 /**
  * /account/white-label
@@ -64,14 +64,12 @@ export default async function WhiteLabelPage() {
           <p className="mt-1 text-[12px] text-zinc-500">
             Para usar tu propio branding tienes que estar en el plan Agency
             (que lo incluye) o comprar el add-on White-label encima de Pro
-            ($59.000 COP/mes).
+            ($59.000 COP, pago único).
           </p>
-          <Link
-            href="/billing"
-            className="btn-gradient mt-4 inline-block rounded-md px-4 py-2 text-[12px] font-semibold"
-          >
-            Ver opciones
-          </Link>
+          <WhiteLabelCta
+            isFree={limits.planId === "free"}
+            isPro={limits.planId === "pro"}
+          />
         </div>
       ) : (
         <div className="mt-6">
