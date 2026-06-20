@@ -117,6 +117,19 @@ export async function POST(
     }
 
     case "extend_trial": {
+      // Idempotencia anti-doble-submit: extend_trial es ADITIVO (+N días sobre
+      // el trial actual), así que reintentos de red / dobles POST compondrían
+      // varias extensiones (y logs duplicados). Si ya está en trial y se acaba
+      // de modificar (< 5s), asumimos que es un reintento del mismo request y
+      // devolvemos el estado actual sin volver a extender ni auditar. (La
+      // condición `trialing` evita bloquear una secuencia legítima como
+      // set_plan → extend hecha en pocos segundos.)
+      if (
+        sub.status === "trialing" &&
+        Date.now() - sub.updatedAt.getTime() < 5000
+      ) {
+        return NextResponse.json({ subscription: sub, deduped: true });
+      }
       const base = sub.trialEndsAt && sub.trialEndsAt > new Date() ? sub.trialEndsAt : new Date();
       const newEnd = new Date(base);
       newEnd.setDate(newEnd.getDate() + body.days);
