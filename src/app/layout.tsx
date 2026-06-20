@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import ConfirmProvider from "@/components/ConfirmDialog";
 import UpgradeProvider from "@/components/UpgradeProvider";
 import Analytics from "@/components/Analytics";
+import CookieConsent from "@/components/CookieConsent";
 import {
   SITE_URL,
   SITE_NAME,
@@ -95,6 +96,7 @@ export default function RootLayout({
             />
           </UpgradeProvider>
         </ConfirmProvider>
+        <CookieConsent />
       </body>
     </html>
   );

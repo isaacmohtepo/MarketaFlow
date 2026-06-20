@@ -48,13 +48,12 @@ export default function OnboardingWizard({
   });
   const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
 
-  // Paso 2: invite
+  // Paso 2: invite (colaborador a nivel agencia, rol editor)
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
 
   async function createBrand() {
     if (!brand.name.trim()) {
-      toast.error("Ponele un nombre a la marca");
+      toast.error("Ponle un nombre a la marca");
       return;
     }
     setBusy(true);
@@ -339,34 +338,25 @@ export default function OnboardingWizard({
         {step === 2 && (
           <StepCard
             icon={<UserPlus className="h-6 w-6" />}
-            title="Invita al equipo o al cliente"
-            subtitle="Mve una invitación para que un colaborador se sume. Puedes saltarte este paso y hacerlo más tarde."
+            title="Invita a tu equipo"
+            subtitle="Suma a un colaborador para crear y revisar contenido contigo. Puedes saltarte este paso y hacerlo más tarde."
           >
             <div className="mt-6 space-y-3">
-              <Field label="Email">
+              <Field label="Email del colaborador">
                 <input
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.currentTarget.value)}
-                  placeholder="cliente@empresa.com"
+                  placeholder="colaborador@empresa.com"
                   disabled={busy}
                   className="input-soft w-full rounded-md px-3 py-2 text-[13px]"
                   autoFocus
                 />
               </Field>
-              <Field label="Nombre (opcional)">
-                <input
-                  type="text"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.currentTarget.value)}
-                  placeholder="María López"
-                  disabled={busy}
-                  className="input-soft w-full rounded-md px-3 py-2 text-[13px]"
-                />
-              </Field>
               <p className="text-2xs text-zinc-500">
-                Le va a llegar un email con un link para sumarse. Podrá revisar
-                posts y aprobarlos.
+                Le llegará un email con un link para sumarse como editor (puede
+                crear y editar contenido). A tus clientes los invitas después,
+                marca por marca, desde su pantalla de compartir.
               </p>
             </div>
             <div className="mt-6 flex gap-2">
