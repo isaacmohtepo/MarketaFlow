@@ -10,8 +10,11 @@ import {
   Zap,
   LayoutGrid,
   BarChart3,
+  ArrowRight,
+  Clock,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import { getAllArticles, formatArticleDate } from "@/lib/blog";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import PricingTable from "@/components/PricingTable";
@@ -87,6 +90,8 @@ const FEATURES = [
 export default async function Home() {
   const user = await getCurrentUser();
   if (user) redirect("/dashboard");
+
+  const latestArticles = getAllArticles().slice(0, 3);
 
   return (
     <div className="theme-dark flex min-h-screen flex-col bg-black">
@@ -320,8 +325,63 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* BLOG */}
+      <section className="border-t divider bg-[#06060a]">
+        <div className="mx-auto w-full max-w-6xl px-6 py-20">
+          <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+            <div>
+              <p className="text-2xs font-semibold uppercase tracking-widest brand-gradient-text">
+                Del blog
+              </p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Aprende a escalar tu agencia.
+              </h2>
+            </div>
+            <Link
+              href="/blog"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full glass px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white/10"
+            >
+              Ver todos los artículos
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="mt-12 grid gap-4 sm:grid-cols-3">
+            {latestArticles.map((a) => (
+              <Link
+                key={a.slug}
+                href={`/blog/${a.slug}`}
+                className="card group relative flex flex-col overflow-hidden p-6 transition hover:-translate-y-0.5 hover:border-white/15"
+              >
+                <span className="inline-flex w-fit items-center rounded-full bg-white/[0.06] px-2.5 py-1 text-3xs font-semibold uppercase tracking-wide text-fuchsia-300 ring-1 ring-white/10">
+                  {a.category}
+                </span>
+                <h3 className="mt-3 text-lg font-bold leading-snug tracking-tight text-white">
+                  {a.title}
+                </h3>
+                <p className="mt-2 flex-1 text-[14px] leading-relaxed text-zinc-400 line-clamp-3">
+                  {a.description}
+                </p>
+                <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">
+                  <span className="flex items-center gap-3">
+                    <span>{formatArticleDate(a.date)}</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {a.readingMinutes} min
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1 font-medium text-fuchsia-300 transition group-hover:gap-2">
+                    Leer
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="relative overflow-hidden border-t divider bg-[#06060a]">
+      <section className="relative overflow-hidden border-t divider bg-black">
         <Particles count={20} />
         <div className="relative mx-auto w-full max-w-3xl px-6 py-20 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
