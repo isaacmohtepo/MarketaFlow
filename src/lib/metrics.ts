@@ -11,6 +11,18 @@ import { PLANS, type PlanId } from "./plans";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+/**
+ * Criterio canónico de "agencia con suscripción activa de pago" para los
+ * contadores del panel admin: status `active` O `trialing` (un trial es un
+ * tenant activo usando el producto), con plan distinto de `free`. Compartido
+ * por admin Resumen, Agencias y Uso e infra para que NO vuelvan a divergir
+ * (antes cada una usaba un filtro distinto y reportaban 1/1/2).
+ */
+export const ACTIVE_PAID_SUB_WHERE = {
+  status: { in: ["active", "trialing"] },
+  plan: { not: "free" },
+};
+
 // ============================================================================
 // MRR (Monthly Recurring Revenue)
 // ============================================================================
@@ -323,22 +335,22 @@ export async function cohortRetention(months = 6): Promise<CohortRow[]> {
     const periodsRemaining = months - ci;
     const retention: (number | null)[] = [];
     for (let p = 0; p < periodsRemaining; p++) {
-      const periodEnd = new Date(
-        now.getFullYear(),
-        now.getMonth() - (months - 1 - ci) + p + 1,
-        0,
-      );
-      // Si periodEnd es futuro, marcamos null (no aplica todavía)
-      if (periodEnd > now) {
+      const monthIdx = now.getMonth() - (months - 1 - ci) + p;
+      const periodStart = new Date(now.getFullYear(), monthIdx, 1);
+      const periodEnd = new Date(now.getFullYear(), monthIdx + 1, 0);
+      // Solo es "no aplica todavía" si el período aún no EMPEZÓ. El período en
+      // curso (no cerrado) sí se evalúa contra ahora — así el mes 0 del cohort
+      // del mes actual da 100% en vez de "—".
+      if (periodStart > now) {
         retention.push(null);
         continue;
       }
-      // Cuántas de la cohort estaban "active" o "trialing" al final del period
+      // Para un período aún abierto evaluamos hasta "ahora", no hasta su fin.
+      const effectiveEnd = periodEnd > now ? now : periodEnd;
+      // Cuántas de la cohort seguían "active"/"trialing" al cierre del período.
       const stillActive = cohortSubs.filter((s) => {
-        // Si nunca fue cancelada/expired, está activa
         if (s.status !== "canceled" && s.status !== "expired") return true;
-        // Si lo fue, miramos si la cancelación pasó DESPUÉS del period end
-        return s.updatedAt > periodEnd;
+        return s.updatedAt > effectiveEnd;
       }).length;
       retention.push(stillActive);
     }

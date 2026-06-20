@@ -119,8 +119,9 @@ export default function NotificationsBell() {
 
   async function load() {
     try {
-      // Scheduler tick (barato) — mantiene posts programados al día
-      fetch("/api/cron/publish", { method: "POST" }).catch(() => {});
+      // Nota: el scheduler de publicación corre por Vercel cron (con su
+      // Bearer secret), NO desde el cliente. Antes había un fetch a
+      // /api/cron/publish acá que devolvía 401 en cada carga — removido.
       const res = await fetch("/api/notifications", { cache: "no-store" });
       if (!res.ok) return;
       const j = await res.json();

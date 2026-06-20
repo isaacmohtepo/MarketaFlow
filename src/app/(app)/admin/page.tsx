@@ -20,6 +20,7 @@ import {
   topAgenciesByRevenue,
   trialConversion,
   churnRate,
+  ACTIVE_PAID_SUB_WHERE,
 } from "@/lib/metrics";
 import AreaChart from "@/components/admin/AreaChart";
 import BarChart from "@/components/admin/BarChart";
@@ -51,9 +52,7 @@ export default async function AdminSummary() {
   ] = await Promise.all([
     prisma.agency.count(),
     prisma.user.count(),
-    prisma.subscription.count({
-      where: { status: "active", plan: { not: "free" } },
-    }),
+    prisma.subscription.count({ where: ACTIVE_PAID_SUB_WHERE }),
     prisma.subscription.count({ where: { status: "trialing" } }),
     prisma.subscription.count({ where: { status: "past_due" } }),
     prisma.brand.count(),
@@ -140,7 +139,7 @@ export default async function AdminSummary() {
           icon={<Building2 className="h-3.5 w-3.5" />}
           label="Agencias activas"
           value={String(activeSubs)}
-          subtitle={`${trialingSubs} trial · ${Math.max(0, totalAgencies - activeSubs - trialingSubs)} free/inactivas · ${totalAgencies} total`}
+          subtitle={`incluye ${trialingSubs} en trial · ${totalAgencies} agencias en total`}
         />
         <Kpi
           icon={<Sparkles className="h-3.5 w-3.5" />}

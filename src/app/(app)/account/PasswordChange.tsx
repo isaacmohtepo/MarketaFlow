@@ -69,13 +69,13 @@ export default function PasswordChange() {
           required
         />
       </Field>
-      <Field label="Nueva contraseña" hint="Mínimo 6 caracteres">
+      <Field label="Nueva contraseña" hint="Mínimo 8 caracteres">
         <input
           type={show ? "text" : "password"}
           value={next}
           onChange={(e) => setNext(e.target.value)}
           autoComplete="new-password"
-          minLength={6}
+          minLength={8}
           className="w-full rounded-md input-soft px-3 py-2 text-[13px]"
           required
         />

@@ -2,6 +2,7 @@ import { Database, HardDrive, Activity, AlertTriangle, Image as ImageIcon, FileV
 import { prisma } from "@/lib/db";
 import { r2UsageByPrefix, isR2Configured } from "@/lib/storage";
 import { getUsagePlans } from "@/lib/usage-plans";
+import { ACTIVE_PAID_SUB_WHERE } from "@/lib/metrics";
 import { PageHeader, Stat } from "@/components/ui";
 import PlansEditor from "./PlansEditor";
 
@@ -58,7 +59,7 @@ export default async function AdminUsagePage() {
     prisma.notification.count(),
     prisma.postImage.count(),
     prisma.invoice.count(),
-    prisma.subscription.count({ where: { status: "active" } }),
+    prisma.subscription.count({ where: ACTIVE_PAID_SUB_WHERE }),
     prisma.post.count({
       where: {
         deletedAt: null,

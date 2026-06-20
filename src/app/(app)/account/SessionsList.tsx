@@ -48,6 +48,19 @@ function formatRel(iso: string) {
   return new Date(iso).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
 }
 
+/** Tiempo restante hacia una fecha FUTURA (ej. expiración de sesión). */
+function formatFuture(iso: string) {
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff <= 0) return "expirada";
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `en ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `en ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `en ${d} d`;
+  return new Date(iso).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function SessionsList() {
   const [items, setItems] = useState<Session[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -143,7 +156,7 @@ export default function SessionsList() {
                   Última actividad {formatRel(s.lastSeenAt)}
                 </p>
                 <p className="mt-0.5 text-[10.5px] text-zinc-400">
-                  Iniciada {formatRel(s.createdAt)} · Expira {formatRel(s.expiresAt)}
+                  Iniciada {formatRel(s.createdAt)} · Expira {formatFuture(s.expiresAt)}
                 </p>
               </div>
               {!s.current && (

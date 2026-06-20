@@ -417,7 +417,8 @@ export default function CouponsManager() {
                   <span className="inline-flex items-center gap-0.5">
                     <Hash className="h-2.5 w-2.5" />
                     {c.redemptionCount}
-                    {c.maxRedemptions ? `/${c.maxRedemptions}` : ""} usos
+                    {c.maxRedemptions ? `/${c.maxRedemptions}` : ""}{" "}
+                    {c.redemptionCount === 1 && !c.maxRedemptions ? "uso" : "usos"}
                   </span>
                   {c.validUntil && (
                     <>

@@ -133,15 +133,22 @@ const SECTIONS: {
   {
     id: "aprobaciones",
     title: "Flujo de aprobación",
-    summary: "Cómo funciona el ciclo draft → en revisión → aprobado → publicado.",
+    summary:
+      "El ciclo: borrador → aprobación interna → revisión del cliente → aprobado.",
     icon: Sparkles,
     content: (
       <>
         <p>El flujo estándar de un post es:</p>
         <ol>
           <li>
-            <strong>Draft</strong>: lo creas internamente. Solo visible para tu
-            equipo. Puedes iterar libremente.
+            <strong>Borrador</strong>: lo creas internamente. Solo visible para
+            tu equipo. Puedes iterar libremente.
+          </li>
+          <li>
+            <strong>Aprobación interna</strong>: el equipo revisa la pieza antes
+            de mostrarla al cliente. Quien tenga el permiso de aprobación
+            interna le da el visto bueno (o la devuelve a borrador). Este paso
+            es opcional según cómo trabaje tu agencia.
           </li>
           <li>
             <strong>En revisión</strong>: lo envías al cliente. Se notifica por
@@ -153,48 +160,60 @@ const SECTIONS: {
             aquí. Puedes iterar sin re-crear el post.
           </li>
           <li>
-            <strong>Aprobado</strong>: el cliente lo aprobó. Listo para
-            programar.
-          </li>
-          <li>
-            <strong>Programado</strong>: defines fecha/hora. El cron de
-            publicación lo manda al canal real cuando llega el momento.
-          </li>
-          <li>
-            <strong>Publicado</strong>: vivo en el canal del cliente.
+            <strong>Aprobado</strong>: el cliente lo aprobó. Queda listo para
+            descargar y publicar.
           </li>
         </ol>
+        <p className="mt-2 text-[12px] text-zinc-500">
+          La programación y publicación automática a redes están en camino; por
+          ahora descargas la pieza aprobada y la subes a la red.
+        </p>
       </>
     ),
   },
   {
     id: "equipo",
     title: "Invitar al equipo",
-    summary: "Roles, permisos y cómo sumar editores o clientes.",
+    summary: "Roles del sistema, permisos y cómo sumar al equipo o clientes.",
     icon: Users,
     content: (
       <>
-        <p>Existen 3 roles:</p>
+        <p>
+          MarketaFlow trae varios <strong>roles del sistema</strong>, cada uno
+          con sus permisos por defecto (que el owner puede ajustar):
+        </p>
         <ul>
           <li>
-            <strong>Owner</strong>: control total de la agencia. Maneja
-            facturación, invita a otros owners, borra marcas.
+            <strong>Dueño/a (Owner)</strong>: control total. Maneja facturación,
+            invita a otros owners, borra marcas.
           </li>
           <li>
-            <strong>Editor</strong>: puede crear/editar posts en cualquier
-            marca de la agencia. No accede a billing.
+            <strong>Manager</strong>: gestiona equipo, marcas y aprobaciones;
+            ve facturación pero no cambia el plan.
           </li>
           <li>
-            <strong>Client</strong>: solo aprueba posts en una marca específica
-            (la suya). No ve otras marcas de la agencia.
+            <strong>Community Manager</strong>: crea, edita y programa posts.
+          </li>
+          <li>
+            <strong>Diseñador/a</strong> y <strong>Copywriter</strong>: suben
+            creativos / escriben captions en los posts asignados.
+          </li>
+          <li>
+            <strong>Estratega</strong>: ve dashboards y deja notas; no edita
+            contenido.
+          </li>
+          <li>
+            <strong>Cliente</strong>: solo revisa y aprueba en su marca. No ve
+            otras marcas.
           </li>
         </ul>
         <p>
-          Ve a{" "}
+          En el plan Agency además puedes crear <strong>roles personalizados</strong>{" "}
+          con los permisos exactos que necesites. Ve a{" "}
           <Link href="/team" className="text-fuchsia-600 hover:underline">
             Equipo
           </Link>{" "}
-          para invitar nuevos miembros con su email + rol.
+          para invitar miembros y gestionar roles.
         </p>
       </>
     ),

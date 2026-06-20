@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { PLANS, formatCop, type PlanId } from "@/lib/plans";
 import type { Prisma } from "@/generated/prisma";
 import { DataTable, EmptyState, PageHeader, Stat, StatusPill } from "@/components/ui";
+import { ACTIVE_PAID_SUB_WHERE } from "@/lib/metrics";
 import AgenciesFilters from "./AgenciesFilters";
 
 const PAGE_SIZE = 25;
@@ -76,7 +77,7 @@ export default async function AdminAgenciesPage({
   // Stats globales (no filtrados, métricas de plataforma)
   const [totalAgencies, totalActive, totalTrialing, totalSuspended] = await Promise.all([
     prisma.agency.count(),
-    prisma.subscription.count({ where: { status: "active", plan: { not: "free" } } }),
+    prisma.subscription.count({ where: ACTIVE_PAID_SUB_WHERE }),
     prisma.subscription.count({ where: { status: "trialing" } }),
     prisma.agency.count({ where: { suspendedAt: { not: null } } }),
   ]);
