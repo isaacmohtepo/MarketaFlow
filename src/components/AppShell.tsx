@@ -8,6 +8,7 @@ import ShortcutsOverlay from "./ShortcutsOverlay";
 import CommandPalette from "./CommandPalette";
 import NotificationToaster from "./NotificationToaster";
 import OnboardingTour from "./OnboardingTour";
+import SidebarCountsProvider from "./SidebarCountsProvider";
 
 /**
  * AppShell layout: sidebar (left) + topbar + banners + content.
@@ -65,6 +66,7 @@ export default function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
+    <SidebarCountsProvider>
     <div
       className="relative flex min-h-screen flex-1"
       style={{ background: "var(--bg-app)" }}
@@ -134,5 +136,6 @@ export default function AppShell({
       <NotificationToaster />
       <OnboardingTour />
     </div>
+    </SidebarCountsProvider>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { usePermissions } from "./PermissionsProvider";
+import { useSidebarCounts } from "./SidebarCountsProvider";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import type { Workspace } from "@/lib/active-agency";
 import {
@@ -259,8 +260,8 @@ export default function Sidebar({
   activeAgencyId?: string | null;
 }) {
   const pathname = usePathname() ?? "/dashboard";
-  const [inboxCount, setInboxCount] = useState<number>(0);
-  const [tasksCount, setTasksCount] = useState<number>(0);
+  // Contadores centralizados (un solo polling para ambos sidebars).
+  const { inboxCount, tasksCount } = useSidebarCounts();
   const { has, hasAnyScope } = usePermissions();
   // Billing solo visible si el user tiene billing.view (owner + manager por
   // default; cualquier custom role que tenga ese perm). Antes era owner-only.
@@ -294,44 +295,6 @@ export default function Sidebar({
     if (changed) setExpanded(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
-
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const r = await fetch("/api/inbox/count", { cache: "no-store" });
-        if (!r.ok) return;
-        const j = await r.json();
-        if (alive) setInboxCount(j.count ?? 0);
-      } catch {}
-    }
-    load();
-    const id = setInterval(load, 10000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  // Tasks count para el badge — solo polling si el user tiene acceso.
-  useEffect(() => {
-    if (!canViewTasks) return;
-    let alive = true;
-    async function load() {
-      try {
-        const r = await fetch("/api/tasks/my-count", { cache: "no-store" });
-        if (!r.ok) return;
-        const j = await r.json();
-        if (alive) setTasksCount(j.count ?? 0);
-      } catch {}
-    }
-    load();
-    const id = setInterval(load, 30000); // tareas cambian menos que inbox
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [canViewTasks]);
 
   function toggle(label: string) {
     setExpanded((e) => ({ ...e, [label]: !e[label] }));
