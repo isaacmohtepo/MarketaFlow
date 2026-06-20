@@ -34,6 +34,8 @@ import {
   HelpCircle,
   Package,
   ListTodo,
+  Tag,
+  HardDrive,
 } from "lucide-react";
 
 type NavItem = {
@@ -169,6 +171,7 @@ function buildSections({
             { label: "Notificaciones", href: "/account?tab=notifications", icon: Bell },
             { label: "Actividad", href: "/account?tab=activity", icon: Activity },
             { label: "Privacidad", href: "/account?tab=privacy", icon: Shield },
+            { label: "White-label", href: "/account/white-label", icon: Sparkles },
           ],
         },
         {
@@ -199,8 +202,10 @@ function buildSections({
             { label: "Métricas", href: "/admin/metrics", icon: BarChart3, match: (p) => p.startsWith("/admin/metrics") },
             { label: "Comunicaciones", href: "/admin/communications", icon: Send, match: (p) => p.startsWith("/admin/communications") },
             { label: "Integraciones", href: "/admin/integrations", icon: CreditCard, match: (p) => p.startsWith("/admin/integrations") },
+            { label: "Cupones", href: "/admin/coupons", icon: Tag, match: (p) => p.startsWith("/admin/coupons") },
             { label: "Webhooks", href: "/admin/webhooks", icon: Webhook, match: (p) => p.startsWith("/admin/webhooks") },
             { label: "Health", href: "/admin/health", icon: HeartPulse, match: (p) => p.startsWith("/admin/health") },
+            { label: "Uso e infra", href: "/admin/usage", icon: HardDrive, match: (p) => p.startsWith("/admin/usage") },
             { label: "Configuración", href: "/admin/settings", icon: Settings, match: (p) => p.startsWith("/admin/settings") },
             { label: "Setup", href: "/admin/setup", icon: KeyRound, match: (p) => p.startsWith("/admin/setup") },
             { label: "Audit log", href: "/admin/audit-log", icon: ScrollText, match: (p) => p.startsWith("/admin/audit-log") },
