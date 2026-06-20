@@ -3,7 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveAgencyMembership } from "@/lib/active-agency";
-import { hasPermission, isSystemRole, getSystemRole } from "@/lib/permissions";
+import {
+  hasPermission,
+  isSystemRole,
+  getSystemRole,
+  permissionsForRole,
+  permissionsAboveActor,
+} from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 
 /**
@@ -179,6 +185,27 @@ export async function PATCH(
           { status: 400 },
         );
       }
+    }
+  }
+
+  // Techo: no puedes asignar un rol cuyos permisos exceden los tuyos (evita
+  // que un no-owner promueva a alguien por encima de su propio nivel). El
+  // gate de "owner" ya está cubierto arriba; esto cubre el resto de roles.
+  if (newRole !== m.role) {
+    const rolePerms = await permissionsForRole(me.agencyId, newRole);
+    const over = await permissionsAboveActor(
+      user.id,
+      me.agencyId,
+      me.role,
+      rolePerms,
+    );
+    if (over.length > 0) {
+      return NextResponse.json(
+        {
+          error: `No puedes asignar un rol con permisos que tú no tienes: ${over.join(", ")}`,
+        },
+        { status: 403 },
+      );
     }
   }
 

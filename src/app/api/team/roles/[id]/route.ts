@@ -6,6 +6,7 @@ import {
   hasPermission,
   ALL_PERMISSIONS,
   invalidateRolePermsCache,
+  permissionsAboveActor,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { getActiveAgencyMembership } from "@/lib/active-agency";
@@ -52,6 +53,21 @@ export async function PATCH(
       return NextResponse.json(
         { error: `Permisos inválidos: ${invalid.join(", ")}` },
         { status: 400 },
+      );
+    }
+    // Techo: no puedes elevar un rol con permisos que tú no tienes.
+    const over = await permissionsAboveActor(
+      user.id,
+      me.agencyId,
+      me.role,
+      body.permissions,
+    );
+    if (over.length > 0) {
+      return NextResponse.json(
+        {
+          error: `No puedes otorgar permisos que tú no tienes: ${over.join(", ")}`,
+        },
+        { status: 403 },
       );
     }
   }

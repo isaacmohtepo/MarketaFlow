@@ -7,6 +7,7 @@ import {
   ALL_PERMISSIONS,
   SYSTEM_ROLES,
   invalidateRolePermsCache,
+  permissionsAboveActor,
   type SystemRoleSlug,
 } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -75,6 +76,23 @@ export async function PUT(
     return NextResponse.json(
       { error: `Permisos inválidos: ${invalid.join(", ")}` },
       { status: 400 },
+    );
+  }
+
+  // Techo: no puedes overridear un rol del sistema para darle permisos que
+  // tú no tienes (evita escalada vía override).
+  const over = await permissionsAboveActor(
+    user.id,
+    me.agencyId,
+    me.role,
+    body.permissions,
+  );
+  if (over.length > 0) {
+    return NextResponse.json(
+      {
+        error: `No puedes otorgar permisos que tú no tienes: ${over.join(", ")}`,
+      },
+      { status: 403 },
     );
   }
 

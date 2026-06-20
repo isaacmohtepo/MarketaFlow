@@ -216,6 +216,26 @@ export async function getUserPermissions(
 }
 
 /**
+ * Techo de permisos (anti-escalada vertical): un actor que NO es owner no
+ * puede crear, editar ni asignar un rol con permisos que él mismo no posee.
+ * Sin esto, un `manager` con `roles.manage` podría mintear un rol con
+ * `billing.manage` y asignárselo a un cómplice para escalar.
+ *
+ * Devuelve los permisos solicitados que EXCEDEN los del actor (array vacío =
+ * todo OK). El owner está exento — tiene control total por diseño.
+ */
+export async function permissionsAboveActor(
+  userId: string,
+  agencyId: string,
+  actorRole: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  if (actorRole === "owner") return [];
+  const actorPerms = await getUserPermissions(userId, agencyId);
+  return requested.filter((p) => !actorPerms.has(p));
+}
+
+/**
  * Set completo de permisos del user con scope de marca — mismas reglas que
  * `hasPermission` (acepta memberships agency-level + brand-scoped de ESA
  * marca), pero resuelve TODO en 1 query de memberships + roles cacheados.
