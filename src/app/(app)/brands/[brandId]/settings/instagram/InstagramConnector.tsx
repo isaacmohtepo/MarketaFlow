@@ -303,7 +303,7 @@ export default function InstagramConnector({
           </li>
         </ol>
         <p className="mt-3 text-2xs text-zinc-500">
-          Si necesitas ayuda con esto, escribinos a soporte@marketaflow.app y
+          Si necesitas ayuda con esto, escríbenos a soporte@marketaflow.com y
           te guiamos en el setup.
         </p>
       </section>

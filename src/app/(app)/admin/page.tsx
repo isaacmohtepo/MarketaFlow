@@ -140,7 +140,7 @@ export default async function AdminSummary() {
           icon={<Building2 className="h-3.5 w-3.5" />}
           label="Agencias activas"
           value={String(activeSubs)}
-          subtitle={`${trialingSubs} en trial · ${totalAgencies} total`}
+          subtitle={`${trialingSubs} trial · ${Math.max(0, totalAgencies - activeSubs - trialingSubs)} free/inactivas · ${totalAgencies} total`}
         />
         <Kpi
           icon={<Sparkles className="h-3.5 w-3.5" />}

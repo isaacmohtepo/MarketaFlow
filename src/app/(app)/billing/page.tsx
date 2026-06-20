@@ -157,8 +157,8 @@ export default async function BillingPage() {
           value={formatCop(totalPaid)}
           sub={
             paidCount === 0
-              ? "Sin facturas aún"
-              : `${paidCount} ${paidCount === 1 ? "factura" : "facturas"}`
+              ? "Sin pagos aún"
+              : `${paidCount} ${paidCount === 1 ? "factura pagada" : "facturas pagadas"}`
           }
         />
         <Metric

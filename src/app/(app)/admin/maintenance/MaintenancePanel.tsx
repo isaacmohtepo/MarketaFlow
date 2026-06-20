@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Tag, Bell, type LucideIcon } from "lucide-react";
+import { Check, Tag, Bell, Receipt, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useConfirm } from "@/components/ConfirmDialog";
 
@@ -45,6 +45,16 @@ const TASKS: TaskDef[] = [
       `${j.updatedFromTask ?? 0} actualizada(s) desde tarea`,
       `${j.remainingNull ?? 0} sin agencia aún`,
     ],
+  },
+  {
+    id: "invoice-numbers",
+    title: "Folios de factura faltantes",
+    description:
+      "Asigna el número legible (MF-AAAA-NNNNNN) a las facturas pagadas que no lo tengan, y completa el desglose de IVA. No toca las pendientes ni canceladas.",
+    endpoint: "/api/admin/backfill-invoice-numbers",
+    icon: Receipt,
+    tint: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    renderResult: (j) => [`${j.assigned ?? 0} factura(s) numeradas`],
   },
 ];
 

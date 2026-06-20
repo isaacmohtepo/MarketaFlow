@@ -119,7 +119,7 @@ const SETTINGS = {
   supportEmail: {
     type: "string",
     dbKey: "setting:support_email",
-    default: "soporte@marketaflow.app",
+    default: "soporte@marketaflow.com",
     placeholder: "soporte@empresa.com",
     maxLength: 100,
     pattern: {

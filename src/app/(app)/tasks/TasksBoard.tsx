@@ -3621,6 +3621,14 @@ function TaskDrawer({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={saveTitle}
+              onFocus={(e) => {
+                // Si sigue siendo el título por defecto, seleccionar todo para
+                // que el primer caracter lo reemplace (evita "NuevaTarea ...").
+                if (e.currentTarget.value === "Nueva tarea") {
+                  e.currentTarget.select();
+                }
+              }}
+              placeholder="Título de la tarea…"
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}

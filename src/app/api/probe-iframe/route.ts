@@ -143,7 +143,7 @@ export async function GET(req: Request) {
       signal: ctrl.signal,
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; MarketaFlow-Probe/1.0; +https://marketaflow.app)",
+          "Mozilla/5.0 (compatible; MarketaFlow-Probe/1.0; +https://marketaflow.com)",
         Accept: "text/html,*/*;q=0.8",
       },
     });

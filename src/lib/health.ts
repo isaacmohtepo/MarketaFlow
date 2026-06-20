@@ -143,12 +143,16 @@ export async function checkWompi(): Promise<CheckResult> {
 
 export async function checkAnthropic(): Promise<CheckResult> {
   if (!process.env.ANTHROPIC_API_KEY) {
+    // AI captions es una feature OPCIONAL y hoy está desactivada por defecto
+    // (flag ai_captions = false). No tener la key NO es un servicio caído —
+    // lo reportamos como OK/no configurado para no disparar falsas alarmas.
     return {
       name: "Anthropic (AI captions)",
-      ok: false,
+      ok: true,
       latencyMs: null,
-      message: "ANTHROPIC_API_KEY no seteada",
-      detail: "Setealo en Vercel para habilitar AI",
+      message: "No configurada (AI captions desactivado)",
+      detail:
+        "Opcional. Configura ANTHROPIC_API_KEY en Vercel solo si vas a activar la generación de captions con IA.",
     };
   }
   // No hacemos call real porque cuesta tokens. Solo verificamos que

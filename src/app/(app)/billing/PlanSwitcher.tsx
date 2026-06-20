@@ -335,7 +335,7 @@ export default function PlanSwitcher({
                 <Feature>
                   {p.limits.maxTeamMembers === -1
                     ? "Equipo ilimitado"
-                    : `${p.limits.maxTeamMembers} miembros`}
+                    : `${p.limits.maxTeamMembers} ${p.limits.maxTeamMembers === 1 ? "miembro" : "miembros"}`}
                 </Feature>
                 {p.limits.whiteLabelEnabled && <Feature>White-label</Feature>}
               </ul>

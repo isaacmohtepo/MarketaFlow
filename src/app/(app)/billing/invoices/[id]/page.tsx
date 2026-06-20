@@ -101,7 +101,7 @@ export default async function InvoiceDetailPage({
                 <br />
                 NIT: 901.000.000-0
                 <br />
-                soporte@marketaflow.app
+                soporte@marketaflow.com
               </p>
             </div>
             <div className="text-right">
@@ -242,7 +242,7 @@ export default async function InvoiceDetailPage({
           {/* Footer */}
           <footer className="mt-12 border-t border-zinc-100 pt-6 text-center text-[10.5px] text-zinc-400">
             Gracias por tu confianza en MarketaFlow. Si tienes preguntas sobre
-            esta factura, escribinos a soporte@marketaflow.app.
+            esta factura, escríbenos a soporte@marketaflow.com.
           </footer>
         </div>
       </article>

@@ -80,14 +80,14 @@ export default function HelpCenterPage() {
           ¿Necesitas más ayuda?
         </h2>
         <p className="mt-1 text-[12.5px] text-zinc-600">
-          Escribinos y te respondemos en menos de 24h hábiles.
+          Escríbenos y te respondemos en menos de 24h hábiles.
         </p>
         <a
-          href="mailto:soporte@marketaflow.app"
+          href="mailto:soporte@marketaflow.com"
           className="btn-gradient mt-4 inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[13px] font-semibold"
         >
           <Mail className="h-3.5 w-3.5" />
-          soporte@marketaflow.app
+          soporte@marketaflow.com
         </a>
       </section>
     </div>
@@ -216,8 +216,8 @@ const SECTIONS: {
             siempre.
           </li>
           <li>
-            <strong>Pro</strong>: 5 marcas, posts y clientes ilimitados, equipo
-            con roles.
+            <strong>Pro</strong>: 8 marcas, posts y clientes ilimitados, equipo
+            de hasta 5 con roles.
           </li>
           <li>
             <strong>Agency</strong>: marcas ilimitadas, white label, equipo
