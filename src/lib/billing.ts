@@ -229,12 +229,14 @@ export async function canInviteTeamMember(
   const limits = await getEffectiveLimits(agencyId);
   if (limits.maxTeamMembers === -1) return { ok: true };
 
-  // Miembros = owner + editors agency-level (brandId: null), no cuenta clients
+  // Miembros de equipo = cualquier membership agency-level (brandId: null),
+  // SIN importar el rol (owner, editor, manager, diseñador, etc.). Los clients
+  // son externos y se cuentan aparte (maxClientsPerBrand), por eso se excluyen.
   const count = await db.membership.count({
     where: {
       agencyId,
       brandId: null,
-      role: { in: ["owner", "editor"] },
+      role: { not: "client" },
     },
   });
   if (count >= limits.maxTeamMembers) {
