@@ -38,6 +38,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.4,
     },
+    {
+      url: `${SITE_URL}/terminos`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/privacidad`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 
   const articlePages: MetadataRoute.Sitemap = articles.map((a) => ({

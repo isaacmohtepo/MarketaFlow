@@ -103,7 +103,8 @@ export default function PublicFooter() {
                 hola@marketaflow.com
               </a>
             </li>
-            <li><Link href="/blog" className="transition hover:text-white">Blog</Link></li>
+            <li><Link href="/terminos" className="transition hover:text-white">Términos</Link></li>
+            <li><Link href="/privacidad" className="transition hover:text-white">Privacidad</Link></li>
           </ul>
         </div>
       </div>
