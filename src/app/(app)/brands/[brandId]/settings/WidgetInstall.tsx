@@ -10,6 +10,8 @@ import {
   RefreshCcw,
   Trash2,
   AlertCircle,
+  Download,
+  Puzzle,
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 
@@ -49,6 +51,7 @@ export default function WidgetInstall({
   const [token, setToken] = useState<string | null>(initialToken);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
   const [pings, setPings] = useState<Ping[] | null>(null);
   const [pingsBusy, setPingsBusy] = useState(false);
   const { confirm: confirmDialog } = useConfirm();
@@ -120,6 +123,13 @@ export default function WidgetInstall({
     await navigator.clipboard.writeText(snippet);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function copyToken() {
+    if (!token) return;
+    await navigator.clipboard.writeText(token);
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2000);
   }
 
   if (!token) {
@@ -233,6 +243,62 @@ export default function WidgetInstall({
             )}
           </button>
         </div>
+      </div>
+
+      {/* WordPress: en vez de pegar el código + configurar headers a mano, el
+          cliente instala un plugin que hace todo (inyecta el widget + habilita
+          la vista en vivo embebida seteando los headers server-side). */}
+      <div className="rounded-md border border-indigo-200 bg-indigo-50/50 p-3">
+        <p className="flex items-center gap-1.5 text-[11.5px] font-semibold text-indigo-900">
+          <Puzzle className="h-3.5 w-3.5" />
+          ¿El sitio es WordPress? Instala el plugin (recomendado)
+        </p>
+        <p className="mt-1 text-[11.5px] text-indigo-800/90">
+          En lugar de pegar el código a mano, instala el plugin. Además del widget,
+          habilita la <strong>vista previa en vivo embebida</strong> dentro de MarketaFlow
+          (configura los headers por vos) — sin tocar <span className="font-mono">.htaccess</span> ni nada.
+        </p>
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <a
+            href="/marketaflow-connect.zip"
+            download
+            className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[12px] font-semibold"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Descargar plugin de WordPress
+          </a>
+          <button
+            onClick={copyToken}
+            className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12px] font-semibold"
+          >
+            {tokenCopied ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                ¡Token copiado!
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" />
+                Copiar token
+              </>
+            )}
+          </button>
+        </div>
+        <ol className="mt-2.5 list-decimal space-y-0.5 pl-5 text-[11px] text-indigo-900/90">
+          <li>
+            En el WordPress del cliente: <span className="font-semibold">Plugins → Añadir nuevo → Subir plugin</span>{" "}
+            y elige el <span className="font-mono">.zip</span>.
+          </li>
+          <li>Actívalo.</li>
+          <li>
+            Ve a <span className="font-semibold">Ajustes → MarketaFlow</span>, pega el token
+            (botón de arriba) y guarda.
+          </li>
+        </ol>
+        <p className="mt-1.5 text-[10.5px] text-indigo-700/80">
+          Si el host o un CDN (Cloudflare) fuerza los headers por encima del plugin, puede
+          que la vista en vivo siga bloqueada; en ese caso el feedback del widget igual funciona.
+        </p>
       </div>
 
       <div className="rounded-md border border-zinc-200 bg-white p-3">
