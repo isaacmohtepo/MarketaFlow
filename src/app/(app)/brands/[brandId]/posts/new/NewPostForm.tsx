@@ -419,7 +419,14 @@ export default function NewPostForm({
         postType: fd.get("postType"),
         assetType,
         sourceUrl: sourceUrl.trim() || null,
-        scheduledAt: fd.get("scheduledAt") || null,
+        // El input datetime-local da una hora SIN zona ("2026-06-22T18:00").
+        // La convertimos a un instante UTC interpretándola en la zona horaria
+        // del navegador (la hora que el usuario realmente eligió), si no el
+        // server la tomaría como UTC y el post se publicaría a destiempo.
+        scheduledAt: (() => {
+          const v = fd.get("scheduledAt");
+          return v ? new Date(v as string).toISOString() : null;
+        })(),
         // Mandamos los archivos con metadata para guardar mime/name en server
         images: images.map((url) => ({
           url,
@@ -1141,6 +1148,10 @@ export default function NewPostForm({
           type="datetime-local"
           className="mt-1.5 w-full rounded-lg input-soft px-3 py-2 text-[13px]"
         />
+        <p className="mt-1 text-[11.5px] text-zinc-500">
+          En tu hora local. Una vez aprobado, el post se publica automáticamente
+          a esta fecha y hora.
+        </p>
       </div>
 
       {error && <p className="text-[12px] text-rose-600">{error}</p>}
