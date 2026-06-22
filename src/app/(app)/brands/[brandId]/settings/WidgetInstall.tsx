@@ -254,22 +254,23 @@ export default function WidgetInstall({
           ¿El sitio es WordPress? Instala el plugin (recomendado)
         </p>
         <p className="mt-1 text-[11.5px] text-indigo-800/90">
-          En lugar de pegar el código a mano, instala el plugin. Además del widget,
-          habilita la <strong>vista previa en vivo embebida</strong> dentro de MarketaFlow
-          (configura los headers por vos) — sin tocar <span className="font-mono">.htaccess</span> ni nada.
+          El plugin viene con el <strong>token de esta marca ya incrustado</strong>: el cliente
+          solo lo instala y activa. Además del widget, habilita la{" "}
+          <strong>vista previa en vivo embebida</strong> dentro de MarketaFlow (configura los
+          headers por vos) — sin pegar código ni tocar <span className="font-mono">.htaccess</span>.
         </p>
         <div className="mt-2.5 flex flex-wrap items-center gap-2">
           <a
-            href="/marketaflow-connect.zip"
-            download
+            href={`/api/brands/${brandId}/wp-plugin`}
             className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[12px] font-semibold"
           >
             <Download className="h-3.5 w-3.5" />
-            Descargar plugin de WordPress
+            Descargar plugin (con token)
           </a>
           <button
             onClick={copyToken}
             className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12px] font-semibold"
+            title="Por si necesitás pegar el token a mano"
           >
             {tokenCopied ? (
               <>
@@ -289,10 +290,8 @@ export default function WidgetInstall({
             En el WordPress del cliente: <span className="font-semibold">Plugins → Añadir nuevo → Subir plugin</span>{" "}
             y elige el <span className="font-mono">.zip</span>.
           </li>
-          <li>Actívalo.</li>
           <li>
-            Ve a <span className="font-semibold">Ajustes → MarketaFlow</span>, pega el token
-            (botón de arriba) y guarda.
+            <span className="font-semibold">Actívalo.</span> Listo — el token ya viene cargado.
           </li>
         </ol>
         <p className="mt-1.5 text-[10.5px] text-indigo-700/80">
