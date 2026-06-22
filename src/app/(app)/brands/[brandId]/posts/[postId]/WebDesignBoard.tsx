@@ -1585,7 +1585,11 @@ export default function WebDesignBoard({
           <button
             type="button"
             onClick={() => setIsFullscreen((v) => !v)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded text-[11.5px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:text-zinc-600"
+            className={`inline-flex h-8 w-8 items-center justify-center rounded text-[11.5px] font-semibold sm:h-auto sm:w-auto sm:gap-1 sm:px-2 ${
+              isFullscreen
+                ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 sm:text-zinc-600"
+                : "text-indigo-600 hover:bg-indigo-50"
+            }`}
             title={
               isFullscreen
                 ? "Salir de pantalla completa (F · Esc)"
@@ -1758,6 +1762,20 @@ export default function WebDesignBoard({
       )}
 
       <div className="relative">
+        {/* Indicativo: si la vista está reducida (el widescreen no entra en el
+            ancho disponible y se escala), avisamos y ofrecemos ampliar a
+            pantalla completa para verlo a tamaño real. */}
+        {!isFullscreen && previewScale < 0.95 && (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(true)}
+            className="absolute bottom-3 right-3 z-30 inline-flex items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 py-1.5 text-[11.5px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-zinc-900"
+            title="Pantalla completa (F)"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            Vista al {Math.round(previewScale * 100)}% · Ampliar
+          </button>
+        )}
         {/* Canvas: iframe live + overlay. El contenedor mide su propio ancho
             con ResizeObserver para calcular el scale factor cuando el viewport
             elegido excede el espacio disponible. Usamos flex para centrar el
