@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, UserPlus, X as XIcon } from "lucide-react";
 
 type Mentionable = { userId: string; name: string; handle: string; role: string };
@@ -27,7 +28,28 @@ export default function AssigneePicker({
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Mentionable[]>([]);
   const [loading, setLoading] = useState(false);
+  // Coords (fixed) del dropdown — se rinde en un portal para escapar el
+  // overflow-hidden de la tarjeta de comentario, que lo recortaba.
+  const [coords, setCoords] = useState<{ left: number; bottom: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const DROPDOWN_W = 224; // w-56
+
+  function toggleOpen() {
+    setOpen((v) => {
+      const next = !v;
+      if (next && ref.current) {
+        const r = ref.current.getBoundingClientRect();
+        const left = Math.min(
+          Math.max(8, r.right - DROPDOWN_W),
+          window.innerWidth - DROPDOWN_W - 8,
+        );
+        // Abrimos hacia arriba: el dropdown apoya su base 6px sobre el botón.
+        setCoords({ left, bottom: window.innerHeight - r.top + 6 });
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -41,7 +63,10 @@ export default function AssigneePicker({
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (!ref.current?.contains(t) && !menuRef.current?.contains(t)) {
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -54,7 +79,7 @@ export default function AssigneePicker({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setOpen((v) => !v);
+            toggleOpen();
           }}
           className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100"
           title={`Asignado a ${assignedToName}`}
@@ -74,7 +99,7 @@ export default function AssigneePicker({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setOpen((v) => !v);
+            toggleOpen();
           }}
           title="Asignar a alguien del equipo"
           className="grid h-7 w-7 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
@@ -83,12 +108,14 @@ export default function AssigneePicker({
           <UserPlus className="h-3.5 w-3.5" />
         </button>
       )}
-      {open && (
+      {open && coords &&
+        createPortal(
         <div
-          // Abre hacia ARRIBA (bottom-full): la barra de acciones vive al fondo
-          // de la tarjeta de comentario, que tiene overflow-hidden — abrir hacia
-          // abajo (top-full) recortaba el dropdown y parecía "no hacer nada".
-          className="absolute right-0 bottom-full z-30 mb-1 w-56 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg"
+          ref={menuRef}
+          // Portal a body con position fixed: escapa el overflow-hidden de la
+          // tarjeta de comentario (que recortaba el dropdown por el costado).
+          style={{ position: "fixed", left: coords.left, bottom: coords.bottom, width: 224 }}
+          className="z-[120] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-b border-zinc-100 px-2.5 py-1.5">
@@ -150,7 +177,8 @@ export default function AssigneePicker({
               Quitar asignación
             </button>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
