@@ -85,7 +85,10 @@ export default function AssigneePicker({
       )}
       {open && (
         <div
-          className="absolute right-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg"
+          // Abre hacia ARRIBA (bottom-full): la barra de acciones vive al fondo
+          // de la tarjeta de comentario, que tiene overflow-hidden — abrir hacia
+          // abajo (top-full) recortaba el dropdown y parecía "no hacer nada".
+          className="absolute right-0 bottom-full z-30 mb-1 w-56 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-b border-zinc-100 px-2.5 py-1.5">
