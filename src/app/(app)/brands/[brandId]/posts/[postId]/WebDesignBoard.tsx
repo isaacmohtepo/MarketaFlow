@@ -728,6 +728,45 @@ export default function WebDesignBoard({
     return () => es.close();
   }, [postId]);
 
+  // Probe instantáneo de embebido: pregunta al server (con guardas SSRF) si el
+  // sitio permite ser cargado en un <iframe> (X-Frame-Options / CSP
+  // frame-ancestors). Si NO, marcamos blocked al toque — sin esperar los 6s del
+  // timeout del handshake. Corre al montar y en cada reload (iframeKey). No pisa
+  // un handshake ya conectado (ready), por si el probe se demora más que el
+  // widget real.
+  useEffect(() => {
+    if (!liveModeAvailable) return;
+    const probeUrl = currentSrc ?? sourceUrl;
+    if (!probeUrl) return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch(
+          `/api/probe-iframe?url=${encodeURIComponent(probeUrl)}`,
+          { cache: "no-store" },
+        );
+        if (!alive || !r.ok) return;
+        const j = (await r.json()) as { embeddable?: boolean; reason?: string | null };
+        if (!alive || j.embeddable !== false) return;
+        setBridge((cur) =>
+          cur.state === "ready"
+            ? cur
+            : {
+                state: "blocked",
+                reason: j.reason
+                  ? `El sitio no permite vista previa embebida (${j.reason}).`
+                  : "El sitio no permite vista previa embebida.",
+              },
+        );
+      } catch {
+        // Probe falló: dejamos que el timeout del handshake actúe como fallback.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [liveModeAvailable, currentSrc, sourceUrl, iframeKey]);
+
   // Mandar al widget la lista de pines a trackear cuando cambian o cuando se
   // conecta. Solo enviamos pins de la página activa — comments de otra página
   // tienen selectores que no van a matchear aquí y aparecerían como orphan.
