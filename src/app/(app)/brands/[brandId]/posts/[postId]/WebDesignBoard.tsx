@@ -535,6 +535,25 @@ export default function WebDesignBoard({
     });
   }, [parents, pageFilter, currentPagePath, sourceUrl]);
 
+  // Conteo de comentarios por categoría de viewport (de la página actual), para
+  // mostrar un badge en cada botón de dispositivo: así se ve de un vistazo en
+  // qué tamaños de pantalla hay feedback (y cuántos siguen sin resolver).
+  const viewportCounts = useMemo(() => {
+    const m: Record<DeviceClass, { total: number; pending: number }> = {
+      mobilePortrait: { total: 0, pending: 0 },
+      tabletPortrait: { total: 0, pending: 0 },
+      tabletLandscape: { total: 0, pending: 0 },
+      laptop: { total: 0, pending: 0 },
+      widescreen: { total: 0, pending: 0 },
+    };
+    for (const c of parentsForPage) {
+      const cat = deviceFromViewport(c.viewportW, bp);
+      m[cat].total += 1;
+      if (!c.resolved) m[cat].pending += 1;
+    }
+    return m;
+  }, [parentsForPage, bp]);
+
   // Filtro por dispositivo aplicado encima del filtro de página. Cuando estás
   // viendo el preview en mobile, por default solo aparecen los comments hechos
   // desde mobile — útil para revisar issues responsive sin que el sidebar se
@@ -1545,13 +1564,21 @@ export default function WebDesignBoard({
                 // sentido previsualizar otros tamaños desde un teléfono.
                 (item) => !isUserOnMobile || item.mode === "mobilePortrait",
               )
-              .map(({ mode, Icon, width, title, rotated, large }) => (
+              .map(({ mode, Icon, width, title, rotated, large }) => {
+              const vc = viewportCounts[mode];
+              return (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setViewport(mode)}
-                title={`${title}${width ? ` · ${width}px` : " · 100%"}`}
-                className={`group/vp grid h-7 w-7 place-items-center rounded transition ${
+                title={`${title}${width ? ` · ${width}px` : " · 100%"}${
+                  vc.total > 0
+                    ? ` · ${vc.total} comentario${vc.total === 1 ? "" : "s"}${
+                        vc.pending > 0 ? ` (${vc.pending} sin resolver)` : ""
+                      }`
+                    : ""
+                }`}
+                className={`group/vp relative grid h-7 w-7 place-items-center rounded transition ${
                   viewport === mode
                     ? "bg-white text-zinc-900 shadow-sm"
                     : "text-zinc-500 hover:text-zinc-900"
@@ -1562,8 +1589,20 @@ export default function WebDesignBoard({
                     rotated ? "rotate-90" : ""
                   }`}
                 />
+                {vc.total > 0 && (
+                  <span
+                    className={`pointer-events-none absolute -right-1 -top-1 grid h-3.5 min-w-[14px] place-items-center rounded-full px-1 text-[8.5px] font-bold leading-none ring-1 ring-white ${
+                      vc.pending > 0
+                        ? "bg-indigo-600 text-white"
+                        : "bg-zinc-300 text-zinc-700"
+                    }`}
+                  >
+                    {vc.total}
+                  </span>
+                )}
               </button>
-            ))}
+              );
+            })}
           </div>
           <button
             type="button"
