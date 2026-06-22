@@ -1406,7 +1406,9 @@ export default function WebDesignBoard({
     <div
       className={
         isFullscreen
-          ? "fixed inset-0 z-[100] overflow-auto bg-white"
+          ? // overflow-x-hidden: el drawer de comentarios cerrado vive fuera del
+            // borde derecho (translate-x-full); sin esto generaba scroll lateral.
+            "fixed inset-0 z-[100] overflow-y-auto overflow-x-hidden bg-white"
           : "card overflow-hidden p-0"
       }
     >
