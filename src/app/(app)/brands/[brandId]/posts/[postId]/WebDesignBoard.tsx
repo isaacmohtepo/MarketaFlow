@@ -2315,66 +2315,62 @@ export default function WebDesignBoard({
               mostramos la última captura del sitio (si existe) para que el
               equipo igual pueda revisar, + la cabecera exacta para copiar. */}
           {bridge.state === "blocked" && (
-            <div className="absolute inset-0 z-40 flex flex-col bg-white">
-              {/* Banner explicativo arriba */}
-              <div className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3">
-                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-amber-100 ring-1 ring-amber-200">
-                  <AlertTriangle className="h-4 w-4 text-amber-700" />
+            <div className="absolute inset-0 z-40 flex flex-col items-center overflow-auto bg-zinc-50 px-4 py-8">
+              {/* Tarjeta centrada con el motivo + cómo habilitarlo */}
+              <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-amber-100 ring-1 ring-amber-200">
+                  <AlertTriangle className="h-5 w-5 text-amber-700" />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-zinc-900">
-                    Vista en vivo no disponible
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-zinc-600">{bridge.reason}</p>
-                  <p className="mt-1.5 text-[11.5px] text-zinc-500">
-                    Casi siempre es porque el sitio bloquea ser embebido
-                    (X-Frame-Options / CSP). Para habilitar la vista en vivo,
-                    pídele al cliente que agregue esta cabecera en el sitio:
-                  </p>
-                  <code className="mt-1 block break-all rounded bg-zinc-900 px-2 py-1 font-mono text-[11px] text-zinc-100">
-                    Content-Security-Policy: frame-ancestors https://marketaflow.com
-                  </code>
-                  <div className="mt-2.5 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={reloadIframe}
-                      className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
+                <h3 className="mt-3 text-[16px] font-bold text-zinc-900">
+                  Vista en vivo no disponible
+                </h3>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-zinc-600">
+                  {bridge.reason}
+                </p>
+                <p className="mt-3 text-[13px] leading-relaxed text-zinc-500">
+                  El sitio bloquea ser embebido (X-Frame-Options / CSP). Para
+                  habilitar la vista en vivo, instala el plugin de MarketaFlow en
+                  el WordPress del cliente, o agrega esta cabecera en el sitio:
+                </p>
+                <code className="mt-2 block break-all rounded-lg bg-zinc-900 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-100">
+                  Content-Security-Policy: frame-ancestors https://marketaflow.com
+                </code>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={reloadIframe}
+                    className="btn-gradient inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[13px] font-semibold"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    Reintentar
+                  </button>
+                  {sourceUrl && (
+                    <a
+                      href={sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[13px] font-semibold"
                     >
-                      <RefreshCcw className="h-3.5 w-3.5" />
-                      Reintentar
-                    </button>
-                    {sourceUrl && (
-                      <a
-                        href={sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Abrir en pestaña
-                      </a>
-                    )}
-                  </div>
+                      <ExternalLink className="h-4 w-4" />
+                      Abrir en pestaña
+                    </a>
+                  )}
                 </div>
               </div>
+
               {/* Fallback: captura del sitio (la que guardó el widget). No es en
                   vivo — no hay pines dinámicos — pero permite ver el diseño. */}
-              {imageUrl ? (
-                <div className="flex-1 overflow-auto bg-zinc-100 p-3">
-                  <p className="mb-2 text-center text-[11px] text-zinc-500">
+              {imageUrl && (
+                <div className="mt-6 w-full max-w-3xl">
+                  <p className="mb-2 text-center text-[12px] text-zinc-500">
                     Mostrando la última captura del sitio (no es en vivo).
                   </p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageUrl}
                     alt="Captura del sitio en revisión"
-                    className="mx-auto block w-full max-w-3xl rounded-lg border border-zinc-200 shadow-sm"
+                    className="block w-full rounded-lg border border-zinc-200 shadow-sm"
                   />
-                </div>
-              ) : (
-                <div className="flex flex-1 items-center justify-center px-6 text-center text-[12px] text-zinc-400">
-                  Sin captura todavía. Cuando el cliente comente con el widget
-                  flotante, se guarda una captura del sitio y aparece acá.
                 </div>
               )}
             </div>
