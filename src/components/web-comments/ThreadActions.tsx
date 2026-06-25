@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import AssigneePicker from "./AssigneePicker";
 
 /**
@@ -60,12 +61,35 @@ export default function ThreadActions({
   onDelete?: () => void;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  // Coords (fixed) del menú — se rinde en un portal para escapar el
+  // overflow-hidden de la tarjeta de comentario, que lo recortaba.
+  const [moreCoords, setMoreCoords] = useState<{ left: number; bottom: number } | null>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const MORE_W = 144; // w-36
+
+  function toggleMore() {
+    setMoreOpen((v) => {
+      const next = !v;
+      if (next && moreRef.current) {
+        const r = moreRef.current.getBoundingClientRect();
+        const left = Math.min(
+          Math.max(8, r.right - MORE_W),
+          window.innerWidth - MORE_W - 8,
+        );
+        setMoreCoords({ left, bottom: window.innerHeight - r.top + 6 });
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!moreOpen) return;
     function onDocClick(e: MouseEvent) {
-      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+      const t = e.target as Node;
+      if (!moreRef.current?.contains(t) && !moreMenuRef.current?.contains(t)) {
+        setMoreOpen(false);
+      }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -149,7 +173,7 @@ export default function ThreadActions({
         <div className="relative" ref={moreRef}>
           <button
             type="button"
-            onClick={() => setMoreOpen((v) => !v)}
+            onClick={toggleMore}
             title="Más acciones"
             className={`grid h-7 w-7 place-items-center rounded-md transition ${
               moreOpen
@@ -159,8 +183,12 @@ export default function ThreadActions({
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
-          {moreOpen && (
-            <div className="absolute bottom-full right-0 z-30 mb-1 w-36 overflow-hidden rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+          {moreOpen && moreCoords &&
+            createPortal(
+            <div
+              ref={moreMenuRef}
+              style={{ position: "fixed", left: moreCoords.left, bottom: moreCoords.bottom, width: MORE_W }}
+              className="z-[120] overflow-hidden rounded-lg border border-zinc-200 bg-white py-1 shadow-xl">
               {onEdit && (
                 <button
                   type="button"
@@ -187,7 +215,8 @@ export default function ThreadActions({
                   Eliminar
                 </button>
               )}
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       )}
