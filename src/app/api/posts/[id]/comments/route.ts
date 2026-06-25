@@ -22,6 +22,9 @@ async function resolveMentionedUsers(opts: {
   brandId: string;
   authorId: string;
   body: string;
+  /** Si el comentario es interno, excluimos a los clients del pool para no
+   *  filtrarles por email el contenido interno del equipo. */
+  excludeClients?: boolean;
 }): Promise<string[]> {
   const mentions = extractMentions(opts.body);
   if (mentions.length === 0) return [];
@@ -41,6 +44,9 @@ async function resolveMentionedUsers(opts: {
   for (const m of members) {
     const email = m.user.email.toLowerCase();
     if (email.endsWith("@guest.local") || email.startsWith("widget_")) continue;
+    // En comentarios internos no notificamos a clients (les llegaría el cuerpo
+    // del comentario interno por email).
+    if (opts.excludeClients && m.role === "client") continue;
     if (!userPool.has(m.user.id)) userPool.set(m.user.id, m.user);
   }
 
@@ -165,6 +171,7 @@ export async function POST(
     brandId: ctx.post.brandId,
     authorId: user.id,
     body: body.body,
+    excludeClients: isInternal,
   })
     .then((userIds) =>
       notifyMentionedUsers({

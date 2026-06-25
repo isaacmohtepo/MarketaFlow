@@ -14,10 +14,12 @@ export async function publishPost(
       return publishToInstagram(post, imageUrls);
     case "facebook":
     case "tiktok":
-      // Stub: estas plataformas se conectan más adelante.
+      // Aún no implementado. Devolvemos error (NO éxito falso) — si devolviera
+      // ok:true, el cron marcaría el post como "publicado" con una URL falsa
+      // sin haber publicado nada en la red real.
       return {
-        ok: true,
-        url: `https://example.com/${post.platform}/${post.id}`,
+        ok: false,
+        error: `La publicación en ${post.platform === "facebook" ? "Facebook" : "TikTok"} todavía no está disponible.`,
       };
     default:
       return { ok: false, error: `Plataforma desconocida: ${post.platform}` };

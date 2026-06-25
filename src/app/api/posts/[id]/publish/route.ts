@@ -40,6 +40,15 @@ export async function POST(
     include: { images: { orderBy: { position: "asc" } } },
   });
   if (!post) return NextResponse.json({ error: "Post no encontrado" }, { status: 404 });
+  // Guard anti-doble-publicación: si ya tiene publishedAt, no lo publicamos otra
+  // vez (la máquina de estados permite published→approved, lo que sin esto
+  // dejaría re-publicar y crear un segundo post real en Instagram).
+  if (post.publishedAt) {
+    return NextResponse.json(
+      { error: "Este post ya fue publicado." },
+      { status: 409 },
+    );
+  }
 
   const imageUrls = post.images.map((i) => i.url);
   if (post.imageUrl && imageUrls.length === 0) imageUrls.push(post.imageUrl);

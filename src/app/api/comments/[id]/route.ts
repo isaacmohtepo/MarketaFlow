@@ -66,6 +66,20 @@ export async function PATCH(
       );
     }
   }
+  // Asignar y cambiar visibilidad (internal) son acciones de MODERACIÓN del
+  // equipo. Aunque el rol "client" tenga `comments.write` (para comentar), NO
+  // debe poder asignar ni togglear internal: ocultaría feedback al equipo,
+  // expondría comentarios internos, o dispararía notificaciones a miembros.
+  if (
+    (body.assignedToId !== undefined || body.internal !== undefined) &&
+    ctx.access.role === "client"
+  ) {
+    return NextResponse.json(
+      { error: "Solo el equipo puede asignar o cambiar la visibilidad" },
+      { status: 403 },
+    );
+  }
+
   // Asignar: requiere comments.write
   const isAssign = body.assignedToId !== undefined;
   if (isAssign) {

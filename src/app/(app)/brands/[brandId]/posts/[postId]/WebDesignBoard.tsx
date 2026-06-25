@@ -731,14 +731,28 @@ export default function WebDesignBoard({
                   ...c,
                   body: u.body,
                   resolved: u.resolved,
-                  internal: u.internal ?? c.internal,
+                  // Usamos el valor del server tal cual (no `?? c.x`): el server
+                  // SIEMPRE manda estos campos, y con `??` un null/false (ej.
+                  // desasignar, o volver a público) se tragaba y no se reflejaba
+                  // en vivo hasta recargar.
+                  internal: u.internal !== undefined ? u.internal : c.internal,
                   updatedAt: u.updatedAt,
-                  assignedToId: u.assignedToId ?? c.assignedToId,
-                  assignedToName: u.assignedToName ?? c.assignedToName,
+                  assignedToId:
+                    u.assignedToId !== undefined ? u.assignedToId : c.assignedToId,
+                  assignedToName:
+                    u.assignedToName !== undefined ? u.assignedToName : c.assignedToName,
                 }
               : c,
           ),
         );
+      } catch {}
+    });
+    // Cambio de estado del post en vivo (ej. la agencia pasa draft→en revisión):
+    // sin esto el board seguía en "modo equipo" hasta recargar.
+    es.addEventListener("status", (ev) => {
+      try {
+        const d = JSON.parse((ev as MessageEvent).data) as { status?: string };
+        if (d.status) setLiveStatus(d.status);
       } catch {}
     });
     es.onerror = () => {
@@ -1168,6 +1182,9 @@ export default function WebDesignBoard({
         setReplyTo(null);
         setReplyBody("");
         setReplyAttachment(null);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo enviar la respuesta", { description: j.error });
       }
     } finally {
       setBusy(false);
@@ -1189,6 +1206,9 @@ export default function WebDesignBoard({
         );
         setEditId(null);
         setEditBody("");
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo guardar el cambio", { description: j.error });
       }
     } finally {
       setBusy(false);
@@ -1208,6 +1228,9 @@ export default function WebDesignBoard({
         setComments((arr) =>
           arr.map((x) => (x.id === c.id ? { ...x, ...j.comment } : x)),
         );
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo cambiar la visibilidad", { description: j.error });
       }
     } finally {
       setBusy(false);
@@ -1227,6 +1250,9 @@ export default function WebDesignBoard({
         setComments((arr) =>
           arr.map((c) => (c.id === id ? { ...c, ...j.comment } : c)),
         );
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error("No se pudo asignar", { description: j.error });
       }
     } finally {
       setBusy(false);
@@ -2244,7 +2270,7 @@ export default function WebDesignBoard({
                     goLabel="Ir"
                     assignedToId={c.assignedToId}
                     assignedToName={c.assignedToName}
-                    canAssign={canComment}
+                    canAssign={isAgency}
                     gradientForName={gradientForName}
                     internal={c.internal}
                     onToggleInternal={isAgency ? () => toggleInternal(c) : undefined}
@@ -2913,7 +2939,7 @@ export default function WebDesignBoard({
                             goLabel="Ir al pin"
                             assignedToId={c.assignedToId}
                             assignedToName={c.assignedToName}
-                            canAssign={canComment}
+                            canAssign={isAgency}
                             gradientForName={gradientForName}
                             internal={c.internal}
                             onToggleInternal={isAgency ? () => toggleInternal(c) : undefined}
