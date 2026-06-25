@@ -274,7 +274,13 @@ export default async function PostPage({
               brandId={brandId}
               imageUrl={post.imageUrl}
               sourceUrl={post.sourceUrl}
-              widgetToken={result.access.role !== "client" ? brand?.widgetToken ?? null : null}
+              // El widgetToken NO es secreto: ya está público en el <script
+              // src="widget.js?token=..."> del sitio del cliente. Antes se lo
+              // ocultábamos a los clientes y veían "La marca no tiene widget
+              // configurado" en vez de la revisión en vivo. Lo pasamos a todos
+              // los que tienen acceso a la marca para que el cliente también
+              // pueda ver el sitio embebido y comentar.
+              widgetToken={brand?.widgetToken ?? null}
               brandBreakpoints={brand?.breakpoints ?? null}
               currentUserId={user.id}
               canComment={!post.deletedAt && (access.canEdit || access.canApprove)}
